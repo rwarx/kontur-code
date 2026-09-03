@@ -1,0 +1,129 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!--
+        Shared metrics. Kept as resources rather than repeated literals so the spacing
+        rhythm stays consistent and can be adjusted in one place.
+    -->
+    <sys:Double x:Key="ContentMaxWidth">860</sys:Double>
+    <Thickness x:Key="PanePadding">20,16,20,16</Thickness>
+    <Thickness x:Key="CardPadding">14,12,14,12</Thickness>
+    <CornerRadius x:Key="CardCorner">8</CornerRadius>
+    <CornerRadius x:Key="ChipCorner">14</CornerRadius>
+
+    <FontFamily x:Key="CodeFont">Cascadia Code, Consolas, Courier New</FontFamily>
+
+    <!-- Sidebar -->
+
+    <!--
+        Targets ui:Button rather than the framework Button: WPF-UI's control styles are what
+        give the shell its Fluent look, and BasedOn keeps the template while overriding only
+        the layout properties a sidebar row needs.
+    -->
+    <Style x:Key="SidebarButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Padding" Value="12,9" />
+        <Setter Property="Margin" Value="0,1" />
+        <Setter Property="Appearance" Value="Secondary" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <!-- Chat -->
+
+    <Style x:Key="MessageCard" TargetType="Border">
+        <Setter Property="CornerRadius" Value="{StaticResource CardCorner}" />
+        <Setter Property="Padding" Value="{StaticResource CardPadding}" />
+    </Style>
+
+    <!--
+        User messages sit in a tinted bubble; assistant messages run full width with no
+        container. Boxing a long answer in a card wastes horizontal space and makes code
+        blocks harder to read, which is the opposite of what a coding-focused client wants.
+    -->
+    <Style x:Key="UserMessageCard" TargetType="Border" BasedOn="{StaticResource MessageCard}">
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="MaxWidth" Value="620" />
+    </Style>
+
+    <Style x:Key="MessageActionButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+        <Setter Property="Appearance" Value="Secondary" />
+        <Setter Property="Padding" Value="7,4" />
+        <Setter Property="Margin" Value="0,0,4,0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <!-- Text -->
+
+    <Style x:Key="SubtleText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+    <Style x:Key="SectionHeader" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="17" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,20,0,10" />
+    </Style>
+
+    <Style x:Key="SettingLabel" TargetType="TextBlock">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!-- Badges and chips -->
+
+    <Style x:Key="Badge" TargetType="Border">
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="5,1" />
+        <Setter Property="Margin" Value="0,0,4,0" />
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="BadgeText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    </Style>
+
+    <Style x:Key="AttachmentChip" TargetType="Border">
+        <Setter Property="CornerRadius" Value="{StaticResource ChipCorner}" />
+        <Setter Property="Padding" Value="10,5" />
+        <Setter Property="Margin" Value="0,0,6,6" />
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- Code blocks -->
+
+    <Style x:Key="CodeBlockContainer" TargetType="Border">
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Margin" Value="0,8" />
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!--
+        Syntax colours. Defined per theme rather than hardcoded so code stays legible in
+        both; adding a theme means adding a dictionary, not editing the highlighter.
+    -->
+    <SolidColorBrush x:Key="SyntaxKeywordBrush" Color="#569CD6" />
+    <SolidColorBrush x:Key="SyntaxTypeBrush" Color="#4EC9B0" />
+    <SolidColorBrush x:Key="SyntaxStringBrush" Color="#CE9178" />
+    <SolidColorBrush x:Key="SyntaxNumberBrush" Color="#B5CEA8" />
+    <SolidColorBrush x:Key="SyntaxCommentBrush" Color="#6A9955" />
+    <SolidColorBrush x:Key="SyntaxDirectiveBrush" Color="#C586C0" />
+    <SolidColorBrush x:Key="SyntaxFunctionBrush" Color="#DCDCAA" />
+
+</ResourceDictionary>

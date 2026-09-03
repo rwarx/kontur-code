@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>AIClient.Infrastructure</RootNamespace>
+    <AssemblyName>AIClient.Infrastructure</AssemblyName>
+    <!-- net10.0-windows is required for DPAPI (ProtectedData) and Credential Manager interop. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AIClient.Application\AIClient.Application.csproj" />
+    <ProjectReference Include="..\AIClient.Domain\AIClient.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+  </ItemGroup>
+
+</Project>

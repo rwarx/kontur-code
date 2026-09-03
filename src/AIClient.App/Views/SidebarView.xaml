@@ -1,0 +1,171 @@
+<UserControl x:Class="AIClient.App.Views.SidebarView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+             xmlns:conv="clr-namespace:AIClient.App.Converters"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
+             d:DesignHeight="700" d:DesignWidth="280">
+
+    <UserControl.Resources>
+        <!-- See BindingProxy: a ContextMenu is not in this visual tree. -->
+        <conv:BindingProxy x:Key="Root" Data="{Binding}" />
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- New Chat -->
+        <ui:Button Grid.Row="0"
+                   Margin="10,12,10,6"
+                   Padding="12,10"
+                   HorizontalAlignment="Stretch"
+                   HorizontalContentAlignment="Left"
+                   Appearance="Primary"
+                   Icon="{ui:SymbolIcon Add24}"
+                   Content="New Chat"
+                   ToolTip="New chat (Ctrl+N)"
+                   Command="{Binding NewChatCommand}" />
+
+        <!-- Search -->
+        <ui:TextBox x:Name="SearchBox"
+                    Grid.Row="1"
+                    Margin="10,4,10,8"
+                    PlaceholderText="Search chats…"
+                    Icon="{ui:SymbolIcon Search24}"
+                    ClearButtonEnabled="True"
+                    Text="{Binding Sessions.SearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                    ToolTip="Search chats (Ctrl+K)" />
+
+        <!-- Session list -->
+        <Grid Grid.Row="2">
+            <ListBox x:Name="SessionList"
+                     ItemsSource="{Binding Sessions.Sessions}"
+                     SelectedItem="{Binding Sessions.SelectedSession}"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     Margin="6,0"
+                     HorizontalContentAlignment="Stretch"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     VirtualizingPanel.IsVirtualizing="True"
+                     VirtualizingPanel.VirtualizationMode="Recycling"
+                     ScrollViewer.ScrollChanged="OnSessionScrollChanged"
+                     SelectionChanged="OnSessionSelected"
+                     Visibility="{Binding Sessions.IsEmpty, Converter={StaticResource InverseBoolToVisibility}}">
+
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                        <Setter Property="Padding" Value="8,7" />
+                        <Setter Property="Margin" Value="0,1" />
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    </Style>
+                </ListBox.ItemContainerStyle>
+
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <ui:SymbolIcon Grid.Column="0"
+                                           Symbol="Pin24"
+                                           FontSize="13"
+                                           Margin="0,1,6,0"
+                                           VerticalAlignment="Top"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisibility}}" />
+
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="{Binding Title}"
+                                           TextTrimming="CharacterEllipsis"
+                                           FontSize="13" />
+
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                    <TextBlock Style="{StaticResource SubtleText}"
+                                               Text="{Binding UpdatedAt, Converter={StaticResource RelativeTime}}"
+                                               FontSize="11" />
+                                    <TextBlock Style="{StaticResource SubtleText}"
+                                               Text="{Binding Preview}"
+                                               FontSize="11"
+                                               Margin="6,0,0,0"
+                                               MaxWidth="150" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Right-click rather than always-visible buttons: the list is
+                                 narrow and three icons per row would crowd out the title. -->
+                            <Grid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Open"
+                                              Command="{Binding Data.Sessions.OpenCommand, Source={StaticResource Root}}"
+                                              CommandParameter="{Binding}" />
+                                    <MenuItem Header="Rename…"
+                                              Command="{Binding Data.Sessions.RenameCommand, Source={StaticResource Root}}"
+                                              CommandParameter="{Binding}" />
+                                    <MenuItem Header="Pin / Unpin"
+                                              Command="{Binding Data.Sessions.TogglePinCommand, Source={StaticResource Root}}"
+                                              CommandParameter="{Binding}" />
+                                    <Separator />
+                                    <MenuItem Header="Delete"
+                                              Command="{Binding Data.Sessions.DeleteCommand, Source={StaticResource Root}}"
+                                              CommandParameter="{Binding}" />
+                                </ContextMenu>
+                            </Grid.ContextMenu>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- Empty state, distinguishing "no chats yet" from "nothing matched". -->
+            <TextBlock Style="{StaticResource SubtleText}"
+                       VerticalAlignment="Center"
+                       Margin="20"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       TextTrimming="None"
+                       Text="{Binding Sessions.EmptyMessage}"
+                       Visibility="{Binding Sessions.IsEmpty, Converter={StaticResource BoolToVisibility}}" />
+
+            <ui:ProgressRing IsIndeterminate="True"
+                             Width="22" Height="22"
+                             VerticalAlignment="Bottom"
+                             HorizontalAlignment="Center"
+                             Margin="0,0,0,10"
+                             Visibility="{Binding Sessions.IsLoading, Converter={StaticResource BoolToVisibility}}" />
+        </Grid>
+
+        <!-- Footer -->
+        <StackPanel Grid.Row="3" Margin="10,6,10,10">
+            <Border Height="1"
+                    Margin="0,0,0,8"
+                    Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+
+            <ui:Button Style="{StaticResource SidebarButton}"
+                       Icon="{ui:SymbolIcon Settings24}"
+                       Content="Settings"
+                       ToolTip="Settings (Ctrl+,)"
+                       Command="{Binding ShowSettingsCommand}" />
+
+            <ui:Button Style="{StaticResource SidebarButton}"
+                       Icon="{ui:SymbolIcon WeatherMoon24}"
+                       Content="Toggle theme"
+                       Command="{Binding ToggleThemeCommand}" />
+
+            <ui:Button Style="{StaticResource SidebarButton}"
+                       Icon="{ui:SymbolIcon Keyboard24}"
+                       Content="Command palette"
+                       ToolTip="Ctrl+Shift+P"
+                       Command="{Binding ToggleCommandPaletteCommand}" />
+        </StackPanel>
+    </Grid>
+</UserControl>

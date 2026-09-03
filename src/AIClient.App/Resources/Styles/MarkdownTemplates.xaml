@@ -1,0 +1,162 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:md="clr-namespace:AIClient.Application.Markdown;assembly=AIClient.Application"
+                    xmlns:local="clr-namespace:AIClient.App.Markdown">
+
+    <!--
+        One DataTemplate per block type, selected implicitly by DataType. An ItemsControl
+        bound to MessageViewModel.Blocks therefore renders a whole answer with no selector
+        code, and nested content (list items, quotes) reuses the same templates.
+
+        Anything whose shape depends on the data - inline runs, coloured code tokens, table
+        columns - is built by MarkdownHost's attached properties. See that file for why.
+    -->
+
+    <local:ListRowsConverter x:Key="ListRows" />
+    <local:HeadingFontSizeConverter x:Key="HeadingFontSize" />
+
+    <!-- Paragraph -->
+
+    <DataTemplate DataType="{x:Type md:ParagraphBlock}">
+        <TextBlock local:MarkdownHost.Spans="{Binding Spans}"
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,10"
+                   LineHeight="21"
+                   LineStackingStrategy="BlockLineHeight"
+                   TextOptions.TextFormattingMode="Ideal" />
+    </DataTemplate>
+
+    <!-- Heading -->
+
+    <DataTemplate DataType="{x:Type md:HeadingBlock}">
+        <TextBlock local:MarkdownHost.Spans="{Binding Spans}"
+                   TextWrapping="Wrap"
+                   FontWeight="SemiBold"
+                   Margin="0,12,0,6">
+            <TextBlock.FontSize>
+                <MultiBinding Converter="{StaticResource HeadingFontSize}">
+                    <Binding Path="Level" />
+                    <Binding Path="FontSize" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
+                </MultiBinding>
+            </TextBlock.FontSize>
+        </TextBlock>
+    </DataTemplate>
+
+    <!-- Code block -->
+
+    <DataTemplate DataType="{x:Type md:CodeBlock}">
+        <Border Style="{StaticResource CodeBlockContainer}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Header: language on the left, Copy on the right (section 20). -->
+                <Border Grid.Row="0"
+                        Padding="10,4"
+                        BorderThickness="0,0,0,1"
+                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                    <Grid>
+                        <TextBlock Text="{Binding Language}"
+                                   VerticalAlignment="Center"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+                        <Button HorizontalAlignment="Right"
+                                Padding="8,2"
+                                FontSize="11"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                ToolTip="Copy code"
+                                Content="Copy"
+                                Command="{Binding DataContext.CopyTextCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding Code}" />
+                    </Grid>
+                </Border>
+
+                <!--
+                    Horizontal scrolling rather than wrapping: a wrapped line of code is
+                    harder to read than one the user has to scroll, and wrapping breaks
+                    copy-paste expectations about line structure.
+                -->
+                <ScrollViewer Grid.Row="1"
+                              HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Disabled"
+                              Padding="10,8">
+                    <TextBlock local:MarkdownHost.CodeLines="{Binding Lines}"
+                               FontFamily="{StaticResource CodeFont}"
+                               FontSize="13"
+                               TextWrapping="NoWrap"
+                               TextOptions.TextFormattingMode="Display" />
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </DataTemplate>
+
+    <!-- List -->
+
+    <DataTemplate DataType="{x:Type md:ListBlock}">
+        <ItemsControl ItemsSource="{Binding Converter={StaticResource ListRows}}"
+                      Margin="0,0,0,8"
+                      Focusable="False">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="{Binding Indent}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="24" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding Marker}"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   HorizontalAlignment="Right"
+                                   Margin="0,0,8,0" />
+
+                        <ItemsControl Grid.Column="1"
+                                      ItemsSource="{Binding Blocks}"
+                                      Focusable="False" />
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </DataTemplate>
+
+    <!-- Quote -->
+
+    <DataTemplate DataType="{x:Type md:QuoteBlock}">
+        <Border BorderThickness="3,0,0,0"
+                BorderBrush="{DynamicResource AccentTextFillColorSecondaryBrush}"
+                Padding="12,2,0,2"
+                Margin="0,4,0,10">
+            <ItemsControl ItemsSource="{Binding Blocks}"
+                          Focusable="False"
+                          TextElement.Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Border>
+    </DataTemplate>
+
+    <!-- Table -->
+
+    <DataTemplate DataType="{x:Type md:TableBlock}">
+        <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Disabled"
+                      Margin="0,4,0,12">
+            <Border BorderThickness="1"
+                    CornerRadius="6"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    HorizontalAlignment="Left">
+                <Grid local:MarkdownHost.Table="{Binding}" />
+            </Border>
+        </ScrollViewer>
+    </DataTemplate>
+
+    <!-- Thematic break -->
+
+    <DataTemplate DataType="{x:Type md:ThematicBreakBlock}">
+        <Border Height="1"
+                Margin="0,10"
+                Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+    </DataTemplate>
+
+</ResourceDictionary>

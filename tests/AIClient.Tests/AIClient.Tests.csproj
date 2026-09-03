@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>AIClient.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
+
+    <!--
+      xUnit1051 asks every call that accepts a CancellationToken to be handed the run-level
+      token. Nothing in this suite is long-running: the slowest operations are a migration
+      against a temporary SQLite file and a scripted HTTP handler that answers from memory,
+      so threading the token through several hundred call sites would cost readability and
+      buy no responsiveness. The tests that are genuinely about cancellation pass their own
+      token explicitly, which is the behaviour under test rather than a runner concern.
+    -->
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AIClient.Application\AIClient.Application.csproj" />
+    <ProjectReference Include="..\..\src\AIClient.Domain\AIClient.Domain.csproj" />
+    <ProjectReference Include="..\..\src\AIClient.Infrastructure\AIClient.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+
+    <!--
+      Referenced explicitly rather than relied on transitively: the tests call UseSqlite
+      directly to point a context at a temporary file, so this is a first-class dependency
+      of the suite and not an implementation detail of Infrastructure.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

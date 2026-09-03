@@ -1,0 +1,494 @@
+<UserControl x:Class="AIClient.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:beh="clr-namespace:AIClient.App.Behaviors"
+             xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel}"
+             d:DesignHeight="800" d:DesignWidth="820">
+
+    <UserControl.Resources>
+        <!-- A labelled row: description on the left, control on the right. -->
+        <Style x:Key="SettingRow" TargetType="Grid">
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+
+        <Style x:Key="SettingCheck" TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="24,16,24,4">
+            <TextBlock Text="Settings" FontSize="24" FontWeight="SemiBold" />
+            <ui:Button HorizontalAlignment="Right"
+                       Icon="{ui:SymbolIcon Dismiss24}"
+                       Appearance="Secondary"
+                       ToolTip="Back to chat"
+                       Command="{Binding DataContext.ShowChatCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+        </Grid>
+
+        <ScrollViewer Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Padding="24,0,24,24">
+            <StackPanel MaxWidth="760" HorizontalAlignment="Left">
+
+                <!--
+                    Providers first. Every other setting on this page is inert until a key
+                    exists, and this is the screen the first-run wizard sends people to.
+                -->
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Providers" Margin="0,8,0,10" />
+
+                <ItemsControl ItemsSource="{Binding Providers}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <ui:Card Margin="0,0,0,10" Padding="16">
+                                <StackPanel>
+
+                                    <!-- Header: status dot, name, status line, enable switch -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- In-memory state only. A green dot restored from
+                                             last week's launch would vouch for a key that may
+                                             since have been revoked. -->
+                                        <Ellipse Grid.Column="0"
+                                                 Width="9" Height="9"
+                                                 Margin="0,0,10,0"
+                                                 VerticalAlignment="Center">
+                                            <Ellipse.Style>
+                                                <Style TargetType="Ellipse">
+                                                    <Setter Property="Fill" Value="{DynamicResource TextFillColorDisabledBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ConnectionState}" Value="Connected">
+                                                            <Setter Property="Fill" Value="#2EA043" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding ConnectionState}" Value="Failed">
+                                                            <Setter Property="Fill" Value="#D13438" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding ConnectionState}" Value="Testing">
+                                                            <Setter Property="Fill" Value="#D29922" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Ellipse.Style>
+                                        </Ellipse>
+
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="15" />
+                                            <TextBlock Style="{StaticResource SubtleText}"
+                                                       Text="{Binding StatusText}"
+                                                       Margin="0,1,0,0" />
+                                        </StackPanel>
+
+                                        <ui:ToggleSwitch Grid.Column="2"
+                                                         VerticalAlignment="Center"
+                                                         IsChecked="{Binding IsEnabled}"
+                                                         ToolTip="Include this provider's models in the picker" />
+                                    </Grid>
+
+                                    <Border Height="1" Margin="0,12"
+                                            Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+
+                                    <!-- Stored key: a fixed mask, never the value itself.
+                                         Section 11 - there is no code path from secure storage
+                                         back to this screen. -->
+                                    <Grid Visibility="{Binding IsEditingApiKey, Converter={StaticResource InverseBoolToVisibility}}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="API key" FontSize="12"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Text="{Binding ApiKeyDisplay}"
+                                                       FontFamily="{StaticResource CodeFont}"
+                                                       Margin="0,2,0,0" />
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <ui:Button Content="Change"
+                                                       Margin="0,0,6,0"
+                                                       Command="{Binding BeginEditApiKeyCommand}"
+                                                       Visibility="{Binding HasApiKey, Converter={StaticResource BoolToVisibility}}" />
+                                            <ui:Button Content="Add key"
+                                                       Appearance="Primary"
+                                                       Margin="0,0,6,0"
+                                                       Command="{Binding BeginEditApiKeyCommand}"
+                                                       Visibility="{Binding HasApiKey, Converter={StaticResource InverseBoolToVisibility}}" />
+                                            <ui:Button Content="Remove"
+                                                       Command="{Binding RemoveApiKeyCommand}"
+                                                       Visibility="{Binding HasApiKey, Converter={StaticResource BoolToVisibility}}" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <!-- Entry. A PasswordBox, so the key is not a bound
+                                         property and not readable out of the visual tree. -->
+                                    <StackPanel Visibility="{Binding IsEditingApiKey, Converter={StaticResource BoolToVisibility}}">
+                                        <TextBlock Text="API key" FontSize="12" Margin="0,0,0,4"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <PasswordBox Grid.Column="0"
+                                                         beh:ApiKeyBox.Attach="True"
+                                                         VerticalContentAlignment="Center"
+                                                         Padding="8,7" />
+
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="6,0,0,0">
+                                                <ui:Button Content="Save"
+                                                           Appearance="Primary"
+                                                           Margin="0,0,6,0"
+                                                           Command="{Binding SaveApiKeyCommand}" />
+                                                <ui:Button Content="Cancel"
+                                                           Command="{Binding CancelEditApiKeyCommand}" />
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <TextBlock Style="{StaticResource SubtleText}"
+                                                   Margin="0,6,0,0"
+                                                   TextWrapping="Wrap"
+                                                   TextTrimming="None"
+                                                   Text="Encrypted with Windows DPAPI under your user account. It is never written to the database, the log files or an export." />
+                                    </StackPanel>
+
+                                    <!-- Actions -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                        <ui:Button Content="Test connection"
+                                                   Margin="0,0,6,0"
+                                                   Command="{Binding TestConnectionCommand}" />
+                                        <ui:Button Content="Refresh models"
+                                                   Margin="0,0,6,0"
+                                                   Command="{Binding RefreshModelsCommand}" />
+                                        <ui:Button Content="Get an API key"
+                                                   Appearance="Transparent"
+                                                   Command="{Binding OpenApiKeyPageCommand}"
+                                                   Visibility="{Binding ApiKeyUrl, Converter={StaticResource StringToVisibility}}" />
+
+                                        <ui:ProgressRing IsIndeterminate="True"
+                                                         Width="18" Height="18"
+                                                         Margin="8,0,0,0"
+                                                         VerticalAlignment="Center"
+                                                         Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+                                    </StackPanel>
+
+                                    <TextBlock Style="{StaticResource SubtleText}"
+                                               Margin="0,10,0,0"
+                                               Text="{Binding ModelSummary}" />
+
+                                    <!-- Section 21: the human sentence is the status line
+                                         above; the raw detail is here, folded away. -->
+                                    <Expander Header="Technical details"
+                                              Margin="0,8,0,0"
+                                              Visibility="{Binding TechnicalDetails, Converter={StaticResource StringToVisibility}}">
+                                        <TextBox Text="{Binding TechnicalDetails, Mode=OneWay}"
+                                                 IsReadOnly="True"
+                                                 TextWrapping="Wrap"
+                                                 MaxHeight="160"
+                                                 VerticalScrollBarVisibility="Auto"
+                                                 FontFamily="{StaticResource CodeFont}"
+                                                 FontSize="12"
+                                                 Background="Transparent"
+                                                 BorderThickness="0" />
+                                    </Expander>
+                                </StackPanel>
+                            </ui:Card>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- ============ General ============ -->
+                <TextBlock Style="{StaticResource SectionHeader}" Text="General" />
+
+                <ui:Card Padding="16">
+                    <StackPanel>
+                        <CheckBox Style="{StaticResource SettingCheck}"
+                                  Content="Reopen the last conversation on startup"
+                                  IsChecked="{Binding RestoreLastConversation}" />
+                        <CheckBox Style="{StaticResource SettingCheck}"
+                                  Content="Ask before deleting a chat or a message"
+                                  IsChecked="{Binding ConfirmBeforeDelete}" />
+                        <CheckBox Content="Name new chats automatically from the first message"
+                                  IsChecked="{Binding AutoGenerateTitles}" />
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- ============ Appearance ============ -->
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Appearance" />
+
+                <ui:Card Padding="16">
+                    <StackPanel>
+                        <Grid Style="{StaticResource SettingRow}">
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="Theme" />
+                            <ComboBox HorizontalAlignment="Right"
+                                      MinWidth="160"
+                                      ItemsSource="{Binding ThemeModes}"
+                                      SelectedItem="{Binding Theme}" />
+                        </Grid>
+
+                        <Grid Style="{StaticResource SettingRow}">
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="Chat font size" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Slider Width="180"
+                                        Minimum="10" Maximum="24"
+                                        TickFrequency="1"
+                                        IsSnapToTickEnabled="True"
+                                        Value="{Binding ChatFontSize}"
+                                        VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding ChatFontSize, StringFormat={}{0:0}}"
+                                           Width="28" Margin="8,0,0,0"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Right" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Style="{StaticResource SettingRow}">
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="Code font size" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Slider Width="180"
+                                        Minimum="9" Maximum="22"
+                                        TickFrequency="1"
+                                        IsSnapToTickEnabled="True"
+                                        Value="{Binding CodeFontSize}"
+                                        VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding CodeFontSize, StringFormat={}{0:0}}"
+                                           Width="28" Margin="8,0,0,0"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Right" />
+                            </StackPanel>
+                        </Grid>
+
+                        <CheckBox Content="Mica backdrop (takes effect on the next launch)"
+                                  IsChecked="{Binding UseMicaBackdrop}" />
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- ============ Chat ============ -->
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Chat" />
+
+                <ui:Card Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="System prompt" Margin="0,0,0,4" />
+                        <TextBox Text="{Binding SystemPrompt, UpdateSourceTrigger=LostFocus}"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MinHeight="70"
+                                 MaxHeight="180"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Margin="0,0,0,4" />
+                        <TextBlock Style="{StaticResource SubtleText}"
+                                   TextWrapping="Wrap"
+                                   TextTrimming="None"
+                                   Margin="0,0,0,14"
+                                   Text="Prepended to every new conversation. Leave it empty to send no system turn." />
+
+                        <!--
+                            Each sampling parameter is a checkbox plus a value. Unchecked means
+                            the field is left out of the request entirely (section 14) rather
+                            than sent as a default: several models answer a parameter they do
+                            not implement with a 400 instead of ignoring it.
+                        -->
+                        <Grid Style="{StaticResource SettingRow}">
+                            <CheckBox Content="Temperature"
+                                      IsChecked="{Binding IsTemperatureEnabled}"
+                                      VerticalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Right"
+                                        IsEnabled="{Binding IsTemperatureEnabled}">
+                                <Slider Width="180"
+                                        Minimum="0" Maximum="2"
+                                        TickFrequency="0.1"
+                                        IsSnapToTickEnabled="True"
+                                        Value="{Binding Temperature}"
+                                        VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Temperature, StringFormat={}{0:0.0}}"
+                                           Width="34" Margin="8,0,0,0"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Right" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Style="{StaticResource SettingRow}">
+                            <CheckBox Content="Top P"
+                                      IsChecked="{Binding IsTopPEnabled}"
+                                      VerticalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Right"
+                                        IsEnabled="{Binding IsTopPEnabled}">
+                                <Slider Width="180"
+                                        Minimum="0" Maximum="1"
+                                        TickFrequency="0.05"
+                                        IsSnapToTickEnabled="True"
+                                        Value="{Binding TopP}"
+                                        VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding TopP, StringFormat={}{0:0.00}}"
+                                           Width="34" Margin="8,0,0,0"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Right" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Style="{StaticResource SettingRow}">
+                            <CheckBox Content="Max tokens"
+                                      IsChecked="{Binding IsMaxTokensEnabled}"
+                                      VerticalAlignment="Center" />
+                            <ui:NumberBox HorizontalAlignment="Right"
+                                          Width="150"
+                                          Minimum="1" Maximum="200000"
+                                          SmallChange="256"
+                                          ClearButtonEnabled="False"
+                                          IsEnabled="{Binding IsMaxTokensEnabled}"
+                                          Value="{Binding MaxTokens, Converter={StaticResource IntToDouble}}" />
+                        </Grid>
+
+                        <Border Height="1" Margin="0,6,0,12"
+                                Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+
+                        <CheckBox Style="{StaticResource SettingCheck}"
+                                  Content="Send with Enter (Shift+Enter inserts a new line)"
+                                  IsChecked="{Binding SendWithEnter}" />
+                        <CheckBox Style="{StaticResource SettingCheck}"
+                                  Content="Render Markdown in answers"
+                                  IsChecked="{Binding RenderMarkdown}" />
+                        <CheckBox Style="{StaticResource SettingCheck}"
+                                  Content="Highlight syntax in code blocks"
+                                  IsChecked="{Binding HighlightCode}" />
+                        <CheckBox Style="{StaticResource SettingCheck}"
+                                  Content="Follow the answer as it streams"
+                                  IsChecked="{Binding AutoScroll}" />
+                        <CheckBox Content="Show token usage and generation time"
+                                  IsChecked="{Binding ShowTokenUsage}"
+                                  Margin="0,0,0,14" />
+
+                        <Grid Style="{StaticResource SettingRow}">
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="History messages per request" />
+                            <ui:NumberBox HorizontalAlignment="Right"
+                                          Width="150"
+                                          Minimum="2" Maximum="1000"
+                                          ClearButtonEnabled="False"
+                                          Value="{Binding MaxHistoryMessages, Converter={StaticResource IntToDouble}}" />
+                        </Grid>
+
+                        <Grid Style="{StaticResource SettingRow}">
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="Request timeout (seconds)" />
+                            <ui:NumberBox HorizontalAlignment="Right"
+                                          Width="150"
+                                          Minimum="10" Maximum="3600"
+                                          ClearButtonEnabled="False"
+                                          Value="{Binding RequestTimeoutSeconds, Converter={StaticResource IntToDouble}}" />
+                        </Grid>
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- ============ Storage ============ -->
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Storage" />
+
+                <ui:Card Padding="16">
+                    <StackPanel>
+                        <Grid Style="{StaticResource SettingRow}">
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="Max attachment size (KB)" />
+                            <ui:NumberBox HorizontalAlignment="Right"
+                                          Width="150"
+                                          Minimum="1" Maximum="10240"
+                                          ClearButtonEnabled="False"
+                                          Value="{Binding MaxAttachmentKilobytes, Converter={StaticResource IntToDouble}}" />
+                        </Grid>
+
+                        <Grid Style="{StaticResource SettingRow}">
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="Minimum log level" />
+                            <ComboBox HorizontalAlignment="Right"
+                                      MinWidth="150"
+                                      ItemsSource="{Binding LogLevels}"
+                                      SelectedItem="{Binding MinimumLogLevel}" />
+                        </Grid>
+
+                        <Grid Style="{StaticResource SettingRow}">
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="Keep logs for (days)" />
+                            <ui:NumberBox HorizontalAlignment="Right"
+                                          Width="150"
+                                          Minimum="1" Maximum="365"
+                                          ClearButtonEnabled="False"
+                                          Value="{Binding LogRetentionDays, Converter={StaticResource IntToDouble}}" />
+                        </Grid>
+
+                        <Border Height="1" Margin="0,6,0,12"
+                                Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+
+                        <TextBlock Style="{StaticResource SubtleText}" Text="Database" />
+                        <TextBlock Text="{Binding DatabasePath}"
+                                   FontFamily="{StaticResource CodeFont}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   Margin="0,2,0,10" />
+
+                        <StackPanel Orientation="Horizontal">
+                            <ui:Button Content="Open data folder"
+                                       Icon="{ui:SymbolIcon FolderOpen24}"
+                                       Margin="0,0,6,0"
+                                       Command="{Binding OpenDataFolderCommand}" />
+                            <ui:Button Content="Open logs folder"
+                                       Icon="{ui:SymbolIcon DocumentText24}"
+                                       Command="{Binding OpenLogsFolderCommand}" />
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- ============ Keyboard shortcuts ============ -->
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Keyboard shortcuts" />
+
+                <ui:Card Padding="16">
+                    <ItemsControl ItemsSource="{Binding Shortcuts}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,0,0,7">
+                                    <TextBlock Text="{Binding Description}" VerticalAlignment="Center" />
+                                    <Border Style="{StaticResource Badge}" HorizontalAlignment="Right" Padding="7,3">
+                                        <TextBlock Style="{StaticResource BadgeText}"
+                                                   FontSize="11"
+                                                   FontFamily="{StaticResource CodeFont}"
+                                                   Text="{Binding Keys}" />
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ui:Card>
+
+                <!-- ============ About ============ -->
+                <TextBlock Style="{StaticResource SectionHeader}" Text="About" />
+
+                <ui:Card Padding="16" Margin="0,0,0,24">
+                    <StackPanel>
+                        <TextBlock Text="AI Client" FontSize="16" FontWeight="SemiBold" />
+                        <TextBlock Style="{StaticResource SubtleText}"
+                                   Text="{Binding AppVersion, StringFormat=Version {0}}"
+                                   Margin="0,2,0,10" />
+                        <TextBlock Style="{StaticResource SubtleText}"
+                                   TextWrapping="Wrap"
+                                   TextTrimming="None"
+                                   Text="A desktop client for working with AI models across several providers. Conversations, settings and API keys stay on this machine." />
+                    </StackPanel>
+                </ui:Card>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

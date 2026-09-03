@@ -1,0 +1,27 @@
+<Application x:Class="AIClient.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <!--
+        No StartupUri: the main window is resolved from the DI container in
+        App.OnStartup, after the host has started and the database has been migrated.
+        Letting WPF construct the window itself would mean a parameterless MainWindow
+        that reaches for services on its own.
+    -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!--
+                    ThemesDictionary is replaced at runtime by ApplicationThemeManager
+                    when the user switches theme or Windows changes its own.
+                -->
+                <ui:ThemesDictionary Theme="Dark" />
+                <ui:ControlsDictionary />
+
+                <ResourceDictionary Source="pack://application:,,,/Resources/Styles/Converters.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/Resources/Styles/Shared.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/Resources/Styles/MarkdownTemplates.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

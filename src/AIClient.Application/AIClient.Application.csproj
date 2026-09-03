@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>AIClient.Application</RootNamespace>
+    <AssemblyName>AIClient.Application</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AIClient.Domain\AIClient.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Abstractions only. No concrete DI container, no EF Core, no HttpClient. -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Markdig" />
+  </ItemGroup>
+
+</Project>

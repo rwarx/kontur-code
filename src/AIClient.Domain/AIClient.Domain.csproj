@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>AIClient.Domain</RootNamespace>
+    <AssemblyName>AIClient.Domain</AssemblyName>
+  </PropertyGroup>
+
+  <!--
+    The Domain layer is deliberately dependency-free: no EF Core, no HttpClient,
+    no DI container. It only describes *what* the application is about.
+  -->
+
+</Project>

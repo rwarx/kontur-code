@@ -1,0 +1,6 @@
+# Scaffolded by `dotnet ef migrations add`. The generator emits block-scoped namespaces
+# and its own formatting; holding generated files to the project's style rules would mean
+# hand-editing every new migration for no benefit.
+[*.cs]
+dotnet_analyzer_diagnostic.severity = none
+generated_code = true

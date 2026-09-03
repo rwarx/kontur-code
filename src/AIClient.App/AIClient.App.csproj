@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>AIClient.App</RootNamespace>
+    <AssemblyName>AIClient</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <UseWindowsForms>false</UseWindowsForms>
+    <!-- Single instance + high DPI handled via app.manifest -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AIClient.Application\AIClient.Application.csproj" />
+    <ProjectReference Include="..\AIClient.Domain\AIClient.Domain.csproj" />
+    <!--
+      The App references Infrastructure ONLY to compose the DI container in
+      Bootstrapper/ServiceRegistration. Views and ViewModels must never
+      reference an AIClient.Infrastructure type directly - they resolve
+      abstractions declared in Application/Domain.
+    -->
+    <ProjectReference Include="..\AIClient.Infrastructure\AIClient.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WPF-UI" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+</Project>
