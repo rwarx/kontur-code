@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using AIClient.Application.DTOs;
 using AIClient.Application.Interfaces;
 using AIClient.Domain.Models;
 
@@ -24,6 +25,7 @@ namespace AIClient.Application.Services;
 public sealed class AgentToolRegistry : IAgentToolRegistry
 {
     private readonly Dictionary<string, IAgentTool> _byName;
+    private readonly Dictionary<AgentMode, ModeOffer> _offers;
     private readonly bool _conditional;
 
     public AgentToolRegistry(IEnumerable<IAgentTool> tools)
@@ -59,35 +61,38 @@ public sealed class AgentToolRegistry : IAgentToolRegistry
         ];
 
         _conditional = Tools.Any(tool => tool is IAgentToolAvailability);
+        _offers = BuildOffers(Tools, Definitions);
     }
 
     public IReadOnlyList<IAgentTool> Tools { get; }
 
     public IReadOnlyList<AIToolDefinition> Definitions { get; }
 
-    public IReadOnlyList<AIToolDefinition> Available()
+    public IReadOnlyList<AIToolDefinition> Available(AgentMode mode = AgentMode.Build)
     {
-        // The fast path is the only path most of the time, and it hands back the list built in the
+        var offer = _offers[mode];
+
+        // The fast path is the only path most of the time, and it hands back a list built in the
         // constructor rather than a copy of it: a tool that is always available is the rule, and a step
         // of a run should not allocate a list to say so.
         if (!_conditional)
         {
-            return Definitions;
+            return offer.Definitions;
         }
 
-        var available = new List<AIToolDefinition>(Definitions.Count);
+        var available = new List<AIToolDefinition>(offer.Definitions.Count);
 
-        for (var index = 0; index < Tools.Count; index++)
+        for (var index = 0; index < offer.Tools.Count; index++)
         {
-            if (Tools[index] is not IAgentToolAvailability { IsAvailable: false })
+            if (offer.Tools[index] is not IAgentToolAvailability { IsAvailable: false })
             {
-                available.Add(Definitions[index]);
+                available.Add(offer.Definitions[index]);
             }
         }
 
-        // Indexes line up because both lists are built from Tools in one order, and Definitions is
-        // never filtered. If that ever stops being true this loop silently offers the wrong schemas,
-        // which is why the two are built together above rather than in separate passes.
+        // Indexes line up because both lists in an offer are built from Tools in one pass, and neither
+        // is filtered afterwards. If that ever stops being true this loop silently offers the wrong
+        // schemas, which is why the two are built together below rather than in separate passes.
         return available;
     }
 
@@ -97,6 +102,56 @@ public sealed class AgentToolRegistry : IAgentToolRegistry
 
         return !string.IsNullOrWhiteSpace(name) && _byName.TryGetValue(name.Trim(), out tool);
     }
+
+    /// <summary>
+    /// Works out once, per mode, which tools that mode offers.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Every declared mode gets an entry, built by asking <see cref="AgentModePolicy"/> rather than by
+    /// restating what it says. Two modes offering the same set - which Plan and Plan + canvas do, since
+    /// they differ in what becomes of the plan and not in what may be called - costs two small lists at
+    /// startup and buys the guarantee that a mode added later cannot quietly inherit Build's tools.
+    /// </para>
+    /// <para>
+    /// Precomputed because the answer cannot change: a tool's risk and its interfaces are fixed at
+    /// construction, so the only part of availability that varies at runtime is
+    /// <see cref="IAgentToolAvailability"/>, which <see cref="Available"/> applies on top of this.
+    /// </para>
+    /// </remarks>
+    private static Dictionary<AgentMode, ModeOffer> BuildOffers(
+        IReadOnlyList<IAgentTool> tools,
+        IReadOnlyList<AIToolDefinition> definitions)
+    {
+        var modes = Enum.GetValues<AgentMode>();
+        var offers = new Dictionary<AgentMode, ModeOffer>(modes.Length);
+
+        foreach (var mode in modes)
+        {
+            var offered = new List<IAgentTool>(tools.Count);
+            var schemas = new List<AIToolDefinition>(tools.Count);
+
+            for (var index = 0; index < tools.Count; index++)
+            {
+                if (!AgentModePolicy.Offers(mode, tools[index]))
+                {
+                    continue;
+                }
+
+                offered.Add(tools[index]);
+                schemas.Add(definitions[index]);
+            }
+
+            offers[mode] = new ModeOffer(offered, schemas);
+        }
+
+        return offers;
+    }
+
+    /// <summary>The tools one mode offers, and their schemas in the same order.</summary>
+    private readonly record struct ModeOffer(
+        IReadOnlyList<IAgentTool> Tools,
+        IReadOnlyList<AIToolDefinition> Definitions);
 
     /// <summary>
     /// Rejects a tool that no provider would accept, or that a model would call by the wrong name.

@@ -15,8 +15,9 @@ awareness yet. Those are later stages, and nothing here forecloses them.
 - **Streaming chat.** Tokens appear as they arrive. Stop mid-answer and the partial text is kept,
   not discarded. Regenerate replaces the answer in place, optionally on a different model.
 - **Agent mode.** A toggle in the composer sends the message to a tool loop instead of straight to
-  the model. It can list, read, search, write, edit, move and delete files under one folder you
-  nominate, and it asks before every change. See [Agent mode](#agent-mode).
+  the model. Each message says whether it is a **plan** or a **build**, and it starts on plan: the
+  build can list, read, search, write, edit, move and delete files under one folder you nominate, and
+  asks before every change; a plan reads and writes nothing. See [Agent mode](#agent-mode).
 - **Markdown and code.** Headings, lists, tables, quotes and fenced code rendered as WPF content
   rather than HTML in a browser control, with syntax highlighting for the common languages.
 - **Sessions.** Create, rename, pin, search and delete conversations. Titles are generated from
@@ -101,16 +102,40 @@ The model gets a set of tools, asks for the ones it needs, sees what they return
 until it has an answer or a budget runs out. The transcript shows the work: one card per call, with
 the arguments summarised, the outcome, and the result behind a chevron.
 
-The first time you turn the toggle on it asks which folder to work in. That folder is the whole of
-the agent's reach - it is remembered between sessions, shown under the composer while the mode is
-on, and changed or closed in Settings → Agent. With no folder open the agent can do nothing at all,
-which is how the application starts.
+Beside the toggle is what kind of run it will be. It is a per-message choice rather than a preference
+- plan, read the plan, then build - and it starts on **Plan**, so the first thing agent mode does for
+somebody who has just found it is describe what it would do rather than start doing it.
+
+| Mode | Can | Cannot |
+| --- | --- | --- |
+| **Plan** | Read the folder, and record a plan with `submit_plan` | Write, move, delete or run anything |
+| **Plan + canvas** | The same, and hands the plan over as parts and dependencies rather than as prose, so it can be drawn | The same |
+| **Build** | Everything in the table below, asking first wherever it says so | Record a plan - that is what the other two are for |
+
+The mode is enforced rather than suggested. The tools a mode does not allow are left out of the
+request, and a call for one that arrives anyway is refused before its arguments are read - the offer
+is a courtesy, the mode is the rule. A refusal is a sentence the model can act on rather than an
+error, so a planning run that reached for `write_file` is told to finish the plan instead of the run
+ending.
+
+The canvas is not in this build yet, so **Plan + canvas** records the same structured plan and the
+model is told, in as many words, that there is nowhere to draw it and it should write the plan out
+instead. That is the whole difference: when the canvas lands, one registration line turns the drawing
+on and nothing else about the mode changes.
+
+**Build** is the only mode that needs a folder, and choosing it without one asks which folder to use.
+That folder is the whole of the agent's reach - it is remembered between sessions, shown under the
+composer while the mode is on, and changed or closed in Settings → Agent. Cancelling the picker falls
+back to Plan rather than switching the agent off. Planning with no folder open is not a degraded state
+but the ordinary one for a project that does not exist yet: there is nothing to read, so the plan comes
+from what you have told it.
 
 | Tool | Does | Asks first |
 | --- | --- | --- |
 | `list_files` | Lists a directory, ignoring `.git`, `bin`, `obj`, `node_modules` and friends | No |
 | `read_file` | Reads a text file, size-capped and optionally by line range | No |
 | `search_files` | Searches file contents, literally or by regex, capped at 150 matching lines | No |
+| `submit_plan` | Records the plan - title, steps, the parts it would create, the risks - and ends the run | No, and only while planning |
 | `write_file` | Creates or replaces a file | Yes |
 | `edit_file` | Replaces an exact snippet inside a file | Yes |
 | `create_directory` | Creates a folder | Yes |
@@ -122,7 +147,7 @@ Reads are refused outside the folder, and so are the paths that carry credential
 internals - `.git`, `.env`, key and certificate files - whether they are named directly, reached
 through `..`, or reached through a symlink pointing out of the tree.
 
-Every tool in the lower half of that table stops and asks, every time. The question leads with one
+Every tool marked *Yes* stops and asks, every time. The question leads with one
 line naming the effect - `Create src/Widget.cs`, `Overwrite 42 lines in src/Widget.cs`,
 `Delete docs/old.md` - and an edit or an overwrite carries a diff under it. **Approve** applies it,
 **Deny** hands the model a refusal it can react to and carry on from, and stopping the run marks
@@ -194,7 +219,7 @@ tree and the binding engine - and cleared the moment it is saved. `SecureStorage
 dotnet test
 ```
 
-710 tests against a real migrated SQLite file, real DPAPI, and fake HTTP handlers replaying recorded
+745 tests against a real migrated SQLite file, real DPAPI, and fake HTTP handlers replaying recorded
 provider responses. A fresh clone with no key and no network passes: the eight tests that need a
 live provider skip themselves and say so.
 
@@ -259,6 +284,7 @@ adding an agent from having to be threaded through the UI, and is what a future 
 
 No editor, no file tree, no repository awareness, no MCP, no image input, no plugins. The agent can
 read files, change them and run the programs you have allowed, but there is no shell and no way for
-it to ask for one. Multiple agents, background runs and a diff-review pane are later stages - the
-layering is the reason they can arrive without a rewrite, but none of it is here yet, and the
-feature list above is the whole of it.
+it to ask for one. There is no canvas either: **Plan + canvas** is the mode and the structured plan
+it produces, and drawing that plan is the next stage rather than part of this one. Multiple agents,
+background runs and a diff-review pane are later stages too - the layering is the reason they can
+arrive without a rewrite, but none of it is here yet, and the feature list above is the whole of it.

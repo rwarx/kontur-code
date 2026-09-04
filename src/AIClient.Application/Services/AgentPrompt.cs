@@ -1,3 +1,5 @@
+using AIClient.Application.DTOs;
+
 namespace AIClient.Application.Services;
 
 /// <summary>
@@ -61,13 +63,35 @@ public static class AgentPrompt
     /// <param name="basePrompt">The conversation's own prompt, or the configured default. May be null.</param>
     /// <param name="workspaceRoot">The open folder, or null when there is none.</param>
     /// <param name="canRunCommands">Whether the user has allowed programs to be run.</param>
-    public static string Compose(string? basePrompt, string? workspaceRoot, bool canRunCommands = false)
+    /// <param name="mode">
+    /// Which run this is. A planning run gets different instructions rather than the same instructions
+    /// with a warning attached: the discipline of a build - look, change one thing, verify - is not the
+    /// discipline of a plan, and telling a model both leaves it doing neither well.
+    /// </param>
+    public static string Compose(
+        string? basePrompt,
+        string? workspaceRoot,
+        bool canRunCommands = false,
+        AgentMode mode = AgentMode.Build)
     {
-        var parts = new List<string>(4);
+        var parts = new List<string>(5);
 
         if (!string.IsNullOrWhiteSpace(basePrompt))
         {
             parts.Add(basePrompt.Trim());
+        }
+
+        if (mode.IsPlanning())
+        {
+            parts.Add(workspaceRoot is null ? PlanningAlone : PlanningWorkspace(workspaceRoot));
+            parts.Add(Planning);
+
+            if (mode == AgentMode.PlanCanvas)
+            {
+                parts.Add(Canvas);
+            }
+
+            return string.Join("\n\n", parts);
         }
 
         parts.Add(workspaceRoot is null ? NoWorkspace : Workspace(workspaceRoot));
@@ -127,5 +151,78 @@ public static class AgentPrompt
     private const string NoWorkspace = """
         No project folder is open, so every file tool will refuse. Do not keep trying them: tell the
         user to open a folder first, and answer whatever you can from the conversation alone.
+        """;
+
+    /// <summary>
+    /// How to plan, which is not how to build.
+    /// </summary>
+    /// <remarks>
+    /// The first paragraph is the one that earns its place. A model that has been given read tools and
+    /// asked for a plan will otherwise spend a step offering to make the change and waiting to be told
+    /// yes - there is nothing to say yes to, and the offer reads to the user as the plan having failed.
+    /// </remarks>
+    private const string Planning = """
+        You are planning, not building. Nothing here changes a file: the tools you have can read the
+        project, and submit_plan records what you worked out. There is no way to write from this mode,
+        so do not offer to and do not ask to be let - the user switches to Build when they want the
+        plan carried out.
+
+        How to plan:
+        - Read enough to be specific. A plan that names the files it will touch is worth more than one
+          that says "update the service layer", and the only way to name them is to look.
+        - Plan the work, not the conversation. Each step is something that gets done, in the order it
+          happens, small enough that someone can tell afterwards whether it worked.
+        - Put what you are unsure about in 'risks' rather than planning around it quietly. A guess the
+          user can correct is useful; a guess they cannot see is a defect waiting to be built.
+        - Call submit_plan once, with the whole plan in the one call. Then tell the user the plan in
+          your own words - what you would do and why - and stop.
+        """;
+
+    /// <summary>
+    /// Added for <see cref="AgentMode.PlanCanvas"/>, and it is entirely about <c>parts</c>.
+    /// </summary>
+    /// <remarks>
+    /// The same plan serves both planning modes, so the drawing is only as good as that one field. Left
+    /// to itself a model fills <c>parts</c> with restatements of the steps, which draws as a row of
+    /// disconnected boxes; the naming rule matters just as much, because a dependency naming a part that
+    /// does not exist is a line that cannot be drawn.
+    /// </remarks>
+    private const string Canvas = """
+        This plan gets drawn as a diagram, and 'parts' is what gets drawn. So:
+        - List the pieces the finished project is made of - folders, files, modules, services,
+          interfaces, data, views, tests - not the steps that create them. The steps are in 'steps'.
+        - Give each part one short name, and spell it exactly that way in every 'depends_on' that
+          mentions it. A dependency naming a part that is not in the list draws as nothing.
+        - Point 'depends_on' at what a part needs in order to work, not at whatever happens to be
+          built before it.
+        - Keep to the parts that carry the shape of the project. A box for every file is a picture of
+          a folder listing.
+        """;
+
+    private static string PlanningWorkspace(string root) =>
+        $"""
+        You are planning work on a project on the user's machine, and you can read it through the
+        tools you have been given. The project folder is:
+
+        {root}
+
+        Every path you send is relative to that folder - 'src/Program.cs', not a full path. You have
+        not seen this project before: nothing about its contents is in this conversation unless a tool
+        put it there, so read it before planning against it rather than guessing at filenames.
+        """;
+
+    /// <summary>
+    /// The counterpart of <see cref="NoWorkspace"/>, and the opposite advice.
+    /// </summary>
+    /// <remarks>
+    /// A plan for a project that does not exist yet is the ordinary case for these modes, not a
+    /// degraded one - which is why no folder is required to start a planning run at all. Saying so is
+    /// what stops the model from opening with "you need to open a folder first", the single most
+    /// useless thing it could say to someone who has just asked how to begin.
+    /// </remarks>
+    private const string PlanningAlone = """
+        No project folder is open, and for planning that is fine: a project that does not exist yet
+        has nothing to read. Plan from what the user has told you, ask about anything that would
+        change the shape of the plan, and do not tell them to open a folder - that is for building.
         """;
 }

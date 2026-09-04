@@ -582,6 +582,132 @@ public sealed class AgentServiceTests : IAsyncLifetime
         Assert.Equal(0, probe.Ran);
     }
 
+    [Fact]
+    public async Task A_planning_run_is_sent_the_reading_tools_and_the_planning_prompt()
+    {
+        // The mode arrives on the request and has to reach two places the model can see: the tool list
+        // and the system prompt. AgentModeTests proves the policy and the prompt say the right things;
+        // this proves the run actually asks them.
+        var conversationId = await NewChatAsync();
+
+        var provider = Stepping(Answer("Here is the plan."));
+
+        await CollectAsync(
+            Service(
+                provider,
+                [
+                    new ProbeTool("read_thing"),
+                    new ProbeTool("write_thing", AgentToolRisk.Write),
+                    new ProbeTool("run_thing", AgentToolRisk.Execute),
+                    new PlanningProbeTool(),
+                ])
+                .RunAsync(Ask(conversationId, mode: AgentMode.Plan), Token));
+
+        var offered = provider.LastRequest.Tools.Select(definition => definition.Name).ToArray();
+
+        Assert.Equal(["read_thing", "submit_plan_probe"], offered.Order().ToArray());
+
+        var system = provider.LastRequest.Messages[0].Content;
+
+        Assert.Contains("You are planning, not building", system, StringComparison.Ordinal);
+        Assert.DoesNotContain("Look before you change anything", system, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_write_called_for_while_planning_is_refused_without_the_user_being_asked()
+    {
+        // The offer is a courtesy and the mode is the rule. A provider can return a call for a tool that
+        // was never offered - a cached tool list, a model repeating an earlier turn - and a mode that
+        // only shortened the list would carry it out.
+        var conversationId = await NewChatAsync();
+
+        var probe = new ProbeTool("write_thing", AgentToolRisk.Write);
+        var approval = new ScriptedApproval();
+
+        var provider = Stepping(
+            // The second call is malformed on purpose: the refusal happens before the arguments are
+            // read, so both are turned down in the same words.
+            Calls(
+                Call("write_thing", """{"path":"a.txt"}"""),
+                Call("write_thing", "{not json", "call-2")),
+            Answer("I did not change anything."));
+
+        var events = await CollectAsync(
+            Service(provider, [probe], approval)
+                .RunAsync(Ask(conversationId, mode: AgentMode.Plan), Token));
+
+        Assert.Equal(0, probe.Ran);
+
+        // Never put to the user. Being asked to approve a write during a planning run would suggest
+        // saying yes was an option.
+        Assert.Empty(approval.Asked);
+
+        var refusals = events.OfType<AgentEvent.ToolCallFinished>().ToArray();
+
+        Assert.Equal(2, refusals.Length);
+        Assert.All(refusals, refusal => Assert.Equal(AgentCallOutcome.Failed, refusal.Outcome));
+
+        Assert.All(
+            refusals,
+            refusal => Assert.Contains(
+                "not available while planning",
+                refusal.Message.Content,
+                StringComparison.Ordinal));
+
+        // Refused, not fatal: the run carries on and the model gets to finish the plan.
+        Assert.Equal(AgentStopReason.Answered, Assert.IsType<AgentEvent.Completed>(events[^1]).Reason);
+    }
+
+    [Fact]
+    public async Task Recording_a_plan_during_a_build_is_refused_and_the_build_carries_on()
+    {
+        // The opposite mistake, which a model makes for a better reason: it has been told to say what it
+        // is doing, and a plan tool looks like the place to say it. The refusal points it at the file
+        // tools rather than ending the run.
+        var conversationId = await NewChatAsync();
+
+        var plan = new PlanningProbeTool();
+
+        var provider = Stepping(
+            Calls(Call("submit_plan_probe", """{"title":"Do it"}""")),
+            Answer("Renamed it."));
+
+        var events = await CollectAsync(
+            Service(provider, [new ProbeTool("read_thing"), plan]).RunAsync(Ask(conversationId), Token));
+
+        Assert.Equal(0, plan.Ran);
+
+        var refusal = Assert.Single(events.OfType<AgentEvent.ToolCallFinished>());
+
+        Assert.Equal(AgentCallOutcome.Failed, refusal.Outcome);
+        Assert.Contains("belongs to the planning modes", refusal.Message.Content, StringComparison.Ordinal);
+
+        Assert.Equal(AgentStopReason.Answered, Assert.IsType<AgentEvent.Completed>(events[^1]).Reason);
+    }
+
+    [Fact]
+    public async Task A_tool_named_that_this_mode_does_not_have_is_told_what_it_does_have()
+    {
+        // The unknown-tool reply lists the tools, and the list has to be the one this mode was offered.
+        // Naming the write tools to a planning run would read as an invitation to try again.
+        var conversationId = await NewChatAsync();
+
+        var provider = Stepping(
+            Calls(Call("fly_to_the_moon")),
+            Answer("No such thing."));
+
+        var events = await CollectAsync(
+            Service(
+                provider,
+                [new ProbeTool("read_thing"), new ProbeTool("write_thing", AgentToolRisk.Write)])
+                .RunAsync(Ask(conversationId, mode: AgentMode.Plan), Token));
+
+        var reply = Assert.Single(events.OfType<AgentEvent.ToolCallFinished>()).Message.Content;
+
+        Assert.Contains("read_thing", reply, StringComparison.Ordinal);
+        Assert.DoesNotContain("write_thing", reply, StringComparison.Ordinal);
+    }
+
     #region Harness
 
     private async Task<Guid> NewChatAsync() =>
@@ -628,13 +754,24 @@ public sealed class AgentServiceTests : IAsyncLifetime
             SupportedParameters = supportedParameters,
         };
 
-    private static AgentRunRequest Ask(Guid conversationId, string content = "Rename the widget.") =>
+    /// <summary>
+    /// What the user sent, in the mode they sent it from.
+    /// </summary>
+    /// <remarks>
+    /// The mode defaults to Build so that every test written before there were modes still describes the
+    /// run it was written about.
+    /// </remarks>
+    private static AgentRunRequest Ask(
+        Guid conversationId,
+        string content = "Rename the widget.",
+        AgentMode mode = AgentMode.Build) =>
         new()
         {
             ConversationId = conversationId,
             Content = content,
             ProviderId = ProviderId,
             ModelId = ModelId,
+            Mode = mode,
         };
 
     private async Task<IReadOnlyList<MessageDto>> MessagesAsync(Guid conversationId) =>
@@ -714,7 +851,7 @@ public sealed class AgentServiceTests : IAsyncLifetime
     /// <summary>
     /// A tool that records what it was asked to do and answers however the test says.
     /// </summary>
-    private sealed class ProbeTool : IAgentTool
+    private class ProbeTool : IAgentTool
     {
         private readonly Func<AgentToolArguments, AgentToolResult> _behaviour;
 
@@ -748,6 +885,21 @@ public sealed class AgentServiceTests : IAsyncLifetime
         {
             Calls.Add(arguments);
             return Task.FromResult(_behaviour(arguments));
+        }
+    }
+
+    /// <summary>
+    /// A probe that belongs to the planning modes, the way <c>submit_plan</c> does.
+    /// </summary>
+    /// <remarks>
+    /// The real tool would drag its sink and its whole plan schema in with it, and neither has anything
+    /// to do with what the loop does about a mode.
+    /// </remarks>
+    private sealed class PlanningProbeTool : ProbeTool, IAgentPlanningTool
+    {
+        public PlanningProbeTool()
+            : base("submit_plan_probe")
+        {
         }
     }
 

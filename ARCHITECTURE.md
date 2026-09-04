@@ -74,9 +74,9 @@ not at all.
 - [`ProviderErrorMapper`](src/AIClient.Application/Services/ProviderErrorMapper.cs) - HTTP status
   and transport exception to `AIErrorKind` plus a sentence fit to show a human.
 - [`AgentService`](src/AIClient.Application/Services/AgentService.cs) - the multi-step loop, discussed
-  below. Beside it, [`AgentToolRegistry`](src/AIClient.Application/Services/AgentToolRegistry.cs) and
-  the eight tools in `Services/Tools/`, each one an `IAgentTool` that declares its own JSON schema and
-  its own risk level.
+  below. Beside it, [`AgentToolRegistry`](src/AIClient.Application/Services/AgentToolRegistry.cs),
+  [`AgentModePolicy`](src/AIClient.Application/Services/AgentModePolicy.cs) and the ten tools in
+  `Services/Tools/`, each one an `IAgentTool` that declares its own JSON schema and its own risk level.
 - `AttachmentService`, `ExportService`, `HeuristicTitleGenerator`, `TokenEstimator`.
 - [`MarkdownParser`](src/AIClient.Application/Markdown/MarkdownParser.cs) and
   [`SyntaxHighlighter`](src/AIClient.Application/Markdown/SyntaxHighlighter.cs) - Markdig in,
@@ -215,15 +215,17 @@ One iteration of the loop is one step:
 
 1. **Commit a placeholder** assistant row with `Status = Streaming` and emit `StepStarted`, exactly as
    a chat turn does. The transcript is the loop's memory, so it has to be readable at every instant.
-2. **Prepare and stream.** The tool schemas come from `IAgentToolRegistry`, are offered on every step
-   but the last, and the reply is accumulated in a buffer that is flushed to the database at most once
-   a second. `ReasoningDelta` is forwarded here, unlike in chat: a step that spends thirty seconds
-   deciding which file to open is otherwise thirty seconds of nothing.
+2. **Prepare and stream.** The tool schemas come from `IAgentToolRegistry`, filtered to what the run's
+   mode allows, are offered on every step but the last, and the reply is accumulated in a buffer that is
+   flushed to the database at most once a second. `ReasoningDelta` is forwarded here, unlike in chat: a
+   step that spends thirty seconds deciding which file to open is otherwise thirty seconds of nothing.
 3. **Decide what happened.** `AIStreamEvent.ToolCalls` - the provider's reassembled set - and not
    `finish_reason`, is what decides whether the run continues. Words and no calls ends the run.
-4. **Act.** Each call is parsed, checked against the repeat counter, put to the approval gate if its
-   risk is above `Read`, executed, and given a row. In that order, so that nobody is shown a dialog
-   about malformed JSON and a model stuck in a loop cannot turn the approval prompt into the loop.
+4. **Act.** Each call is resolved to a tool, checked against the mode, parsed, checked against the
+   repeat counter, put to the approval gate if its risk is above `Read`, executed, and given a row. In
+   that order, so that a call the mode forbids is refused identically whether or not its arguments were
+   well formed, nobody is shown a dialog about malformed JSON, and a model stuck in a loop cannot turn
+   the approval prompt into the loop.
 5. **Loop**, with the tool rows now part of the history the next request is built from.
 
 Every call gets an answer row, whatever became of it - unknown tool, unparseable arguments, denial,
@@ -235,6 +237,47 @@ A run ends in exactly one of `Completed`, `Failed` or `Cancelled`, and `Complete
 `AgentStopReason` - `Answered`, `StepLimit` or `TimeLimit`. On the last permitted step the tools are
 withheld, so a run that hits the step limit ends in a sentence rather than on a file listing, and it
 is still reported as `StepLimit` because saying it answered would hide that there may be more to do.
+
+### What kind of run it is
+
+`AgentRunRequest.Mode` is an `AgentMode` - `Build`, `Plan` or `PlanCanvas` - and it is a property of the
+message rather than of the application, because "plan this, then build it" is two messages and a
+setting would make it two visits to Settings as well. `Build` is the enum's zero value, so every caller
+written before the modes existed still means what it meant.
+
+[`AgentModePolicy`](src/AIClient.Application/Services/AgentModePolicy.cs) is the whole rule, and it is
+expressed in terms a tool written next year satisfies without being listed anywhere: a planning run
+offers `AgentToolRisk.Read` and withholds everything above it, and a build offers everything except the
+tools marking themselves
+[`IAgentPlanningTool`](src/AIClient.Application/Interfaces/IAgentPlanningTool.cs). Nothing consults a
+tool's name or its position in the registration list.
+
+It is applied twice, deliberately. `AgentToolRegistry` precomputes one offer per mode, so the request
+carries only what the mode allows; and `AgentService` re-checks each arriving call before reading its
+arguments, so a model that names a withheld tool anyway - from its own earlier context, or from a
+provider replaying a stale schema - is refused rather than obeyed. The offer is a courtesy and the
+second check is the enforcement; either one alone would pass a test suite while the feature was broken.
+
+A refusal is written as something the model can act on: it names the tool, says nothing happened, and
+says what to do instead - finish the plan with `submit_plan`, or in a build, get on with the work. It is
+recorded as `AgentCallOutcome.Failed` and the run continues, because a planning run that reaches for
+`write_file` has made a recoverable mistake, not ended.
+
+The prompt changes with the mode rather than gaining a caveat, since telling a model both disciplines
+leaves it following neither: `AgentPrompt` substitutes the planning instructions for the build ones,
+drops the command block a planning run cannot use, and inverts what an unopened folder means - for a
+build it is a problem to report, and for a plan it is the ordinary state of a project that does not
+exist yet. `AgentMode.NeedsWorkspace()` is the one answer to that question, read by the tools, the
+prompt, the composer's hint and the guard on Send.
+
+The plan itself leaves the loop through
+[`IAgentPlanSink`](src/AIClient.Application/Interfaces/IAgentPlanSink.cs), for the same reason approval
+does: where a plan goes depends on what the host can draw on. `TranscriptPlanSink` is the registered
+default and writes the plan into the conversation as Markdown; a host with a canvas registers over it
+and returns `AgentPlanAcceptance.DrawnOn(...)`, which is what the model is told. This build has no
+canvas, so the sink reports `CanDraw == false` and the tool tells the model in as many words to write
+the plan out for the user instead of pointing at a surface that is not there. Turning the drawing on is
+one registration line and no change to the mode.
 
 ### The approval gate
 
@@ -579,6 +622,10 @@ rather than a rewrite, and it is worth naming where.
 - **An editor.** The agent already reads and writes through `IWorkspaceService`, so a document surface
   would share the sandbox rather than open files itself, and `ContextBuilder` already accepts a source
   that is not a chat message.
+- **A canvas.** `submit_plan` already returns the plan as parts, dependencies and steps rather than as
+  prose, and `IAgentPlanSink` already exists to receive it. A drawing surface is a host that implements
+  that interface, registers itself over `TranscriptPlanSink`, and answers `AgentPlanAcceptance.DrawnOn`;
+  `AgentMode.PlanCanvas` and the prompt that produces the parts do not change.
 - **A different shell.** `UseWPF` is set in exactly one project, so the WPF assemblies are not even
   referenced by the other three, and WPF-UI reaches no further than App with the theme service behind
   `IAppThemeService`. Domain and Application could not touch a UI type if they tried - plain `net10.0`

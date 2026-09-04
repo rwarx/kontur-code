@@ -166,6 +166,15 @@ a call site: a rule that lives in one tool is a rule the next tool will not have
 to maintain and no per-tool flag to forget. A new tool that changes a file and declares itself `Read`
 is the one mistake this design cannot catch, so that is the line to look at in review.
 
+**The mode decides what is offered, and it is checked twice.** `AgentModePolicy` is asked once by
+`AgentToolRegistry`, which shapes the request, and again by `AgentService` for every arriving call. Keep
+both. Filtering only the request trusts the model not to name a tool it was not shown, and checking only
+the loop advertises capabilities a planning run will refuse. The second check runs *before*
+`AgentToolArguments.TryParse`, so a forbidden call is refused identically whether or not its JSON was
+well formed - move it after the parse and malformed arguments start producing a different answer than
+the same call would get with valid ones. The policy reads a tool's `Risk` and whether it implements
+`IAgentPlanningTool`, never its name: a tool added next year is gated by declaring what it costs.
+
 **A standing yes covers files, never programs.** Approving a `Write` can be remembered for the rest of
 the run, because the answer to "may you edit files in this folder" does not change between two edits.
 `Execute` is excluded from both halves of that - `RunState.IsAllowedForRun` and `RunState.Remember` in
@@ -312,6 +321,12 @@ Test names are sentences with underscores - `A_stored_key_comes_back_exactly_as_
 failure in CI output reads as the broken behaviour rather than as a method to go and look up. Comments
 in a test say why the case matters, not what the code does.
 
+Assertions about composed prompt text - [`AgentModeTests`](tests/AIClient.Tests/AgentModeTests.cs) is
+where most of them are - match one line at a time. The prompt is a raw string literal wrapped to the column limit, so its sentences carry a newline and an indent in the
+middle, and `Assert.Contains` with a sentence that reads correctly in the source will fail against text
+that is correct. Pick the longest fragment that fits on one line of the literal; a `DoesNotContain`
+written the same way is worse, because it passes for the wrong reason and asserts nothing.
+
 `xUnit1051` is suppressed in [the test project](tests/AIClient.Tests/AIClient.Tests.csproj): nothing
 in the suite is long-running, and threading the run-level token through several hundred call sites
 would cost readability and buy nothing. The tests that are genuinely about cancellation pass their own
@@ -417,9 +432,16 @@ the root as well as outside it, and so is anything under `.git`. The refusal tex
 [App.xaml.cs](src/AIClient.App/App.xaml.cs). Reorder those two calls and every write silently becomes
 a denial.
 
-**Agent mode is on and Send refuses.** No folder is open. Settings → Agent → **Choose…**, or turn the
-toggle off. The toggle also offers the picker itself the first time it goes on; declining it turns the
-mode back off rather than leaving a switch that does nothing.
+**Agent mode is on and Send refuses.** The mode beside the toggle is **Build** and no folder is open;
+Build is the only mode that needs one. Settings → Agent → **Choose…**, or switch the mode to Plan, which
+needs nothing. Choosing Build with no folder open offers the picker itself, and declining it falls back
+to Plan rather than turning agent mode off.
+
+**A planning run keeps refusing its own tool calls.** It is doing the right thing. A planning mode is
+offered the reading tools and `submit_plan` and nothing else, and `AgentModePolicy` refuses the rest
+before their arguments are read. If the model is reaching for `write_file` repeatedly, the run is in
+Plan and the intent was Build - the refusal text says so, and switching the mode is the fix rather than
+touching the policy.
 
 **A key that worked yesterday is reported as absent.** DPAPI is scoped to the Windows account, so a
 blob written by a different account - a restored backup, a copied profile, a different user - cannot be

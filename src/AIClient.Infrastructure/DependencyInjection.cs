@@ -127,6 +127,12 @@ public static class DependencyInjection
         // last registration wins, and the host registers last.
         services.AddSingleton<IAgentApproval, DenyingAgentApproval>();
 
+        // Same arrangement, and for the same reason: a plan has to go somewhere, and where it goes
+        // depends on what the host can draw on. This one keeps the plan in the conversation, which is
+        // the whole of what a build without a canvas can honestly do; the WPF app registers a sink
+        // that also draws, over the top of this.
+        services.AddSingleton<IAgentPlanSink, TranscriptPlanSink>();
+
         services.AddSingleton<IAgentService, AgentService>();
     }
 
@@ -154,6 +160,10 @@ public static class DependencyInjection
         // moment would need a restart to reflect the switch the user just turned on.
         services.AddSingleton<IProcessRunner, ProcessRunner>();
         services.AddSingleton<IAgentTool, RunCommandTool>();
+
+        // Belongs to the planning modes and is withheld from a build, which AgentModePolicy decides
+        // from the marker interface it implements rather than from where it sits in this list.
+        services.AddSingleton<IAgentTool, SubmitPlanTool>();
 
         services.AddSingleton<IAgentToolRegistry, AgentToolRegistry>();
     }

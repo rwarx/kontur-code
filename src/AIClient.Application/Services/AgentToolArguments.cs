@@ -248,6 +248,66 @@ public sealed class AgentToolArguments
     }
 
     /// <summary>
+    /// Reads an optional array of objects, each one wrapped so its own fields are read the same way.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Wrapping rather than deserialising into a record keeps every nested field on the same forgiving
+    /// terms as a top-level one - a quoted number is still a number, a missing optional is still absent -
+    /// and keeps the error sentences identical, which matters because the model reads them and has no way
+    /// to tell how deep the field it got wrong was.
+    /// </para>
+    /// <para>
+    /// A single object is accepted where an array belongs, for the reason a single string is: a model with
+    /// one item to send frequently sends the item. Anything that is neither is an error, because an array
+    /// of strings where objects belong means the model misread the schema rather than mistyped it.
+    /// </para>
+    /// </remarks>
+    public bool TryGetObjectArray(
+        string name,
+        out IReadOnlyList<AgentToolArguments> items,
+        [NotNullWhen(false)] out string? error)
+    {
+        items = [];
+        error = null;
+
+        if (!TryGetProperty(name, out var property))
+        {
+            return true;
+        }
+
+        if (property.ValueKind == JsonValueKind.Object)
+        {
+            items = [new AgentToolArguments(property.Clone())];
+            return true;
+        }
+
+        if (property.ValueKind != JsonValueKind.Array)
+        {
+            error = $"'{name}' must be an array of objects.";
+            return false;
+        }
+
+        var read = new List<AgentToolArguments>(property.GetArrayLength());
+
+        foreach (var element in property.EnumerateArray())
+        {
+            if (element.ValueKind != JsonValueKind.Object)
+            {
+                error = $"Every entry in '{name}' has to be an object with its own fields, not a bare value.";
+                return false;
+            }
+
+            // Cloned per element for the reason the root is: each one outlives this loop, and a
+            // JsonElement is a window onto a buffer rather than a copy of it.
+            read.Add(new AgentToolArguments(element.Clone()));
+        }
+
+        items = read;
+        return true;
+    }
+
+    /// <summary>
     /// Finds a property, and treats an explicit null as absent.
     /// </summary>
     /// <remarks>

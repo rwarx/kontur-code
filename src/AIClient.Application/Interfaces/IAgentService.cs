@@ -48,6 +48,16 @@ public sealed record AgentRunRequest
     public required string ModelId { get; init; }
 
     public IReadOnlyList<NewAttachment> Attachments { get; init; } = [];
+
+    /// <summary>
+    /// Which kind of run this is: one that changes the project, or one that plans.
+    /// </summary>
+    /// <remarks>
+    /// Part of the request rather than of the service, so that the mode is decided per task and cannot
+    /// drift out of step with what the user picked. Defaulted to <see cref="AgentMode.Build"/> because
+    /// that is what every caller meant before there were modes.
+    /// </remarks>
+    public AgentMode Mode { get; init; } = AgentMode.Build;
 }
 
 /// <summary>Why a run stopped, when it stopped without failing.</summary>

@@ -815,6 +815,7 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
@@ -843,10 +844,33 @@
                                       MinHeight="0"
                                       VerticalAlignment="Bottom"
                                       Margin="0,0,4,4"
-                                      ToolTip="Let the model work in the folder you opened. It asks before anything it cannot take back." />
+                                      ToolTip="Let the model work on the project. It plans by default, and asks before anything it cannot take back." />
+
+                        <!--
+                            Which kind of run, and next to the toggle for the same reason the toggle is
+                            in the composer: it decides what Send does, and it is a per-message choice -
+                            plan, look at the plan, then build - rather than a preference. Hidden while
+                            agent mode is off, where it would be three options that do nothing.
+                        -->
+                        <ComboBox Grid.Column="2"
+                                  ItemsSource="{Binding AgentModes}"
+                                  SelectedValuePath="Mode"
+                                  SelectedValue="{Binding SelectedAgentMode, Mode=TwoWay}"
+                                  FontSize="12"
+                                  MinWidth="128"
+                                  MinHeight="0"
+                                  VerticalAlignment="Bottom"
+                                  Margin="0,0,4,4"
+                                  Visibility="{Binding IsAgentMode, Converter={StaticResource BoolToVisibility}}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" ToolTip="{Binding Description}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
 
                         <TextBox x:Name="DraftBox"
-                                 Grid.Column="2"
+                                 Grid.Column="3"
                                  Text="{Binding Draft, UpdateSourceTrigger=PropertyChanged}"
                                  AcceptsReturn="True"
                                  TextWrapping="Wrap"
@@ -861,7 +885,7 @@
                                  SpellCheck.IsEnabled="True" />
 
                         <!-- Send and Stop swap: only one is ever meaningful. -->
-                        <ui:Button Grid.Column="3"
+                        <ui:Button Grid.Column="4"
                                    Appearance="Primary"
                                    Icon="{ui:SymbolIcon Send24}"
                                    ToolTip="Send (Enter)"
@@ -870,7 +894,7 @@
                                    Command="{Binding SendCommand}"
                                    Visibility="{Binding IsGenerating, Converter={StaticResource InverseBoolToVisibility}}" />
 
-                        <ui:Button Grid.Column="3"
+                        <ui:Button Grid.Column="4"
                                    Appearance="Danger"
                                    Icon="{ui:SymbolIcon Stop24}"
                                    ToolTip="Stop generating (Esc)"
@@ -891,7 +915,7 @@
                                Style="{StaticResource SubtleText}"
                                Text="{Binding InputHint}" />
 
-                    <!-- Which folder is at stake, while it is still possible not to send. -->
+                    <!-- What the next message will do, and where, while it is still possible not to send. -->
                     <TextBlock Grid.Column="1"
                                Style="{StaticResource SubtleText}"
                                Text="{Binding AgentHint}"

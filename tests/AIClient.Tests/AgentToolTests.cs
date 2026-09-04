@@ -425,6 +425,10 @@ public sealed class AgentToolTests : IAsyncLifetime
                 var wanted when wanted == typeof(IWorkspaceService) => _workspace,
                 var wanted when wanted == typeof(ISettingsService) => _settings,
                 var wanted when wanted == typeof(IProcessRunner) => _runner,
+
+                // The registered default, and stateless. Nothing here calls the tool, so where a plan
+                // would end up does not matter; the tool existing and publishing a valid schema does.
+                var wanted when wanted == typeof(IAgentPlanSink) => new TranscriptPlanSink(),
                 _ => throw new InvalidOperationException(
                     $"{type.Name} takes a {parameter.ParameterType.Name}, which this test cannot supply."),
             });

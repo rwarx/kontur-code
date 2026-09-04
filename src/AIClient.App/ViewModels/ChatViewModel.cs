@@ -150,15 +150,55 @@ public sealed partial class ChatViewModel : ObservableObject
     private bool _isAgentMode;
 
     /// <summary>
-    /// Which folder an agent run would work in, shown while agent mode is on.
+    /// Which kind of agent run the next message starts.
     /// </summary>
     /// <remarks>
-    /// Named rather than implied. Everything the agent can read or change is under this path, and a
-    /// user about to let a model edit files is entitled to see which files those are before sending.
+    /// <para>
+    /// Separate from <see cref="IsAgentMode"/> rather than folded into one four-valued picker, because
+    /// the two questions are asked at different moments: whether this message is a task at all, and -
+    /// having decided it is - whether it should be carried out or thought through. Keeping the toggle
+    /// also leaves every existing habit intact for someone who only ever builds.
+    /// </para>
+    /// <para>
+    /// Defaults to <see cref="AgentMode.Plan"/>, which is the opposite of the toggle's own default and
+    /// deliberate: the first thing agent mode does, for someone who has just found it, should be to
+    /// describe what it would do rather than to start doing it.
+    /// </para>
     /// </remarks>
-    public string AgentHint => _workspace.Root is { Length: > 0 } root
-        ? $"Agent mode · working in {root}"
-        : "Agent mode · no folder open. Choose one under Settings.";
+    [ObservableProperty]
+    private AgentMode _selectedAgentMode = AgentMode.Plan;
+
+    /// <summary>The three modes, in the order the picker lists them.</summary>
+    public IReadOnlyList<AgentModeOption> AgentModes { get; } = AgentModeOption.All;
+
+    /// <summary>
+    /// What the agent would do with the next message, shown while agent mode is on.
+    /// </summary>
+    /// <remarks>
+    /// Names the folder, and says whether anything can change. A user about to let a model edit files
+    /// is entitled to see which files those are before sending; a user planning is entitled to know
+    /// that nothing will be touched, which is the whole reason the planning modes exist.
+    /// </remarks>
+    public string AgentHint
+    {
+        get
+        {
+            var root = _workspace.Root is { Length: > 0 } open ? open : null;
+
+            if (SelectedAgentMode.NeedsWorkspace())
+            {
+                return root is null
+                    ? "Build · no folder open. Choose one under Settings."
+                    : $"Build · working in {root}";
+            }
+
+            var name = SelectedAgentMode.DisplayName();
+
+            return root is null
+                ? $"{name} · planning something new. Nothing will be read or changed."
+                : $"{name} · reading {root}. Nothing will be changed.";
+        }
+    }
 
     public ChatViewModel(
         IChatService chatService,
@@ -340,9 +380,14 @@ public sealed partial class ChatViewModel : ObservableObject
 
         // Checked here rather than after the draft is cleared: a refusal that also loses what the
         // user typed is two problems where there was one.
-        if (IsAgentMode && !_workspace.IsOpen)
+        //
+        // Only Build needs one. A plan for a project that does not exist yet has nothing to read, and
+        // refusing it for want of a folder would refuse the case those modes were added for.
+        if (IsAgentMode && SelectedAgentMode.NeedsWorkspace() && !_workspace.IsOpen)
         {
-            BannerMessage = "The agent needs a folder to work in. Open one under Settings, or turn agent mode off to just chat.";
+            BannerMessage = "Build needs a folder to work in. Open one under Settings, switch to Plan, "
+                + "or turn agent mode off to just chat.";
+
             return;
         }
 
@@ -365,6 +410,10 @@ public sealed partial class ChatViewModel : ObservableObject
                 ProviderId = model.ProviderId,
                 ModelId = model.ModelId,
                 Attachments = attachments,
+
+                // Taken at Send, not read again while the run is going. Switching the picker
+                // mid-run chooses what the next task will be.
+                Mode = SelectedAgentMode,
             }).ConfigureAwait(true);
 
             return;
@@ -1118,7 +1167,7 @@ public sealed partial class ChatViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Asks for a folder the moment the mode is turned on without one.
+    /// Asks for a folder the moment a mode that needs one is turned on without one.
     /// </summary>
     /// <remarks>
     /// The alternative is a toggle that appears to work and then refuses the first message, with the
@@ -1129,10 +1178,27 @@ public sealed partial class ChatViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(AgentHint));
 
-        if (value && !_workspace.IsOpen)
+        if (value && SelectedAgentMode.NeedsWorkspace() && !_workspace.IsOpen)
         {
             // Fire-and-forget, as elsewhere in this class: the picker is modal, and the method
             // below reports its own failures rather than letting one escape.
+            _ = PromptForWorkspaceAsync();
+        }
+    }
+
+    /// <summary>
+    /// Asks the same question when the mode changes rather than the toggle.
+    /// </summary>
+    /// <remarks>
+    /// Someone who has been planning and switches to Build has just said they want the work done, and
+    /// wanting it done in a folder nobody has chosen is not a thing they can have meant.
+    /// </remarks>
+    partial void OnSelectedAgentModeChanged(AgentMode value)
+    {
+        OnPropertyChanged(nameof(AgentHint));
+
+        if (IsAgentMode && value.NeedsWorkspace() && !_workspace.IsOpen)
+        {
             _ = PromptForWorkspaceAsync();
         }
     }
@@ -1143,11 +1209,12 @@ public sealed partial class ChatViewModel : ObservableObject
         {
             var chosen = _dialogs.OpenFolder("Choose the folder the agent may work in");
 
-            // Cancelling turns the mode back off. Agent mode with nowhere to work is a switch that
-            // does nothing, and leaving it on would only defer the same refusal to Send.
+            // Cancelling falls back to planning rather than turning the agent off. The user has said
+            // they want the agent; only the part of it that needs a folder is unavailable, and Plan is
+            // the mode that works without one.
             if (chosen is not { Length: > 0 })
             {
-                IsAgentMode = false;
+                SelectedAgentMode = AgentMode.Plan;
                 return;
             }
 
@@ -1162,14 +1229,14 @@ public sealed partial class ChatViewModel : ObservableObject
 
             // The workspace's own words: it refuses folders a picker allows - a drive root, a system
             // folder, this application's data - and only it knows which of those this was.
-            IsAgentMode = false;
+            SelectedAgentMode = AgentMode.Plan;
             BannerMessage = result.Error ?? "That folder cannot be used as a workspace.";
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Could not open a workspace folder from the composer.");
 
-            IsAgentMode = false;
+            SelectedAgentMode = AgentMode.Plan;
             BannerMessage = "That folder could not be opened. Choose another under Settings.";
         }
     }
@@ -1178,6 +1245,35 @@ public sealed partial class ChatViewModel : ObservableObject
 /// <summary>A starter prompt on the empty-state screen.</summary>
 /// <param name="Prompt">Text placed in the composer, deliberately unfinished so the user continues it.</param>
 public sealed record ChatSuggestion(string Title, string Description, string Prompt);
+
+/// <summary>
+/// One entry in the composer's mode picker.
+/// </summary>
+/// <remarks>
+/// A record with the name on it rather than the bare enum with a converter, so the picker binds
+/// directly - <c>DisplayMemberPath</c> for the label, <c>SelectedValuePath</c> for the mode - and the
+/// difference between the three is written where a user will read it rather than in a tooltip nobody
+/// hovers.
+/// </remarks>
+/// <param name="Description">Shown under the name, and it is about consequence: what this mode will do
+/// to the folder.</param>
+public sealed record AgentModeOption(AgentMode Mode, string Name, string Description)
+{
+    /// <summary>
+    /// The three, ordered by how much they change.
+    /// </summary>
+    /// <remarks>
+    /// Planning first, and Build last, which is the same reasoning the tool registry uses for ordering
+    /// tools by risk: the first plausible entry in a list is the one that gets picked, and it should be
+    /// the one that cannot damage anything.
+    /// </remarks>
+    public static IReadOnlyList<AgentModeOption> All { get; } =
+    [
+        new(AgentMode.Plan, "Plan", "Reads and works out what to do. Changes nothing."),
+        new(AgentMode.PlanCanvas, "Plan + canvas", "Plans, and draws the project it would build."),
+        new(AgentMode.Build, "Build", "Carries the work out, asking before each change."),
+    ];
+}
 
 /// <summary>A file staged for the next message, with a display size for its chip.</summary>
 public sealed class PendingAttachment

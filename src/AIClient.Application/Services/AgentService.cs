@@ -406,8 +406,24 @@ public sealed class AgentService : IAgentService
                     run,
                     call,
                     AgentToolResult.Fail(
-                        $"There is no tool called '{call.Name}'. The tools you have are: {ToolNames()}.",
+                        $"There is no tool called '{call.Name}'. The tools you have are: {ToolNames(run.Mode)}.",
                         $"Unknown tool '{call.Name}'"),
+                    AgentCallOutcome.Failed).ConfigureAwait(false);
+
+                continue;
+            }
+
+            if (!AgentModePolicy.Offers(run.Mode, tool))
+            {
+                // Checked here as well as when the request was built, because the offer is a courtesy
+                // and this is the rule: a provider can hand back a call for a tool that was never
+                // offered, and a mode that only filtered the list would carry it out. Before the
+                // arguments are read, too - a call this mode does not allow is refused on the same
+                // terms whether or not its JSON was well formed.
+                yield return await RecordAsync(
+                    run,
+                    call,
+                    AgentModePolicy.Refuse(run.Mode, tool),
                     AgentCallOutcome.Failed).ConfigureAwait(false);
 
                 continue;
@@ -678,7 +694,8 @@ public sealed class AgentService : IAgentService
                     SystemPrompt = AgentPrompt.Compose(
                         conversation?.SystemPrompt ?? chat.SystemPrompt,
                         _workspace.Root,
-                        _settings.Current.Agent.AllowCommands),
+                        _settings.Current.Agent.AllowCommands,
+                        run.Mode),
                     ContextWindow = model?.ContextWindow,
                     ReservedOutputTokens = chat.ReservedOutputTokens,
                 },
@@ -701,7 +718,7 @@ public sealed class AgentService : IAgentService
                 TopP = Allow(model, "top_p") ? chat.TopP : null,
                 MaxTokens = Allow(model, "max_tokens") ? ClampMaxTokens(chat.MaxTokens, model) : null,
                 Stream = model?.SupportsStreaming ?? true,
-                Tools = _registry.Available(),
+                Tools = _registry.Available(run.Mode),
 
                 // The definitions stay attached on the final step. Withdrawing them entirely makes
                 // some providers forget the calls already in the history, which invalidates the very
@@ -761,7 +778,18 @@ public sealed class AgentService : IAgentService
             $"{tool.Name}: repeated call refused");
     }
 
-    private string ToolNames() => string.Join(", ", _registry.Tools.Select(tool => tool.Name));
+    /// <summary>
+    /// The tools this run actually has, for telling a model that invented one it does not.
+    /// </summary>
+    /// <remarks>
+    /// Filtered by mode rather than listing everything registered. A planning run answered with the
+    /// names of the write tools would be told, in the same breath, that its call was wrong and that
+    /// edit_file exists - and it would try it next.
+    /// </remarks>
+    private string ToolNames(AgentMode mode) =>
+        string.Join(
+            ", ",
+            _registry.Tools.Where(tool => AgentModePolicy.Offers(mode, tool)).Select(tool => tool.Name));
 
     private static AgentEvent Finish(RunState run, AgentStopReason reason) =>
         new AgentEvent.Completed(run.LastMessageId, run.Step, reason, (int)run.Elapsed.TotalMilliseconds);
@@ -863,6 +891,7 @@ public sealed class AgentService : IAgentService
             ConversationId = request.ConversationId;
             ProviderId = request.ProviderId;
             ModelId = request.ModelId;
+            Mode = request.Mode;
             UserToken = userToken;
             RunToken = userToken;
 
@@ -886,6 +915,17 @@ public sealed class AgentService : IAgentService
         public string ProviderId { get; }
 
         public string ModelId { get; }
+
+        /// <summary>
+        /// Which kind of run this is, read at every step and every call.
+        /// </summary>
+        /// <remarks>
+        /// Taken from the request and then fixed for the run. Someone switching the picker while a run
+        /// is in flight is choosing what the next task will be, not changing what this one is allowed
+        /// to do halfway through - a plan that turned into a build under it would be the worst possible
+        /// reading of that click.
+        /// </remarks>
+        public AgentMode Mode { get; }
 
         public int MaxSteps { get; }
 

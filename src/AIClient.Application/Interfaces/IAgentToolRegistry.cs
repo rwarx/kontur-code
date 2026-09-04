@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using AIClient.Application.DTOs;
 using AIClient.Domain.Models;
 
 namespace AIClient.Application.Interfaces;
@@ -26,17 +27,23 @@ public interface IAgentToolRegistry
     IReadOnlyList<AIToolDefinition> Definitions { get; }
 
     /// <summary>
-    /// The definitions of the tools that can currently do something, which is what a request should
-    /// carry.
+    /// The definitions of the tools that can currently do something in this mode, which is what a
+    /// request should carry.
     /// </summary>
     /// <remarks>
-    /// Differs from <see cref="Definitions"/> only when a tool implements
-    /// <see cref="IAgentToolAvailability"/> and is currently switched off, so in the ordinary case the
-    /// same prebuilt list comes back and nothing is allocated. Withholding a tool is a courtesy to the
-    /// model rather than a security boundary: the tool refuses the call regardless, and this only saves
-    /// the step spent discovering that.
+    /// <para>
+    /// Two filters, and they are different in kind. The mode decides what a run of that kind may call at
+    /// all - a plan is offered nothing that writes - and that part is a rule, enforced again when the
+    /// call comes back. <see cref="IAgentToolAvailability"/> decides whether a tool the mode allows is
+    /// currently switched on, and withholding it is a courtesy to the model rather than a boundary: the
+    /// tool refuses the call regardless, and this only saves the step spent discovering that.
+    /// </para>
+    /// <para>
+    /// Differs from <see cref="Definitions"/> only where one of those two applies, so the common case
+    /// hands back a prebuilt list and allocates nothing.
+    /// </para>
     /// </remarks>
-    IReadOnlyList<AIToolDefinition> Available();
+    IReadOnlyList<AIToolDefinition> Available(AgentMode mode = AgentMode.Build);
 
     /// <summary>
     /// Finds the tool a call names.
