@@ -1,6 +1,7 @@
 using AIClient.Application.Configuration;
 using AIClient.Application.Interfaces;
 using AIClient.Application.Services;
+using AIClient.Application.Services.Tools;
 using AIClient.Domain.Interfaces;
 using AIClient.Infrastructure.Configuration;
 using AIClient.Infrastructure.Database;
@@ -116,5 +117,28 @@ public static class DependencyInjection
         // Singleton because the open folder is process-wide state: the file tree, the agent and
         // the settings screen all have to agree on which folder that is.
         services.AddSingleton<IWorkspaceService, WorkspaceService>();
+
+        AddAgentTools(services);
+    }
+
+    private static void AddAgentTools(IServiceCollection services)
+    {
+        // Registered as IAgentTool so the registry receives every one of them by injecting
+        // IEnumerable<IAgentTool>. This list is therefore the whole of what the model can do:
+        // adding a capability is one line here, and withdrawing one is deleting a line, with no
+        // second place that has to be kept in step.
+        //
+        // Listed reading first and writing second, which is the order the registry sorts them into
+        // and the order the model is shown them in.
+        services.AddSingleton<IAgentTool, ListFilesTool>();
+        services.AddSingleton<IAgentTool, ReadFileTool>();
+        services.AddSingleton<IAgentTool, SearchFilesTool>();
+        services.AddSingleton<IAgentTool, CreateDirectoryTool>();
+        services.AddSingleton<IAgentTool, DeleteFileTool>();
+        services.AddSingleton<IAgentTool, EditFileTool>();
+        services.AddSingleton<IAgentTool, MoveFileTool>();
+        services.AddSingleton<IAgentTool, WriteFileTool>();
+
+        services.AddSingleton<IAgentToolRegistry, AgentToolRegistry>();
     }
 }
