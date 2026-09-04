@@ -654,7 +654,11 @@ public sealed class AgentService : IAgentService
             // Refused outright rather than discovered halfway through. A model that cannot call
             // tools answers the agent prompt with a description of what it would have done, which
             // looks exactly like an agent that did nothing and is far harder to understand.
-            if (model is { SupportsTools: false })
+            //
+            // Only a catalogue that positively excluded tools counts as a no. A catalogue that
+            // says nothing about capabilities - NVIDIA's says nothing about any of them - would
+            // otherwise take agent mode away from the whole provider.
+            if (model is { ToolsRuledOut: true })
             {
                 return Preparation.Failed(new AIProviderException(
                     AIErrorKind.InvalidRequest,

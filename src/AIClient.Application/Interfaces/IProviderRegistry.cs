@@ -97,4 +97,19 @@ public sealed record ModelInfo
     public bool Supports(string parameter) =>
         SupportedParameters.Count == 0 ||
         SupportedParameters.Contains(parameter, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// True only when the catalogue positively excluded tool calling: it listed the parameters
+    /// this model accepts and <c>tools</c> was not among them.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="SupportsTools"/> is false in two situations that look identical and are not: a
+    /// model that cannot call tools, and a catalogue that publishes no capabilities at all.
+    /// NVIDIA's is the second - <c>/v1/models</c> returns ids and an owner, nothing more - so
+    /// treating its silence as a refusal locks agent mode out of every model that provider
+    /// serves, including the ones that call tools perfectly well. Silence is read the way
+    /// <see cref="Supports"/> reads it: the request goes out, and the provider is the one that
+    /// gets to say no.
+    /// </remarks>
+    public bool ToolsRuledOut => !SupportsTools && SupportedParameters.Count > 0;
 }

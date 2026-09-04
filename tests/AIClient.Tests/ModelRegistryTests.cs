@@ -100,6 +100,35 @@ public sealed class ModelRegistryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_silent_catalogue_is_not_cached_as_a_model_without_tools()
+    {
+        // Both of these come back with SupportsTools false and only one of them is a published no.
+        // NVIDIA reports no capabilities whatsoever, so reading its silence as a refusal took agent
+        // mode away from every model it serves.
+        var provider = ProviderWith(
+            Descriptor("nvidia/nemotron", "NVIDIA / Nemotron"),
+            new AIModelDescriptor
+            {
+                ModelId = "vendor/chat-only",
+                Name = "Vendor: Chat Only",
+                SupportedParameters = ["max_tokens", "temperature"],
+            });
+
+        var registry = Registry(provider);
+        await registry.RefreshModelsAsync(OpenRouterProvider.ProviderId, Token);
+
+        var models = await registry.GetAllModelsAsync(Token);
+
+        var silent = models.Single(m => m.ModelId == "nvidia/nemotron");
+        Assert.False(silent.SupportsTools);
+        Assert.False(silent.ToolsRuledOut);
+
+        var refused = models.Single(m => m.ModelId == "vendor/chat-only");
+        Assert.False(refused.SupportsTools);
+        Assert.True(refused.ToolsRuledOut);
+    }
+
+    [Fact]
     public async Task Refreshing_twice_updates_the_cached_row_instead_of_duplicating_it()
     {
         // The unique index on (provider, model) means a second insert would throw, but the

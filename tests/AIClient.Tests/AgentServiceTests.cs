@@ -374,7 +374,10 @@ public sealed class AgentServiceTests : IAsyncLifetime
         var probe = new ProbeTool("read_thing");
         var provider = Stepping(Answer("Never reached."));
 
-        var registry = new StubProviderRegistry(provider).WithModel(Model(supportsTools: false));
+        // A catalogue that listed this model's parameters and left tools out of them. That is a
+        // published no, which is the only kind the loop refuses on.
+        var registry = new StubProviderRegistry(provider)
+            .WithModel(Model(supportsTools: false, "max_tokens", "temperature"));
 
         var events = await CollectAsync(
             Service(provider, [probe], registry: registry).RunAsync(Ask(conversationId), Token));
@@ -385,6 +388,33 @@ public sealed class AgentServiceTests : IAsyncLifetime
 
         // Refused up front, not discovered halfway: nothing was asked of the provider at all.
         Assert.Empty(provider.Requests);
+    }
+
+    [Fact]
+    public async Task A_catalogue_that_says_nothing_about_tools_is_not_read_as_a_refusal()
+    {
+        // NVIDIA's /v1/models returns an id and an owner per model and no capability flags at all,
+        // so every model it serves is cached with SupportsTools false. Refusing on that flag alone
+        // meant agent mode failed on the user's entire provider - including Kimi K3 and MiniMax M3,
+        // which call tools perfectly well - before a single request went out.
+        var conversationId = await NewChatAsync();
+        var probe = new ProbeTool("read_thing");
+        var provider = Stepping(
+            Calls(Call("read_thing", """{"path":"a.txt"}""")),
+            Answer("It says hello."));
+
+        var registry = new StubProviderRegistry(provider).WithModel(Model(supportsTools: false));
+
+        var events = await CollectAsync(
+            Service(provider, [probe], registry: registry).RunAsync(Ask(conversationId), Token));
+
+        Assert.Empty(events.OfType<AgentEvent.Failed>());
+
+        // The tools were offered rather than quietly withheld, so the model could call one.
+        Assert.NotEmpty(provider.Requests[0].Tools);
+        Assert.Equal(AIToolChoice.Auto, provider.Requests[0].ToolChoice);
+        Assert.Equal(1, probe.Ran);
+        Assert.Equal(AgentStopReason.Answered, Assert.IsType<AgentEvent.Completed>(events[^1]).Reason);
     }
 
     [Fact]
@@ -581,7 +611,12 @@ public sealed class AgentServiceTests : IAsyncLifetime
     /// <summary>
     /// A model that can call tools, which is the only capability the loop insists on.
     /// </summary>
-    private static ModelInfo Model(bool supportsTools = true) =>
+    /// <remarks>
+    /// The parameter list is what separates a model that cannot call tools from a catalogue that
+    /// never said either way: left empty, <paramref name="supportsTools"/> being false means only
+    /// that nobody claimed it.
+    /// </remarks>
+    private static ModelInfo Model(bool supportsTools = true, params string[] supportedParameters) =>
         new()
         {
             ProviderId = ProviderId,
@@ -590,6 +625,7 @@ public sealed class AgentServiceTests : IAsyncLifetime
             Name = ModelId,
             SupportsStreaming = true,
             SupportsTools = supportsTools,
+            SupportedParameters = supportedParameters,
         };
 
     private static AgentRunRequest Ask(Guid conversationId, string content = "Rename the widget.") =>

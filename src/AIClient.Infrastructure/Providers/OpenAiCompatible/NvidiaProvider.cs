@@ -121,7 +121,11 @@ public sealed class NvidiaProvider : OpenAiCompatibleProvider
                 SupportsImages = IsVisionModel(modelId),
 
                 // The catalogue says nothing about tool support, and claiming it falsely is
-                // worse than omitting it. Left false until the model page is machine-readable.
+                // worse than omitting it: the picker shows no tools badge for a model that
+                // might not have one. False here is "unknown", not "no" - the empty
+                // SupportedParameters below is what marks it as unknown, and agent mode reads
+                // that and offers tools anyway rather than refusing the whole provider.
+                // See ModelInfo.ToolsRuledOut.
                 SupportsTools = false,
 
                 // NVIDIA's hosted tier does not publish per-token prices through the API.
