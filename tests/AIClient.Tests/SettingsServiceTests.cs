@@ -128,7 +128,7 @@ public sealed class SettingsServiceTests : IAsyncLifetime
 
         // These keys are the primary key of the table. Renaming one silently resets that
         // section for every existing installation.
-        Assert.Equal(["appearance", "chat", "general", "storage"], keys);
+        Assert.Equal(["agent", "appearance", "chat", "general", "storage"], keys);
     }
 
     [Fact]

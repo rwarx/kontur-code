@@ -66,17 +66,6 @@ public sealed class AttachmentService : IAttachmentService
         ".editorconfig", ".npmrc", ".nvmrc", ".prettierrc", ".eslintrc", ".env.example",
     ];
 
-    /// <summary>
-    /// Bytes inspected for the binary check. A UTF-8 BOM plus a header is well inside this,
-    /// and reading more would not improve the verdict.
-    /// </summary>
-    private const int SniffLength = 8192;
-    /// <summary>
-    /// Share of NUL bytes above which a file is called binary. Text files contain none;
-    /// a small tolerance covers UTF-16 content that slipped past encoding detection.
-    /// </summary>
-    private const double BinaryNulThreshold = 0.01;
-
     private readonly ISettingsService _settings;
     private readonly ILogger<AttachmentService> _logger;
 
@@ -141,7 +130,7 @@ public sealed class AttachmentService : IAttachmentService
                 return AttachmentResult.Fail("That file is empty.");
             }
 
-            if (await IsBinaryAsync(filePath, cancellationToken).ConfigureAwait(false))
+            if (await TextContent.IsBinaryAsync(filePath, cancellationToken).ConfigureAwait(false))
             {
                 return AttachmentResult.Fail("That file contains binary data and cannot be attached.");
             }
@@ -191,35 +180,6 @@ public sealed class AttachmentService : IAttachmentService
         // files the dialog would otherwise hide behind "All files".
         var patterns = string.Join(';', Extensions.Select(e => $"*{e}").Concat(TextFileNames));
         return $"Text and code files|{patterns}|All files (*.*)|*.*";
-    }
-
-    /// <summary>
-    /// Rejects files whose contents are binary regardless of extension - a renamed
-    /// executable must not be inlined into a prompt.
-    /// </summary>
-    private static async Task<bool> IsBinaryAsync(string path, CancellationToken cancellationToken)
-    {
-        await using var stream = new FileStream(
-            path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, SniffLength, useAsync: true);
-
-        var buffer = new byte[Math.Min(SniffLength, (int)Math.Min(stream.Length, SniffLength))];
-        var read = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-
-        if (read == 0)
-        {
-            return false;
-        }
-
-        var nulCount = 0;
-        for (var i = 0; i < read; i++)
-        {
-            if (buffer[i] == 0)
-            {
-                nulCount++;
-            }
-        }
-
-        return (double)nulCount / read > BinaryNulThreshold;
     }
 
     private static string ResolveMimeType(string extension) => extension.ToLowerInvariant() switch

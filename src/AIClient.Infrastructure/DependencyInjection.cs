@@ -9,6 +9,7 @@ using AIClient.Infrastructure.Providers;
 using AIClient.Infrastructure.Providers.OpenAiCompatible;
 using AIClient.Infrastructure.Repositories;
 using AIClient.Infrastructure.SecureStorage;
+using AIClient.Infrastructure.Workspace;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -111,5 +112,9 @@ public static class DependencyInjection
         services.AddSingleton<IAttachmentService, AttachmentService>();
         services.AddSingleton<IExportService, ExportService>();
         services.AddSingleton<IChatService, ChatService>();
+
+        // Singleton because the open folder is process-wide state: the file tree, the agent and
+        // the settings screen all have to agree on which folder that is.
+        services.AddSingleton<IWorkspaceService, WorkspaceService>();
     }
 }

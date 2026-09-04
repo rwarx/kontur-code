@@ -58,6 +58,7 @@ public sealed class SettingsService : ISettingsService
             Appearance = Deserialize<AppearanceSettings>(rows, AppSettings.Keys.Appearance),
             Chat = Deserialize<ChatSettings>(rows, AppSettings.Keys.Chat),
             Storage = Deserialize<StorageSettings>(rows, AppSettings.Keys.Storage),
+            Agent = Deserialize<AgentSettings>(rows, AppSettings.Keys.Agent),
         };
 
         _logger.LogInformation("Loaded {Count} settings section(s).", rows.Count);
@@ -96,6 +97,7 @@ public sealed class SettingsService : ISettingsService
             await PersistAsync(AppSettings.Keys.Appearance, Current.Appearance, cancellationToken).ConfigureAwait(false);
             await PersistAsync(AppSettings.Keys.Chat, Current.Chat, cancellationToken).ConfigureAwait(false);
             await PersistAsync(AppSettings.Keys.Storage, Current.Storage, cancellationToken).ConfigureAwait(false);
+            await PersistAsync(AppSettings.Keys.Agent, Current.Agent, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -103,27 +105,29 @@ public sealed class SettingsService : ISettingsService
         }
     }
 
+    /// <summary>
+    /// Maps a section type to the live instance and the row it is stored under.
+    /// </summary>
+    /// <remarks>
+    /// One switch returning both halves, deliberately. Written as two switches - one for the
+    /// instance and one for the key - the pairing is only correct as long as both are edited
+    /// together, and a default arm on the key switch turns a forgotten edit into a section that
+    /// silently overwrites another section's row.
+    /// </remarks>
     private (TSection Section, string Key) Resolve<TSection>() where TSection : class
     {
-        object section = typeof(TSection) switch
+        (object Section, string Key) resolved = typeof(TSection) switch
         {
-            var t when t == typeof(GeneralSettings) => Current.General,
-            var t when t == typeof(AppearanceSettings) => Current.Appearance,
-            var t when t == typeof(ChatSettings) => Current.Chat,
-            var t when t == typeof(StorageSettings) => Current.Storage,
+            var t when t == typeof(GeneralSettings) => (Current.General, AppSettings.Keys.General),
+            var t when t == typeof(AppearanceSettings) => (Current.Appearance, AppSettings.Keys.Appearance),
+            var t when t == typeof(ChatSettings) => (Current.Chat, AppSettings.Keys.Chat),
+            var t when t == typeof(StorageSettings) => (Current.Storage, AppSettings.Keys.Storage),
+            var t when t == typeof(AgentSettings) => (Current.Agent, AppSettings.Keys.Agent),
             _ => throw new ArgumentException(
                 $"'{typeof(TSection).Name}' is not a settings section.", nameof(TSection)),
         };
 
-        var key = typeof(TSection) switch
-        {
-            var t when t == typeof(GeneralSettings) => AppSettings.Keys.General,
-            var t when t == typeof(AppearanceSettings) => AppSettings.Keys.Appearance,
-            var t when t == typeof(ChatSettings) => AppSettings.Keys.Chat,
-            _ => AppSettings.Keys.Storage,
-        };
-
-        return ((TSection)section, key);
+        return ((TSection)resolved.Section, resolved.Key);
     }
 
     private async Task PersistAsync(string key, object section, CancellationToken cancellationToken)

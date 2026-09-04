@@ -12,6 +12,7 @@ public sealed class AppSettings
     public AppearanceSettings Appearance { get; set; } = new();
     public ChatSettings Chat { get; set; } = new();
     public StorageSettings Storage { get; set; } = new();
+    public AgentSettings Agent { get; set; } = new();
 
     /// <summary>Section keys used as the primary key of the settings table.</summary>
     public static class Keys
@@ -20,5 +21,6 @@ public sealed class AppSettings
         public const string Appearance = "appearance";
         public const string Chat = "chat";
         public const string Storage = "storage";
+        public const string Agent = "agent";
     }
 }

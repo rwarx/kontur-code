@@ -31,32 +31,37 @@ public sealed class StubSettingsService : ISettingsService
     public Task UpdateAsync<TSection>(Action<TSection> mutate, CancellationToken cancellationToken = default)
         where TSection : class
     {
-        mutate(Section<TSection>());
-        SettingsChanged?.Invoke(this, KeyOf<TSection>());
+        var (section, key) = Resolve<TSection>();
+
+        mutate(section);
+        SettingsChanged?.Invoke(this, key);
         return Task.CompletedTask;
     }
 
     public Task SaveAllAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
-    private TSection Section<TSection>() where TSection : class
+    private TSection Section<TSection>() where TSection : class => Resolve<TSection>().Section;
+
+    /// <summary>
+    /// Maps a section type to the live instance and its row key, in one switch.
+    /// </summary>
+    /// <remarks>
+    /// Mirrors <c>SettingsService.Resolve</c>, including the shape: paired in one arm so a new
+    /// section cannot be given one half and not the other, and no default key so the mistake is
+    /// a thrown exception rather than a write over someone else's row.
+    /// </remarks>
+    private (TSection Section, string Key) Resolve<TSection>() where TSection : class
     {
-        object section = typeof(TSection) switch
+        (object Section, string Key) resolved = typeof(TSection) switch
         {
-            var t when t == typeof(GeneralSettings) => Current.General,
-            var t when t == typeof(AppearanceSettings) => Current.Appearance,
-            var t when t == typeof(ChatSettings) => Current.Chat,
-            var t when t == typeof(StorageSettings) => Current.Storage,
+            var t when t == typeof(GeneralSettings) => (Current.General, AppSettings.Keys.General),
+            var t when t == typeof(AppearanceSettings) => (Current.Appearance, AppSettings.Keys.Appearance),
+            var t when t == typeof(ChatSettings) => (Current.Chat, AppSettings.Keys.Chat),
+            var t when t == typeof(StorageSettings) => (Current.Storage, AppSettings.Keys.Storage),
+            var t when t == typeof(AgentSettings) => (Current.Agent, AppSettings.Keys.Agent),
             _ => throw new ArgumentException($"'{typeof(TSection).Name}' is not a settings section."),
         };
 
-        return (TSection)section;
+        return ((TSection)resolved.Section, resolved.Key);
     }
-
-    private static string KeyOf<TSection>() => typeof(TSection) switch
-    {
-        var t when t == typeof(GeneralSettings) => AppSettings.Keys.General,
-        var t when t == typeof(AppearanceSettings) => AppSettings.Keys.Appearance,
-        var t when t == typeof(ChatSettings) => AppSettings.Keys.Chat,
-        _ => AppSettings.Keys.Storage,
-    };
 }
