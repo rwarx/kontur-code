@@ -8,9 +8,6 @@
   <ItemGroup Label="UI">
     <PackageVersion Include="WPF-UI" Version="4.3.0" />
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageVersion Include="Avalonia" Version="11.3.2" />
-    <PackageVersion Include="Avalonia.Desktop" Version="11.3.2" />
-    <PackageVersion Include="Avalonia.Themes.Fluent" Version="11.3.2" />
   </ItemGroup>
 
   <ItemGroup Label="Hosting / DI / Logging">
