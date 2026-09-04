@@ -97,9 +97,11 @@ public sealed class AgentSettings
     /// The characteristic failure of a tool-using model is not a wrong call but the same call
     /// forever: it reads a file, fails to notice the answer, and reads it again. Counting exact
     /// repeats - same tool, same arguments - catches that without touching the legitimate case of
-    /// reading one file several times as it is edited, because those calls differ. The third
-    /// attempt comes back as a tool result saying so, which is the one message that reliably
-    /// breaks the cycle.
+    /// reading one file several times as it is edited: the counts are forgotten whenever a call
+    /// changes something, because after a write the same read is a different question. The third
+    /// attempt comes back as a tool result saying so, which is the one message that reliably breaks
+    /// the cycle. Below two the check is treated as switched off, since it could then only refuse a
+    /// call that had not been made yet.
     /// </remarks>
     public int MaxIdenticalCalls { get; set; } = 3;
 }

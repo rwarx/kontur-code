@@ -119,6 +119,14 @@ public static class DependencyInjection
         services.AddSingleton<IWorkspaceService, WorkspaceService>();
 
         AddAgentTools(services);
+
+        // Refuses everything, and is meant to be replaced by the host: a console or a test has no
+        // way to ask anyone, and the safe answer to a question nobody can hear is no. The WPF app
+        // registers its own gate over this one, which is why TryAddSingleton is not used here - the
+        // last registration wins, and the host registers last.
+        services.AddSingleton<IAgentApproval, DenyingAgentApproval>();
+
+        services.AddSingleton<IAgentService, AgentService>();
     }
 
     private static void AddAgentTools(IServiceCollection services)
