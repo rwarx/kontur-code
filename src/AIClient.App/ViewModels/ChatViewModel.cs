@@ -133,6 +133,7 @@ public sealed partial class ChatViewModel : ObservableObject
         ISettingsService settings,
         IDialogService dialogs,
         IConnectivityMonitor connectivity,
+        AgentApprovalService approval,
         MarkdownParser markdownParser,
         ILogger<ChatViewModel> logger)
     {
@@ -146,6 +147,8 @@ public sealed partial class ChatViewModel : ObservableObject
         _markdownParser = markdownParser;
         _logger = logger;
 
+        Approval = approval;
+
         _renderTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = RenderInterval };
         _renderTimer.Tick += OnRenderTick;
 
@@ -153,6 +156,16 @@ public sealed partial class ChatViewModel : ObservableObject
 
         ApplyRenderingSettings();
     }
+
+    /// <summary>
+    /// The agent's approval gate, bound by the card above the composer.
+    /// </summary>
+    /// <remarks>
+    /// Held as the concrete service rather than <see cref="IAgentApproval"/>, because what the view
+    /// needs is the question currently pending - which is a property of this host's implementation, not
+    /// something the Application layer knows or should know about.
+    /// </remarks>
+    public AgentApprovalService Approval { get; }
 
     public ObservableCollection<MessageViewModel> Messages { get; } = [];
 

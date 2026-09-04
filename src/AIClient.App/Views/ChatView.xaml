@@ -231,11 +231,58 @@
             </Grid>
         </DataTemplate>
 
+        <!--
+            One line of an approval preview. A Border per line rather than a coloured run, because
+            the tint has to reach the full width of the card: a green patch that stops at the end of
+            the text makes a short added line look like a partial change.
+        -->
+        <DataTemplate x:Key="ApprovalPreviewLineTemplate" DataType="{x:Type vm:ApprovalPreviewLine}">
+            <Border Padding="6,0">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="Transparent" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Kind}" Value="Added">
+                                <Setter Property="Background" Value="{StaticResource DiffAddedBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Kind}" Value="Removed">
+                                <Setter Property="Background" Value="{StaticResource DiffRemovedBrush}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
+                <!--
+                    Never wrapped. The first character of a diff line is what it means, so a line
+                    folded onto a second row would show text with no marker in front of it.
+                -->
+                <TextBlock Text="{Binding Text}"
+                           FontFamily="{StaticResource CodeFont}"
+                           FontSize="12"
+                           TextWrapping="NoWrap">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Kind}" Value="Header">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Kind}" Value="Notice">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <Setter Property="FontStyle" Value="Italic" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Border>
+        </DataTemplate>
+
     </UserControl.Resources>
 
     <Grid md:MarkdownHost.HighlightCode="{Binding HighlightCode}">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
@@ -323,8 +370,161 @@
                    Click="OnJumpToLatest"
                    Visibility="{Binding IsScrolledAway, Converter={StaticResource BoolToVisibility}}" />
 
-        <!-- Composer -->
+        <!--
+            The approval gate (section 28). Docked above the composer rather than raised as a modal
+            dialog, because the answer depends on the transcript behind it - which file the model said
+            it was editing, what it claimed to have read - and a window centred over that text would
+            hide the evidence the user needs.
+        -->
         <Border Grid.Row="1"
+                Margin="24,0,24,0"
+                Padding="14,12"
+                CornerRadius="{StaticResource CardCorner}"
+                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                BorderThickness="3,1,1,1"
+                BorderBrush="{StaticResource ApprovalAccentBrush}"
+                MaxWidth="{StaticResource ContentMaxWidth}"
+                Visibility="{Binding Approval.IsAsking, Converter={StaticResource BoolToVisibility}}">
+
+            <!--
+                Bound to the pending question rather than to the chat pane. When there is no question
+                the card is collapsed, so the null DataContext underneath is never rendered.
+            -->
+            <Grid DataContext="{Binding Approval.Pending}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- What is being asked, and what it costs if the answer is yes. -->
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <ui:SymbolIcon Grid.Column="0"
+                                   Symbol="Warning24"
+                                   FontSize="18"
+                                   Margin="0,1,10,0"
+                                   VerticalAlignment="Top"
+                                   Foreground="{StaticResource ApprovalAccentBrush}" />
+
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="{Binding Headline}"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap" />
+
+                        <TextBlock Text="{Binding Consequence}"
+                                   Style="{StaticResource SubtleText}"
+                                   TextTrimming="None"
+                                   TextWrapping="Wrap"
+                                   Margin="0,2,0,0" />
+
+                        <!--
+                            Shown when the same call is asked about twice in one run. Without it the
+                            user is left wondering whether they misread the previous question.
+                        -->
+                        <TextBlock Text="You already allowed this exact call in this run. It is being asked again because answers to this kind of call are deliberately not remembered."
+                                   Style="{StaticResource SubtleText}"
+                                   TextTrimming="None"
+                                   TextWrapping="Wrap"
+                                   Margin="0,4,0,0"
+                                   Visibility="{Binding IsRepeat, Converter={StaticResource BoolToVisibility}}" />
+                    </StackPanel>
+
+                    <Border Grid.Column="2" Style="{StaticResource Badge}" VerticalAlignment="Top">
+                        <TextBlock Text="{Binding ToolName}" Style="{StaticResource BadgeText}" />
+                    </Border>
+                </Grid>
+
+                <!--
+                    The diff. Not virtualised on purpose: TextDiff caps a preview at four hundred
+                    lines, so the worst case is a few hundred short TextBlocks, and the panel a
+                    ScrollViewer would need to virtualise costs more than it saves at that size.
+                -->
+                <Border Grid.Row="1"
+                        Style="{StaticResource CodeBlockContainer}"
+                        Margin="0,10,0,0"
+                        Visibility="{Binding HasPreview, Converter={StaticResource BoolToVisibility}}">
+                    <ScrollViewer MaxHeight="240"
+                                  Padding="4,6"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding PreviewLines}"
+                                      ItemTemplate="{StaticResource ApprovalPreviewLineTemplate}"
+                                      Focusable="False" />
+                    </ScrollViewer>
+                </Border>
+
+                <!--
+                    The raw call, collapsed. Rarely the thing the decision turns on, and the one place
+                    to look when the summary and the diff disagree with each other.
+                -->
+                <Expander Grid.Row="2"
+                          Margin="0,8,0,0"
+                          IsExpanded="{Binding IsArgumentsExpanded, Mode=TwoWay}"
+                          Visibility="{Binding HasArguments, Converter={StaticResource BoolToVisibility}}">
+                    <Expander.Header>
+                        <TextBlock Text="Arguments" FontSize="12" />
+                    </Expander.Header>
+
+                    <TextBox Text="{Binding ArgumentsJson, Mode=OneWay}"
+                             IsReadOnly="True"
+                             MaxHeight="140"
+                             Margin="0,6,0,0"
+                             FontFamily="{StaticResource CodeFont}"
+                             FontSize="12"
+                             TextWrapping="NoWrap"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto" />
+                </Expander>
+
+                <!--
+                    The answer. The reason sits next to Don't allow because that is the only button it
+                    changes: it is sent to the model in place of the loop's plain refusal, and turns
+                    "no" into a correction the model can act on in one step.
+                -->
+                <Grid Grid.Row="3" Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <ui:TextBox Grid.Column="0"
+                                Text="{Binding DenyReason, UpdateSourceTrigger=PropertyChanged}"
+                                PlaceholderText="Why not? Optional, and sent to the model."
+                                Margin="0,0,10,0"
+                                VerticalAlignment="Center" />
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <ui:Button Content="Don't allow"
+                                   Appearance="Secondary"
+                                   Padding="12,7"
+                                   Margin="0,0,6,0"
+                                   Command="{Binding DenyCommand}" />
+
+                        <ui:Button Content="Allow for this run"
+                                   Appearance="Secondary"
+                                   Padding="12,7"
+                                   Margin="0,0,6,0"
+                                   Command="{Binding AllowForRunCommand}"
+                                   Visibility="{Binding CanAllowForRun, Converter={StaticResource BoolToVisibility}}" />
+
+                        <ui:Button Content="Allow once"
+                                   Appearance="Primary"
+                                   Padding="12,7"
+                                   Command="{Binding AllowCommand}" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- Composer -->
+        <Border Grid.Row="2"
                 BorderThickness="0,1,0,0"
                 BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
                 Padding="24,12,24,16">

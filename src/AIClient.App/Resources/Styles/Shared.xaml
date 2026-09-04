@@ -104,7 +104,27 @@
         <Setter Property="BorderThickness" Value="1" />
     </Style>
 
+    <!-- Approval and diff -->
+
+    <!--
+        Two tints rather than two text colours. A translucent wash over whatever the theme already
+        painted stays legible in both light and dark, which a fixed green on white does not - and the
+        diff in an approval card is the one piece of text in this app a user has to read carefully
+        before answering. The leading + and - carry the same information for anyone who cannot tell
+        the two hues apart.
+    -->
+    <SolidColorBrush x:Key="DiffAddedBrush" Color="#332EA043" />
+    <SolidColorBrush x:Key="DiffRemovedBrush" Color="#33F85149" />
+
+    <!--
+        The gate's accent. Amber rather than red: every question it asks is about something
+        irreversible, but most of them are a file the user asked to have edited, and a card that
+        looks like an error teaches them to dismiss errors.
+    -->
+    <SolidColorBrush x:Key="ApprovalAccentBrush" Color="#E3A008" />
+
     <!-- Code blocks -->
+
 
     <Style x:Key="CodeBlockContainer" TargetType="Border">
         <Setter Property="CornerRadius" Value="6" />

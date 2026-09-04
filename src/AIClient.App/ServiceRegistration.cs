@@ -1,6 +1,7 @@
 using AIClient.App.Services;
 using AIClient.App.ViewModels;
 using AIClient.App.Views;
+using AIClient.Application.Interfaces;
 using AIClient.Application.Markdown;
 using Microsoft.Extensions.DependencyInjection;
 using Wpf.Ui;
@@ -25,6 +26,12 @@ public static class ServiceRegistration
 
         services.AddSingleton<IAppThemeService, AppThemeService>();
         services.AddSingleton<IDialogService, DialogService>();
+
+        // The approval gate, over the refusing one Infrastructure installs. Registered last wins, and
+        // AddInfrastructure runs before this method - so losing that ordering would silently turn every
+        // write the agent proposes into a denial, with no error anywhere to explain why.
+        services.AddSingleton<AgentApprovalService>();
+        services.AddSingleton<IAgentApproval>(provider => provider.GetRequiredService<AgentApprovalService>());
 
         // One parser for the whole app: building the Markdig pipeline is the expensive part
         // and the result is stateless, so a per-message instance would only waste work.
