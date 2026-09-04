@@ -398,6 +398,86 @@
                     </StackPanel>
                 </ui:Card>
 
+                <!-- ============ Agent ============ -->
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Agent" />
+
+                <ui:Card Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="Workspace folder" Margin="0,0,0,4" />
+
+                        <!--
+                            The whole of the agent's reach, in one line. Everything it can read,
+                            change or delete is under this path; with no folder open it can do
+                            nothing at all, which is the state the application starts in.
+                        -->
+                        <TextBlock Style="{StaticResource SubtleText}"
+                                   TextWrapping="Wrap"
+                                   TextTrimming="None"
+                                   FontFamily="{StaticResource CodeFont}"
+                                   Text="{Binding WorkspaceLabel}"
+                                   Margin="0,0,0,10" />
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <ui:Button Content="Choose…"
+                                       Icon="{ui:SymbolIcon FolderOpen24}"
+                                       Command="{Binding ChooseWorkspaceCommand}"
+                                       Margin="0,0,8,0" />
+                            <ui:Button Content="Show in Explorer"
+                                       Appearance="Secondary"
+                                       Command="{Binding OpenWorkspaceFolderCommand}"
+                                       Visibility="{Binding HasWorkspace, Converter={StaticResource BoolToVisibility}}"
+                                       Margin="0,0,8,0" />
+                            <ui:Button Content="Close"
+                                       Appearance="Secondary"
+                                       ToolTip="Leaves the agent with nothing it can read or change."
+                                       Command="{Binding CloseWorkspaceCommand}"
+                                       Visibility="{Binding HasWorkspace, Converter={StaticResource BoolToVisibility}}" />
+                        </StackPanel>
+
+                        <!-- The workspace's own words, because it refuses more folders than a picker does. -->
+                        <ui:InfoBar Severity="Warning"
+                                    IsOpen="True"
+                                    IsClosable="False"
+                                    Title="That folder was not opened"
+                                    Message="{Binding WorkspaceProblem}"
+                                    Margin="0,0,0,10"
+                                    Visibility="{Binding WorkspaceProblem, Converter={StaticResource StringToVisibility}}" />
+
+                        <TextBlock Style="{StaticResource SubtleText}"
+                                   TextWrapping="Wrap"
+                                   TextTrimming="None"
+                                   Margin="0,0,0,14"
+                                   Text="With agent mode on in the chat box, the model can list, read, search, write, move and delete files under this folder. Anything that changes or removes a file is put to you for approval first, every time, and version-control internals and files that carry credentials are refused outright." />
+
+                        <Grid Style="{StaticResource SettingRow}">
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="Max steps per message" />
+                            <ui:NumberBox HorizontalAlignment="Right"
+                                          Width="150"
+                                          Minimum="1" Maximum="100"
+                                          ClearButtonEnabled="False"
+                                          Value="{Binding MaxAgentSteps, Converter={StaticResource IntToDouble}}" />
+                        </Grid>
+
+                        <Grid Style="{StaticResource SettingRow}">
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="Time limit per message (seconds, 0 for none)" />
+                            <ui:NumberBox HorizontalAlignment="Right"
+                                          Width="150"
+                                          Minimum="0" Maximum="7200"
+                                          ClearButtonEnabled="False"
+                                          Value="{Binding MaxAgentSeconds, Converter={StaticResource IntToDouble}}" />
+                        </Grid>
+
+                        <Grid Style="{StaticResource SettingRow}">
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="Max file size the agent may open (KB)" />
+                            <ui:NumberBox HorizontalAlignment="Right"
+                                          Width="150"
+                                          Minimum="1" Maximum="8192"
+                                          ClearButtonEnabled="False"
+                                          Value="{Binding MaxAgentFileKilobytes, Converter={StaticResource IntToDouble}}" />
+                        </Grid>
+                    </StackPanel>
+                </ui:Card>
+
                 <!-- ============ Storage ============ -->
                 <TextBlock Style="{StaticResource SectionHeader}" Text="Storage" />
 

@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
@@ -42,6 +43,26 @@ public sealed class DialogService : IDialogService
         };
 
         return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
+
+    public string? OpenFolder(string title, string? initialDirectory = null)
+    {
+        var dialog = new OpenFolderDialog
+        {
+            Title = title,
+            Multiselect = false,
+
+            // Picking a folder that is not there yet cannot be what was meant: the folder the agent
+            // works in has to contain something for it to work on.
+            ValidateNames = true,
+        };
+
+        if (initialDirectory is { Length: > 0 } start && Directory.Exists(start))
+        {
+            dialog.InitialDirectory = start;
+        }
+
+        return dialog.ShowDialog() == true ? dialog.FolderName : null;
     }
 
     public async Task<bool> ConfirmAsync(string title, string message, string confirmText = "Delete")

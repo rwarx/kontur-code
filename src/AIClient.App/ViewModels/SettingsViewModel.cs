@@ -23,6 +23,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly ISettingsService _settings;
     private readonly IProviderRegistry _registry;
     private readonly IAppThemeService _themeService;
+    private readonly IWorkspaceService _workspace;
     private readonly IDialogService _dialogs;
     private readonly IAppPaths _paths;
     private readonly ILogger<SettingsViewModel> _logger;
@@ -101,10 +102,38 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private int _logRetentionDays;
 
+    /// <summary>
+    /// The folder the agent may work in, mirrored from the workspace rather than from settings.
+    /// </summary>
+    /// <remarks>
+    /// The workspace is what actually decides this. It refuses folders the user is allowed to pick
+    /// but the agent must not have - a drive root, a system folder, this application's own data -
+    /// and it persists the choice itself, so showing the stored setting here would sometimes name a
+    /// folder that was refused.
+    /// </remarks>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasWorkspace))]
+    [NotifyPropertyChangedFor(nameof(WorkspaceLabel))]
+    private string? _workspaceRoot;
+
+    /// <summary>Why the last folder was not opened, in the workspace's own words.</summary>
+    [ObservableProperty]
+    private string? _workspaceProblem;
+
+    [ObservableProperty]
+    private int _maxAgentSteps;
+
+    [ObservableProperty]
+    private int _maxAgentSeconds;
+
+    [ObservableProperty]
+    private int _maxAgentFileKilobytes;
+
     public SettingsViewModel(
         ISettingsService settings,
         IProviderRegistry registry,
         IAppThemeService themeService,
+        IWorkspaceService workspace,
         IDialogService dialogs,
         IAppPaths paths,
         ILogger<SettingsViewModel> logger)
@@ -112,6 +141,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _settings = settings;
         _registry = registry;
         _themeService = themeService;
+        _workspace = workspace;
         _dialogs = dialogs;
         _paths = paths;
         _logger = logger;
@@ -143,6 +173,13 @@ public sealed partial class SettingsViewModel : ObservableObject
     public string DataDirectory => _paths.DataDirectory;
     public string DatabasePath => _paths.DatabasePath;
     public string LogsDirectory => _paths.LogsDirectory;
+
+    public bool HasWorkspace => WorkspaceRoot is { Length: > 0 };
+
+    /// <summary>The open folder, or a sentence saying there is none.</summary>
+    public string WorkspaceLabel => WorkspaceRoot is { Length: > 0 } root
+        ? root
+        : "No folder open. The agent cannot read or change anything until one is.";
 
     public string AppVersion =>
         typeof(SettingsViewModel).Assembly.GetName().Version?.ToString(3) ?? "0.1.0";
@@ -190,6 +227,15 @@ public sealed partial class SettingsViewModel : ObservableObject
             MaxAttachmentKilobytes = (int)(current.Storage.MaxAttachmentBytes / 1024);
             MinimumLogLevel = current.Storage.MinimumLogLevel;
             LogRetentionDays = current.Storage.LogRetentionDays;
+
+            MaxAgentSteps = current.Agent.MaxSteps;
+            MaxAgentSeconds = current.Agent.MaxDurationSeconds;
+            MaxAgentFileKilobytes = (int)(current.Agent.MaxFileBytes / 1024);
+
+            // Asked of the workspace, which has already re-checked the stored folder against the
+            // disk: it may have been deleted or moved since it was chosen.
+            WorkspaceRoot = _workspace.Root;
+            WorkspaceProblem = null;
         }
         finally
         {
@@ -216,6 +262,57 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [RelayCommand]
     private void OpenLogsFolder() => OpenInExplorer(_paths.LogsDirectory);
+
+    /// <summary>
+    /// Picks the folder the agent works in.
+    /// </summary>
+    /// <remarks>
+    /// The refusal is shown rather than swallowed. A folder the workspace will not take is nearly
+    /// always one of three things - a drive root, a system folder, or this application's own data -
+    /// and a picker that closed and changed nothing would leave the user to guess which.
+    /// </remarks>
+    [RelayCommand]
+    private async Task ChooseWorkspaceAsync()
+    {
+        var chosen = _dialogs.OpenFolder("Choose the folder the agent may work in", WorkspaceRoot);
+
+        if (chosen is not { Length: > 0 })
+        {
+            return;
+        }
+
+        var result = await _workspace.OpenAsync(chosen).ConfigureAwait(true);
+
+        if (result is { Success: true, Value: { Length: > 0 } opened })
+        {
+            WorkspaceRoot = opened;
+            WorkspaceProblem = null;
+
+            _logger.LogInformation("A workspace folder was opened from Settings.");
+            return;
+        }
+
+        WorkspaceProblem = result.Error ?? "That folder cannot be used as a workspace.";
+    }
+
+    /// <summary>Closes the workspace, which is the off switch for everything the agent can reach.</summary>
+    [RelayCommand]
+    private async Task CloseWorkspaceAsync()
+    {
+        await _workspace.CloseAsync().ConfigureAwait(true);
+
+        WorkspaceRoot = null;
+        WorkspaceProblem = null;
+    }
+
+    [RelayCommand]
+    private void OpenWorkspaceFolder()
+    {
+        if (WorkspaceRoot is { Length: > 0 } root)
+        {
+            OpenInExplorer(root);
+        }
+    }
 
     private void OpenInExplorer(string path)
     {
@@ -332,6 +429,17 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     partial void OnLogRetentionDaysChanged(int value) =>
         Save<StorageSettings>(s => s.LogRetentionDays = Math.Clamp(value, 1, 365));
+
+    // The two agent budgets are clamped rather than validated, for the same reason as the rest of
+    // this screen: a number typed into a box should bound the run, not refuse to be saved.
+    partial void OnMaxAgentStepsChanged(int value) =>
+        Save<AgentSettings>(a => a.MaxSteps = Math.Clamp(value, 1, 100));
+
+    partial void OnMaxAgentSecondsChanged(int value) =>
+        Save<AgentSettings>(a => a.MaxDurationSeconds = Math.Clamp(value, 0, 7200));
+
+    partial void OnMaxAgentFileKilobytesChanged(int value) =>
+        Save<AgentSettings>(a => a.MaxFileBytes = Math.Clamp(value, 1, 8192) * 1024L);
 }
 
 /// <summary>One row in the keyboard shortcut reference.</summary>

@@ -16,6 +16,12 @@ public interface IDialogService
     /// <summary>Shows a save-file dialog. Returns the chosen path, or null when cancelled.</summary>
     string? SaveFile(string filter, string suggestedFileName);
 
+    /// <summary>
+    /// Shows a folder picker. Returns the chosen folder, or null when cancelled.
+    /// </summary>
+    /// <param name="initialDirectory">Where to start, when there is somewhere sensible.</param>
+    string? OpenFolder(string title, string? initialDirectory = null);
+
     /// <summary>Yes/no confirmation. True when the user confirms.</summary>
     Task<bool> ConfirmAsync(string title, string message, string confirmText = "Delete");
 

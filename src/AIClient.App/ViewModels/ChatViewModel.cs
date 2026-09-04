@@ -1116,6 +1116,63 @@ public sealed partial class ChatViewModel : ObservableObject
             _ = _conversations.SetModelAsync(id, value.ProviderId, value.ModelId);
         }
     }
+
+    /// <summary>
+    /// Asks for a folder the moment the mode is turned on without one.
+    /// </summary>
+    /// <remarks>
+    /// The alternative is a toggle that appears to work and then refuses the first message, with the
+    /// fix on another screen. Turning the mode on is the point at which the user has said what they
+    /// want, so it is the point at which to ask where.
+    /// </remarks>
+    partial void OnIsAgentModeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(AgentHint));
+
+        if (value && !_workspace.IsOpen)
+        {
+            // Fire-and-forget, as elsewhere in this class: the picker is modal, and the method
+            // below reports its own failures rather than letting one escape.
+            _ = PromptForWorkspaceAsync();
+        }
+    }
+
+    private async Task PromptForWorkspaceAsync()
+    {
+        try
+        {
+            var chosen = _dialogs.OpenFolder("Choose the folder the agent may work in");
+
+            // Cancelling turns the mode back off. Agent mode with nowhere to work is a switch that
+            // does nothing, and leaving it on would only defer the same refusal to Send.
+            if (chosen is not { Length: > 0 })
+            {
+                IsAgentMode = false;
+                return;
+            }
+
+            var result = await _workspace.OpenAsync(chosen).ConfigureAwait(true);
+
+            if (result is { Success: true, Value: { Length: > 0 } })
+            {
+                // RootChanged refreshes AgentHint, so there is nothing to raise here.
+                BannerMessage = null;
+                return;
+            }
+
+            // The workspace's own words: it refuses folders a picker allows - a drive root, a system
+            // folder, this application's data - and only it knows which of those this was.
+            IsAgentMode = false;
+            BannerMessage = result.Error ?? "That folder cannot be used as a workspace.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not open a workspace folder from the composer.");
+
+            IsAgentMode = false;
+            BannerMessage = "That folder could not be opened. Choose another under Settings.";
+        }
+    }
 }
 
 /// <summary>A starter prompt on the empty-state screen.</summary>
