@@ -11,7 +11,7 @@ namespace AIClient.Application.Services.Tools;
 /// that improvisation loses the file if it stops in the middle. Refusing to overwrite is the other half:
 /// a move onto an existing path is how a rename with a stale destination quietly destroys a file.
 /// </remarks>
-public sealed class MoveFileTool : WorkspaceTool
+public sealed class MoveFileTool : WorkspaceTool, IAgentToolPreview
 {
     public MoveFileTool(IWorkspaceService workspace)
         : base(workspace)
@@ -82,5 +82,44 @@ public sealed class MoveFileTool : WorkspaceTool
                 ? $"Renamed '{from}' to '{to.Name}'."
                 : $"Moved '{from}' to '{to}'.",
             $"{Name} {from} -> {to}");
+    }
+
+    /// <summary>
+    /// Names both ends, and warns about the destination that is already taken.
+    /// </summary>
+    /// <remarks>
+    /// There is no diff to show: nothing inside the file changes. What the user needs instead is the
+    /// distinction between a rename and a move to another folder, and whether something is already
+    /// sitting where this is going - the case where a rename with a stale destination would otherwise
+    /// look like an ordinary one.
+    /// </remarks>
+    public async Task<AgentToolPreview> DescribeAsync(
+        AgentToolArguments arguments,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(arguments);
+
+        if (!TryPath(arguments, "from", out var from, out _)
+            || !TryPath(arguments, "to", out var to, out _))
+        {
+            return AgentToolPreview.None;
+        }
+
+        var source = await Workspace.StatAsync(from, cancellationToken).ConfigureAwait(false);
+        var what = source.Success && source.Value!.IsDirectory ? "the folder " : string.Empty;
+
+        var move = from.Parent == to.Parent
+            ? $"Rename {what}{from} to {to.Name}"
+            : $"Move {what}{from} to {to}";
+
+        var destination = await Workspace.StatAsync(to, cancellationToken).ConfigureAwait(false);
+
+        if (destination.Success)
+        {
+            return AgentToolPreview.Describe($"{move} - something is already there, so this will be refused");
+        }
+
+        return AgentToolPreview.Describe(
+            source.Success ? move : $"{move} - {from} does not exist, so this will be refused");
     }
 }

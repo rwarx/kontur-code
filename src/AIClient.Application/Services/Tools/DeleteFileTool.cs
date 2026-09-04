@@ -18,7 +18,7 @@ namespace AIClient.Application.Services.Tools;
 /// this leaves in the transcript is the only record the user has of what was removed.
 /// </para>
 /// </remarks>
-public sealed class DeleteFileTool : WorkspaceTool
+public sealed class DeleteFileTool : WorkspaceTool, IAgentToolPreview
 {
     public DeleteFileTool(IWorkspaceService workspace)
         : base(workspace)
@@ -78,5 +78,61 @@ public sealed class DeleteFileTool : WorkspaceTool
                 : $"Deleted the file '{path}' ({FormatSize(entry.Size)}).";
 
         return Done(what, $"{Name} {path}");
+    }
+
+    /// <summary>
+    /// Shows what is about to be destroyed.
+    /// </summary>
+    /// <remarks>
+    /// The one preview where the contents matter more than the change. A deletion has no diff worth
+    /// reading - everything goes - but "delete src/Widget.cs" and the sight of what is in
+    /// <c>src/Widget.cs</c> are different decisions, and this is the last moment the file exists.
+    /// </remarks>
+    public async Task<AgentToolPreview> DescribeAsync(
+        AgentToolArguments arguments,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(arguments);
+
+        if (!TryPath(arguments, "path", out var path, out _))
+        {
+            return AgentToolPreview.None;
+        }
+
+        var entry = await Workspace.StatAsync(path, cancellationToken).ConfigureAwait(false);
+
+        if (!entry.Success)
+        {
+            return AgentToolPreview.Describe($"Delete {path}, which does not exist");
+        }
+
+        if (entry.Value!.IsDirectory)
+        {
+            // Said plainly because the count decides the answer. An empty folder is a formality; a folder
+            // with things in it is a call that will be refused, and the user should not have to approve it
+            // to find that out.
+            var listing = await Workspace.ListAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
+            var entries = listing.Success ? listing.Value!.Entries.Count : 0;
+
+            return AgentToolPreview.Describe(
+                entries == 0
+                    ? $"Delete the empty folder {path}"
+                    : $"Delete the folder {path}, which has {entries} entries in it - this will be refused");
+        }
+
+        var file = await PeekAsync(path, cancellationToken).ConfigureAwait(false);
+
+        if (file is null)
+        {
+            return AgentToolPreview.Describe(
+                $"Delete {path} ({FormatSize(entry.Value.Size)}), whose contents cannot be shown");
+        }
+
+        return AgentToolPreview.Describe(
+            file.IsTruncated
+                ? $"Delete {path} ({Plural(file.TotalLines)}, {FormatSize(entry.Value.Size)}) - the first "
+                    + $"{file.LineCount} of them are shown"
+                : $"Delete {path} ({Plural(file.TotalLines)}, {FormatSize(entry.Value.Size)})",
+            TextDiff.Unified(file.Content, null, path.ToString()));
     }
 }

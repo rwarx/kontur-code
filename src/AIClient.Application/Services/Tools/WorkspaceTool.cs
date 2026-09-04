@@ -117,6 +117,24 @@ public abstract class WorkspaceTool : IAgentTool
         return true;
     }
 
+    /// <summary>
+    /// Reads a file for a preview, or null when there is nothing to read.
+    /// </summary>
+    /// <remarks>
+    /// Separate from the reading a tool does for the model, because the two want opposite things from a
+    /// failure. A read that fails mid-task has to be reported; a preview that cannot be computed is a
+    /// missing courtesy, and saying "the file could not be read" in an approval dialog about a write
+    /// would put a refusal in front of the user that the write itself may not make.
+    /// </remarks>
+    protected async Task<WorkspaceFile?> PeekAsync(WorkspacePath path, CancellationToken cancellationToken)
+    {
+        var read = await Workspace
+            .ReadAsync(path, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+
+        return read.Success ? read.Value : null;
+    }
+
     /// <summary>Rounded to whole units, because a byte count is noise in a tool result.</summary>
     protected static string FormatSize(long bytes) => bytes switch
     {
@@ -124,4 +142,7 @@ public abstract class WorkspaceTool : IAgentTool
         < 1024 * 1024 => $"{bytes / 1024.0:0.#} KB",
         _ => $"{bytes / (1024.0 * 1024.0):0.#} MB",
     };
+
+    /// <summary>A line count, written the way a sentence needs it.</summary>
+    protected static string Plural(int lines) => lines == 1 ? "1 line" : $"{lines} lines";
 }

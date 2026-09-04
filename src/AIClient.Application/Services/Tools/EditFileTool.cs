@@ -12,7 +12,7 @@ namespace AIClient.Application.Services.Tools;
 /// that landed in the right place from the model's side - and the user finds out later, in a file they
 /// were not watching.
 /// </remarks>
-public sealed class EditFileTool : WorkspaceTool
+public sealed class EditFileTool : WorkspaceTool, IAgentToolPreview
 {
     public EditFileTool(IWorkspaceService workspace)
         : base(workspace)
@@ -100,5 +100,90 @@ public sealed class EditFileTool : WorkspaceTool
             + (write.LinesAfter == 1 ? "1 line." : $"{write.LinesAfter} lines.")
             + (write.LinesAfter == write.LinesBefore ? string.Empty : $" It had {write.LinesBefore}."),
             $"{Name} {path}");
+    }
+
+    /// <summary>
+    /// Performs the substitution against a copy of the file to show what it would do.
+    /// </summary>
+    /// <remarks>
+    /// The two ways this edit is refused - a match that is absent, and one that is ambiguous - are
+    /// reported as the summary rather than left to the execution. It is the difference between a user
+    /// approving a call and then watching it fail, and knowing before they answer that the model has
+    /// copied the text wrongly.
+    /// </remarks>
+    public async Task<AgentToolPreview> DescribeAsync(
+        AgentToolArguments arguments,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(arguments);
+
+        if (!TryPath(arguments, "path", out var path, out _)
+            || !arguments.TryGetString("find", out var rawFind, out _)
+            || !arguments.TryGetString("replace", out var rawReplace, out _, allowEmpty: true))
+        {
+            return AgentToolPreview.None;
+        }
+
+        var existing = await PeekAsync(path, cancellationToken).ConfigureAwait(false);
+
+        if (existing is null)
+        {
+            return AgentToolPreview.Describe($"Edit {path}, which cannot be read");
+        }
+
+        // Compared with line endings levelled, the way the workspace does it before matching. A file
+        // saved with CRLF would otherwise match nothing the model copied out of a read and every preview
+        // over such a file would claim the edit was about to fail.
+        var text = Level(existing.Content);
+        var find = Level(rawFind);
+        var occurrences = Count(text, find);
+
+        if (occurrences == 0)
+        {
+            return AgentToolPreview.Describe(
+                existing.IsTruncated
+                    ? $"Edit {path} - the text to replace is not in the part of the file that was read"
+                    : $"Edit {path} - the text to replace is not in the file, so this will be refused");
+        }
+
+        var all = arguments.GetBoolean("replace_all");
+
+        if (occurrences > 1 && !all)
+        {
+            return AgentToolPreview.Describe(
+                $"Edit {path} - that text appears {occurrences} times, so this will be refused as ambiguous");
+        }
+
+        var replacement = Level(rawReplace);
+        var first = text.IndexOf(find, StringComparison.Ordinal);
+        var updated = all
+            ? text.Replace(find, replacement, StringComparison.Ordinal)
+            : string.Concat(
+                text.AsSpan(0, first),
+                replacement,
+                text.AsSpan(first + find.Length));
+
+        return AgentToolPreview.Describe(
+            occurrences == 1
+                ? $"Edit {path} (1 occurrence)"
+                : $"Edit {path} ({occurrences} occurrences)",
+            TextDiff.Unified(text, updated, path.ToString()));
+    }
+
+    private static string Level(string text) =>
+        text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+
+    private static int Count(string text, string find)
+    {
+        var occurrences = 0;
+        var at = text.IndexOf(find, StringComparison.Ordinal);
+
+        while (at >= 0)
+        {
+            occurrences++;
+            at = text.IndexOf(find, at + find.Length, StringComparison.Ordinal);
+        }
+
+        return occurrences;
     }
 }
