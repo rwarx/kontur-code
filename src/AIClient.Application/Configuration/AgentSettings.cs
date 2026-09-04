@@ -66,4 +66,40 @@ public sealed class AgentSettings
         ".gradle", ".dart_tool", ".terraform",
         ".cache", "coverage",
     ];
+
+    /// <summary>
+    /// Tool-calling steps one turn may take before the run is stopped and the user is told.
+    /// </summary>
+    /// <remarks>
+    /// The cost of a loop that will not converge is paid per step, in money and in the user's time,
+    /// so the bound has to exist and has to be low enough to notice. Twenty-five is roughly three
+    /// times what a well-scoped task takes: enough that a real refactor across a dozen files
+    /// finishes, few enough that a model reading the same file over and over is cut off within a
+    /// minute rather than an hour.
+    /// </remarks>
+    public int MaxSteps { get; set; } = 25;
+
+    /// <summary>
+    /// Wall-clock ceiling on one turn, in seconds. Zero or less means no ceiling.
+    /// </summary>
+    /// <remarks>
+    /// A separate bound from <see cref="MaxSteps"/> because the two fail differently. A step budget
+    /// does nothing about one step that hangs - a search over a network drive, a provider that
+    /// accepted the request and went quiet - and a time budget does nothing about twenty-five fast
+    /// steps that achieve nothing. Both are cheap to check and each catches what the other misses.
+    /// </remarks>
+    public int MaxDurationSeconds { get; set; } = 600;
+
+    /// <summary>
+    /// How many times one identical call may be repeated within a turn before it is refused.
+    /// </summary>
+    /// <remarks>
+    /// The characteristic failure of a tool-using model is not a wrong call but the same call
+    /// forever: it reads a file, fails to notice the answer, and reads it again. Counting exact
+    /// repeats - same tool, same arguments - catches that without touching the legitimate case of
+    /// reading one file several times as it is edited, because those calls differ. The third
+    /// attempt comes back as a tool result saying so, which is the one message that reliably
+    /// breaks the cycle.
+    /// </remarks>
+    public int MaxIdenticalCalls { get; set; } = 3;
 }
