@@ -432,10 +432,10 @@ the root as well as outside it, and so is anything under `.git`. The refusal tex
 [App.xaml.cs](src/AIClient.App/App.xaml.cs). Reorder those two calls and every write silently becomes
 a denial.
 
-**Agent mode is on and Send refuses.** The mode beside the toggle is **Build** and no folder is open;
-Build is the only mode that needs one. Settings → Agent → **Choose…**, or switch the mode to Plan, which
-needs nothing. Choosing Build with no folder open offers the picker itself, and declining it falls back
-to Plan rather than turning agent mode off.
+**Agent mode is on and Send refuses.** The mode on the **Agent** button is **Build** and no folder is
+open; Build is the only mode that needs one. Settings → Agent → **Choose…**, or switch the mode to Plan,
+which needs nothing. Choosing Build with no folder open offers the picker itself, and declining it falls
+back to Plan rather than turning agent mode off.
 
 **A planning run keeps refusing its own tool calls.** It is doing the right thing. A planning mode is
 offered the reading tools and `submit_plan` and nothing else, and `AgentModePolicy` refuses the rest

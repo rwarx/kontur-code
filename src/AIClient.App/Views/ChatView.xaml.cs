@@ -137,4 +137,28 @@ public partial class ChatView : UserControl
 
         await _viewModel.AddDroppedFilesAsync(paths).ConfigureAwait(true);
     }
+
+    /// <summary>
+    /// Opens the agent-mode menu on a left click, which a <see cref="ContextMenu"/> does not do
+    /// by itself.
+    /// </summary>
+    /// <remarks>
+    /// The same handler as the export button in <c>MainWindow</c>, placed above the button rather
+    /// than below it: the composer sits at the bottom of the window, where there is nothing under
+    /// it to open into.
+    /// </remarks>
+    private void OnAgentButtonClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { ContextMenu: { } menu })
+        {
+            return;
+        }
+
+        // Without an explicit DataContext the menu, being outside the visual tree, would inherit
+        // nothing and every command binding on it would fail silently.
+        menu.DataContext = DataContext;
+        menu.PlacementTarget = sender as UIElement;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Top;
+        menu.IsOpen = true;
+    }
 }

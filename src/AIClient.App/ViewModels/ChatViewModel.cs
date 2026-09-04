@@ -154,22 +154,41 @@ public sealed partial class ChatViewModel : ObservableObject
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Separate from <see cref="IsAgentMode"/> rather than folded into one four-valued picker, because
-    /// the two questions are asked at different moments: whether this message is a task at all, and -
-    /// having decided it is - whether it should be carried out or thought through. Keeping the toggle
-    /// also leaves every existing habit intact for someone who only ever builds.
+    /// Separate from <see cref="IsAgentMode"/> rather than folded into one four-valued enum, because the
+    /// two questions are asked at different moments: whether this message is a task at all, and - having
+    /// decided it is - whether it should be carried out or thought through. The composer asks them as one
+    /// menu, but the mode outlives being switched off, so coming back to the agent returns to the mode
+    /// that was last chosen rather than to the default.
     /// </para>
     /// <para>
-    /// Defaults to <see cref="AgentMode.Plan"/>, which is the opposite of the toggle's own default and
-    /// deliberate: the first thing agent mode does, for someone who has just found it, should be to
-    /// describe what it would do rather than to start doing it.
+    /// Defaults to <see cref="AgentMode.Plan"/>, which is deliberate: the first thing agent mode does,
+    /// for someone who has just found it, should be to describe what it would do rather than to start
+    /// doing it.
     /// </para>
     /// </remarks>
     [ObservableProperty]
     private AgentMode _selectedAgentMode = AgentMode.Plan;
 
-    /// <summary>The three modes, in the order the picker lists them.</summary>
-    public IReadOnlyList<AgentModeOption> AgentModes { get; } = AgentModeOption.All;
+    /// <summary>
+    /// The composer's agent button, which carries the current mode.
+    /// </summary>
+    /// <remarks>
+    /// A control whose menu is shut has to say what it is set to, and "Agent" alone would not: the
+    /// difference between reading a folder and rewriting it is exactly the thing worth reading before
+    /// pressing Send.
+    /// </remarks>
+    public string AgentButtonText =>
+        IsAgentMode ? $"Agent · {SelectedAgentMode.DisplayName()}" : "Agent";
+
+    /// <summary>
+    /// Which entry of the agent menu is ticked, as a string.
+    /// </summary>
+    /// <remarks>
+    /// One property compared against four literals, rather than four booleans, because off is a state of
+    /// that menu exactly as much as the three modes are - and a single value is the only way to be sure
+    /// that precisely one entry is ever ticked.
+    /// </remarks>
+    public string AgentModeSelection => IsAgentMode ? SelectedAgentMode.ToString() : "Off";
 
     /// <summary>
     /// What the agent would do with the next message, shown while agent mode is on.
@@ -1170,13 +1189,15 @@ public sealed partial class ChatViewModel : ObservableObject
     /// Asks for a folder the moment a mode that needs one is turned on without one.
     /// </summary>
     /// <remarks>
-    /// The alternative is a toggle that appears to work and then refuses the first message, with the
-    /// fix on another screen. Turning the mode on is the point at which the user has said what they
+    /// The alternative is a menu entry that appears to work and then refuses the first message, with
+    /// the fix on another screen. Turning the mode on is the point at which the user has said what they
     /// want, so it is the point at which to ask where.
     /// </remarks>
     partial void OnIsAgentModeChanged(bool value)
     {
         OnPropertyChanged(nameof(AgentHint));
+        OnPropertyChanged(nameof(AgentButtonText));
+        OnPropertyChanged(nameof(AgentModeSelection));
 
         if (value && SelectedAgentMode.NeedsWorkspace() && !_workspace.IsOpen)
         {
@@ -1187,7 +1208,7 @@ public sealed partial class ChatViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Asks the same question when the mode changes rather than the toggle.
+    /// Asks the same question when the mode changes while the agent is already on.
     /// </summary>
     /// <remarks>
     /// Someone who has been planning and switches to Build has just said they want the work done, and
@@ -1196,12 +1217,41 @@ public sealed partial class ChatViewModel : ObservableObject
     partial void OnSelectedAgentModeChanged(AgentMode value)
     {
         OnPropertyChanged(nameof(AgentHint));
+        OnPropertyChanged(nameof(AgentButtonText));
+        OnPropertyChanged(nameof(AgentModeSelection));
 
         if (IsAgentMode && value.NeedsWorkspace() && !_workspace.IsOpen)
         {
             _ = PromptForWorkspaceAsync();
         }
     }
+
+    /// <summary>
+    /// Turns the agent on in one of its modes, from the composer's menu.
+    /// </summary>
+    /// <remarks>
+    /// The mode is set before the agent is turned on, and that order matters: both of the handlers
+    /// above ask for a folder when a build has none, and assigning the mode while the agent is still
+    /// off leaves only one of them able to ask. Turning it on first would put the same question twice,
+    /// once about the mode being left behind.
+    /// </remarks>
+    [RelayCommand]
+    private void SetAgentMode(AgentMode mode)
+    {
+        SelectedAgentMode = mode;
+        IsAgentMode = true;
+    }
+
+    /// <summary>
+    /// Puts the composer back to a plain message.
+    /// </summary>
+    /// <remarks>
+    /// The mode is deliberately left as it was. Coming back to the agent an hour later returns to the
+    /// mode last chosen rather than to the default, which is what "off" means for every other control
+    /// that remembers where it was.
+    /// </remarks>
+    [RelayCommand]
+    private void TurnAgentOff() => IsAgentMode = false;
 
     private async Task PromptForWorkspaceAsync()
     {
@@ -1245,35 +1295,6 @@ public sealed partial class ChatViewModel : ObservableObject
 /// <summary>A starter prompt on the empty-state screen.</summary>
 /// <param name="Prompt">Text placed in the composer, deliberately unfinished so the user continues it.</param>
 public sealed record ChatSuggestion(string Title, string Description, string Prompt);
-
-/// <summary>
-/// One entry in the composer's mode picker.
-/// </summary>
-/// <remarks>
-/// A record with the name on it rather than the bare enum with a converter, so the picker binds
-/// directly - <c>DisplayMemberPath</c> for the label, <c>SelectedValuePath</c> for the mode - and the
-/// difference between the three is written where a user will read it rather than in a tooltip nobody
-/// hovers.
-/// </remarks>
-/// <param name="Description">Shown under the name, and it is about consequence: what this mode will do
-/// to the folder.</param>
-public sealed record AgentModeOption(AgentMode Mode, string Name, string Description)
-{
-    /// <summary>
-    /// The three, ordered by how much they change.
-    /// </summary>
-    /// <remarks>
-    /// Planning first, and Build last, which is the same reasoning the tool registry uses for ordering
-    /// tools by risk: the first plausible entry in a list is the one that gets picked, and it should be
-    /// the one that cannot damage anything.
-    /// </remarks>
-    public static IReadOnlyList<AgentModeOption> All { get; } =
-    [
-        new(AgentMode.Plan, "Plan", "Reads and works out what to do. Changes nothing."),
-        new(AgentMode.PlanCanvas, "Plan + canvas", "Plans, and draws the project it would build."),
-        new(AgentMode.Build, "Build", "Carries the work out, asking before each change."),
-    ];
-}
 
 /// <summary>A file staged for the next message, with a display size for its chip.</summary>
 public sealed class PendingAttachment

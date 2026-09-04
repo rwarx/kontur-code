@@ -6,6 +6,7 @@
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:vm="clr-namespace:AIClient.App.ViewModels"
              xmlns:md="clr-namespace:AIClient.App.Markdown"
+             xmlns:dto="clr-namespace:AIClient.Application.DTOs;assembly=AIClient.Application"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:ChatViewModel}"
              d:DesignHeight="700" d:DesignWidth="900">
@@ -815,7 +816,6 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
@@ -831,46 +831,108 @@
                                    Command="{Binding AttachFilesCommand}" />
 
                         <!--
-                            Agent mode. A toggle in the composer rather than a setting, because it
-                            changes what pressing Send does: the model gets to read and change files
-                            under the folder that is open, asking first for anything it cannot undo.
-                        -->
-                        <ToggleButton Grid.Column="1"
-                                      IsChecked="{Binding IsAgentMode, Mode=TwoWay}"
-                                      Content="Agent"
-                                      FontSize="12"
-                                      Padding="10,4"
-                                      MinWidth="0"
-                                      MinHeight="0"
-                                      VerticalAlignment="Bottom"
-                                      Margin="0,0,4,4"
-                                      ToolTip="Let the model work on the project. It plans by default, and asks before anything it cannot take back." />
+                            Agent mode, and which kind of run, in one button. Both are one question -
+                            what pressing Send does with this message - so they are one control, and it
+                            is in the composer rather than in Settings because the answer changes from
+                            message to message: plan, read the plan, then build.
 
-                        <!--
-                            Which kind of run, and next to the toggle for the same reason the toggle is
-                            in the composer: it decides what Send does, and it is a per-message choice -
-                            plan, look at the plan, then build - rather than a preference. Hidden while
-                            agent mode is off, where it would be three options that do nothing.
+                            A plain button rather than a toggle: every state here is chosen from the
+                            menu, including off, so a click can never change what Send does by itself.
+                            The caption carries the answer, because a control whose menu is shut has to
+                            say what it is set to.
                         -->
-                        <ComboBox Grid.Column="2"
-                                  ItemsSource="{Binding AgentModes}"
-                                  SelectedValuePath="Mode"
-                                  SelectedValue="{Binding SelectedAgentMode, Mode=TwoWay}"
-                                  FontSize="12"
-                                  MinWidth="128"
-                                  MinHeight="0"
-                                  VerticalAlignment="Bottom"
-                                  Margin="0,0,4,4"
-                                  Visibility="{Binding IsAgentMode, Converter={StaticResource BoolToVisibility}}">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Name}" ToolTip="{Binding Description}" />
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
+                        <ui:Button Grid.Column="1"
+                                   Content="{Binding AgentButtonText}"
+                                   FontSize="12"
+                                   Padding="10,4"
+                                   MinWidth="0"
+                                   MinHeight="0"
+                                   VerticalAlignment="Bottom"
+                                   Margin="0,0,4,4"
+                                   ToolTip="Let the model work on the project. It plans by default, and asks before anything it cannot take back."
+                                   Click="OnAgentButtonClick">
+                            <ui:Button.Style>
+                                <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                    <Style.Triggers>
+                                        <!-- Accented while it is on, which is the one state worth seeing from across the room. -->
+                                        <DataTrigger Binding="{Binding IsAgentMode}" Value="True">
+                                            <Setter Property="Appearance" Value="Primary" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:Button.Style>
+
+                            <ui:Button.ContextMenu>
+                                <!--
+                                    Ordered by how much each mode changes, planning first, for the same
+                                    reason the tool registry orders tools by risk: the first plausible
+                                    entry is the one that gets picked.
+
+                                    Each entry says what it costs on a second line rather than in a
+                                    tooltip, because the difference between these four is the whole of
+                                    the decision and nobody hovers a menu they are already reading.
+
+                                    IsChecked is bound to one string rather than to three comparisons of
+                                    the mode, so exactly one item can ever be marked - including Off,
+                                    which is a state of this control as much as the other three are. It
+                                    is one-way, and IsCheckable is left false: a click that set its own
+                                    check would overwrite the binding for good.
+                                -->
+                                <ContextMenu>
+                                    <MenuItem Command="{Binding SetAgentModeCommand}"
+                                              CommandParameter="{x:Static dto:AgentMode.Plan}"
+                                              IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=Plan}">
+                                        <MenuItem.Header>
+                                            <StackPanel>
+                                                <TextBlock Text="Plan" />
+                                                <TextBlock Text="Reads and works out what to do. Changes nothing."
+                                                           Style="{StaticResource SubtleText}" />
+                                            </StackPanel>
+                                        </MenuItem.Header>
+                                    </MenuItem>
+
+                                    <MenuItem Command="{Binding SetAgentModeCommand}"
+                                              CommandParameter="{x:Static dto:AgentMode.PlanCanvas}"
+                                              IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=PlanCanvas}">
+                                        <MenuItem.Header>
+                                            <StackPanel>
+                                                <TextBlock Text="Plan + canvas" />
+                                                <TextBlock Text="Plans, and draws the project it would build."
+                                                           Style="{StaticResource SubtleText}" />
+                                            </StackPanel>
+                                        </MenuItem.Header>
+                                    </MenuItem>
+
+                                    <MenuItem Command="{Binding SetAgentModeCommand}"
+                                              CommandParameter="{x:Static dto:AgentMode.Build}"
+                                              IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=Build}">
+                                        <MenuItem.Header>
+                                            <StackPanel>
+                                                <TextBlock Text="Build" />
+                                                <TextBlock Text="Carries the work out, asking before each change."
+                                                           Style="{StaticResource SubtleText}" />
+                                            </StackPanel>
+                                        </MenuItem.Header>
+                                    </MenuItem>
+
+                                    <Separator />
+
+                                    <MenuItem Command="{Binding TurnAgentOffCommand}"
+                                              IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=Off}">
+                                        <MenuItem.Header>
+                                            <StackPanel>
+                                                <TextBlock Text="Off" />
+                                                <TextBlock Text="One answer from the model, no tools."
+                                                           Style="{StaticResource SubtleText}" />
+                                            </StackPanel>
+                                        </MenuItem.Header>
+                                    </MenuItem>
+                                </ContextMenu>
+                            </ui:Button.ContextMenu>
+                        </ui:Button>
 
                         <TextBox x:Name="DraftBox"
-                                 Grid.Column="3"
+                                 Grid.Column="2"
                                  Text="{Binding Draft, UpdateSourceTrigger=PropertyChanged}"
                                  AcceptsReturn="True"
                                  TextWrapping="Wrap"
@@ -885,7 +947,7 @@
                                  SpellCheck.IsEnabled="True" />
 
                         <!-- Send and Stop swap: only one is ever meaningful. -->
-                        <ui:Button Grid.Column="4"
+                        <ui:Button Grid.Column="3"
                                    Appearance="Primary"
                                    Icon="{ui:SymbolIcon Send24}"
                                    ToolTip="Send (Enter)"
@@ -894,7 +956,7 @@
                                    Command="{Binding SendCommand}"
                                    Visibility="{Binding IsGenerating, Converter={StaticResource InverseBoolToVisibility}}" />
 
-                        <ui:Button Grid.Column="4"
+                        <ui:Button Grid.Column="3"
                                    Appearance="Danger"
                                    Icon="{ui:SymbolIcon Stop24}"
                                    ToolTip="Stop generating (Esc)"

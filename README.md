@@ -14,10 +14,11 @@ awareness yet. Those are later stages, and nothing here forecloses them.
 
 - **Streaming chat.** Tokens appear as they arrive. Stop mid-answer and the partial text is kept,
   not discarded. Regenerate replaces the answer in place, optionally on a different model.
-- **Agent mode.** A toggle in the composer sends the message to a tool loop instead of straight to
-  the model. Each message says whether it is a **plan** or a **build**, and it starts on plan: the
-  build can list, read, search, write, edit, move and delete files under one folder you nominate, and
-  asks before every change; a plan reads and writes nothing. See [Agent mode](#agent-mode).
+- **Agent mode.** One button in the composer picks what the next message is - a plan, a plan to be
+  drawn, a build, or nothing - and sends it to a tool loop instead of straight to the model. It starts
+  on plan: the build can list, read, search, write, edit, move and delete files under one folder you
+  nominate, and asks before every change; a plan reads and writes nothing. See
+  [Agent mode](#agent-mode).
 - **Markdown and code.** Headings, lists, tables, quotes and fenced code rendered as WPF content
   rather than HTML in a browser control, with syntax highlighting for the common languages.
 - **Sessions.** Create, rename, pin, search and delete conversations. Titles are generated from
@@ -97,14 +98,18 @@ Adding a provider properly is a subclass and one registration line; see
 
 ## Agent mode
 
-Turn on **Agent** in the composer and the message goes to a loop instead of to a single completion.
-The model gets a set of tools, asks for the ones it needs, sees what they returned, and continues
-until it has an answer or a budget runs out. The transcript shows the work: one card per call, with
-the arguments summarised, the outcome, and the result behind a chevron.
+**Agent** in the composer opens a menu of what to do with the next message - **Plan**, **Plan +
+canvas**, **Build**, or **Off** - and choosing any of the three sends it to a loop instead of to a
+single completion. The model gets a set of tools, asks for the ones it needs, sees what they
+returned, and continues until it has an answer or a budget runs out. The transcript shows the work:
+one card per call, with the arguments summarised, the outcome, and the result behind a chevron.
 
-Beside the toggle is what kind of run it will be. It is a per-message choice rather than a preference
-- plan, read the plan, then build - and it starts on **Plan**, so the first thing agent mode does for
-somebody who has just found it is describe what it would do rather than start doing it.
+Which kind of run it is is a per-message choice rather than a preference - plan, read the plan, then
+build - and it starts on **Plan**, so the first thing agent mode does for somebody who has just found
+it is describe what it would do rather than start doing it. The button says which mode is on while
+the menu is shut, because the difference between reading a folder and rewriting it is worth seeing
+before pressing Send. **Off** puts the composer back to a plain message and leaves the mode where it
+was, so coming back to the agent returns to the mode last chosen.
 
 | Mode | Can | Cannot |
 | --- | --- | --- |
