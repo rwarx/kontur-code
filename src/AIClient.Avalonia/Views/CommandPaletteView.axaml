@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AIClient.Avalonia.ViewModels"
+             x:Class="AIClient.Avalonia.Views.CommandPaletteView"
+             x:DataType="vm:ShellViewModel">
+
+    <!--
+        The command palette, centred near the top of the window. The shell opens it;
+        this view captures the typing, arrows and Enter and reports the chosen command.
+    -->
+
+    <Panel>
+        <Border MaxWidth="520" Margin="0,70,0,0" HorizontalAlignment="Center" VerticalAlignment="Top"
+                CornerRadius="8" Padding="8"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource StrokeBrush}" BorderThickness="1"
+                BoxShadow="0 12 40 0 #44000000">
+            <StackPanel>
+                <TextBox x:Name="QueryBox" Watermark="Type a command…"
+                         BorderThickness="0" Background="Transparent" FontSize="14" />
+                <ListBox x:Name="Results" ItemsSource="{Binding Palette.Filtered}"
+                         SelectedIndex="{Binding Palette.SelectedIndex}"
+                         MaxHeight="320" Background="Transparent"
+                         BorderThickness="0"
+                         DoubleTapped="OnResultDoubleTapped">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="*,Auto,Auto" Margin="2,3">
+                                <TextBlock Text="{Binding Title}" FontSize="13"
+                                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                                <TextBlock Grid.Column="1" Text="{Binding Category}" FontSize="10" Margin="0,0,10,0"
+                                           Foreground="{DynamicResource TextTertiaryBrush}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="{Binding Shortcut}" FontSize="10"
+                                           Foreground="{DynamicResource TextTertiaryBrush}" VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </StackPanel>
+        </Border>
+    </Panel>
+</UserControl>
