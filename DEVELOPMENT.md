@@ -214,7 +214,8 @@ Migrations live in
 [`src/AIClient.Infrastructure/Database/Migrations`](src/AIClient.Infrastructure/Database/Migrations)
 and are applied at startup by
 [`DatabaseInitializer`](src/AIClient.Infrastructure/Database/DatabaseInitializer.cs), which logs which
-ones it applied before it applies them. There is one so far, `InitialCreate`.
+ones it applied before it applies them. There are two: `InitialCreate`, and `ToolTurns` for the four
+columns an agent step writes to `Messages`.
 
 Adding one:
 
@@ -228,8 +229,18 @@ lets the tooling construct a context without booting a WPF application, and poin
 `design-time.db` in the build output - so scaffolding reads the model and can never touch the real
 database. That file is disposable; `.gitignore` covers it through `*.db*`.
 
-Three things to know before writing one:
+Four things to know before writing one:
 
+- **All three files it writes belong in the same commit**, together with the model change that
+  prompted it: the migration, its `.Designer.cs`, and the regenerated
+  `AIClientDbContextModelSnapshot.cs`. The snapshot is the one with no visible connection to the
+  feature, so it is the one that gets left behind when changes are staged by name, and leaving it
+  behind is not cosmetic. EF compares the model against the snapshot rather than against the
+  database, so a stale snapshot means `PendingModelChangesWarning`, which `DatabaseInitializer`
+  raises as an error and `App` treats as fatal - the application exits before it draws a window, and
+  the suite fails every test that migrates a file. `ToolTurns` shipped that way and took two commits
+  to put right. The recovery is to regenerate the snapshot and add no migration: the columns already
+  exist, and a second `AddColumn` for them fails on every machine that has run the first.
 - **Providers are seeded from code, not from `HasData`.** A model seed is baked into the schema, so
   correcting a display name would need a migration on every user's machine. `SeedProvidersAsync` runs
   on every startup, is idempotent, and refreshes only the name and sort order - the fields the app
