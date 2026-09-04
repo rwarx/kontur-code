@@ -1,5 +1,4 @@
 using AIClient.Application.DTOs;
-using AIClient.Application.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -51,7 +50,7 @@ public sealed partial class AgentApprovalViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(request);
 
         Request = request;
-        PreviewLines = SplitPreview(request.Preview);
+        PreviewLines = DiffLines.Split(request.Preview);
     }
 
     /// <summary>The request as the loop built it, for anything the properties below do not cover.</summary>
@@ -93,7 +92,11 @@ public sealed partial class AgentApprovalViewModel : ObservableObject
     public bool IsRepeat => Request.IsRepeat;
 
     /// <summary>The diff, split so the view can colour each line by what it is.</summary>
-    public IReadOnlyList<ApprovalPreviewLine> PreviewLines { get; }
+    /// <remarks>
+    /// A preview is always <see cref="Application.Services.TextDiff"/> output, so it is coloured
+    /// unconditionally - unlike a tool result, which is often ordinary text and has to be tested first.
+    /// </remarks>
+    public IReadOnlyList<DiffLine> PreviewLines { get; }
 
     public bool HasPreview => PreviewLines.Count > 0;
 
@@ -133,81 +136,4 @@ public sealed partial class AgentApprovalViewModel : ObservableObject
 
         _answer.TrySetResult(AgentApprovalDecision.Deny(reason.Length > 0 ? reason : null));
     }
-
-    /// <summary>
-    /// Splits a preview into tagged lines.
-    /// </summary>
-    /// <remarks>
-    /// Done once, here, rather than by a converter per line: the list is bound directly and a
-    /// preview never changes after the question is asked.
-    /// </remarks>
-    private static IReadOnlyList<ApprovalPreviewLine> SplitPreview(string? preview)
-    {
-        if (preview is not { Length: > 0 })
-        {
-            return [];
-        }
-
-        var lines = preview.ReplaceLineEndings("\n").Split('\n');
-        var tagged = new List<ApprovalPreviewLine>(lines.Length);
-
-        foreach (var line in lines)
-        {
-            tagged.Add(new ApprovalPreviewLine(line, Classify(line)));
-        }
-
-        return tagged;
-    }
-
-    /// <summary>
-    /// What a line of a unified diff is.
-    /// </summary>
-    /// <remarks>
-    /// The file headers start with the same characters as an added and a removed line, so they are
-    /// tested first. Getting that order wrong paints <c>+++ b/Program.cs</c> green as though the
-    /// path itself were being inserted.
-    /// </remarks>
-    private static ApprovalLineKind Classify(string line)
-    {
-        if (line == TextDiff.TruncationNotice)
-        {
-            return ApprovalLineKind.Notice;
-        }
-
-        if (line.StartsWith("+++", StringComparison.Ordinal)
-            || line.StartsWith("---", StringComparison.Ordinal)
-            || line.StartsWith("@@", StringComparison.Ordinal))
-        {
-            return ApprovalLineKind.Header;
-        }
-
-        return line.Length == 0 ? ApprovalLineKind.Context : line[0] switch
-        {
-            '+' => ApprovalLineKind.Added,
-            '-' => ApprovalLineKind.Removed,
-            _ => ApprovalLineKind.Context,
-        };
-    }
-}
-
-/// <summary>One line of a preview, and what it is, so the view can colour it.</summary>
-public sealed record ApprovalPreviewLine(string Text, ApprovalLineKind Kind);
-
-/// <summary>The kinds of line a preview contains.</summary>
-public enum ApprovalLineKind
-{
-    /// <summary>Unchanged, shown for context.</summary>
-    Context,
-
-    /// <summary>A line the change would add.</summary>
-    Added,
-
-    /// <summary>A line the change would remove.</summary>
-    Removed,
-
-    /// <summary>A file or hunk header.</summary>
-    Header,
-
-    /// <summary>The note saying the diff was cut short.</summary>
-    Notice,
 }

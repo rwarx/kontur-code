@@ -7,6 +7,7 @@ using AIClient.Application.DTOs;
 using AIClient.Application.Interfaces;
 using AIClient.Application.Markdown;
 using AIClient.Domain.Enums;
+using AIClient.Domain.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -44,6 +45,8 @@ public sealed partial class ChatViewModel : ObservableObject
     private static readonly TimeSpan RenderInterval = TimeSpan.FromMilliseconds(60);
 
     private readonly IChatService _chatService;
+    private readonly IAgentService _agent;
+    private readonly IWorkspaceService _workspace;
     private readonly IConversationService _conversations;
     private readonly IAttachmentService _attachments;
     private readonly IExportService _exportService;
@@ -53,6 +56,16 @@ public sealed partial class ChatViewModel : ObservableObject
     private readonly MarkdownParser _markdownParser;
     private readonly ILogger<ChatViewModel> _logger;
     private readonly DispatcherTimer _renderTimer;
+
+    /// <summary>
+    /// The cards of the run in progress, by the provider's call id.
+    /// </summary>
+    /// <remarks>
+    /// A call is mentioned by up to three events and each of them has to reach the same card, so the
+    /// card cannot be built from whichever event arrives. Ordinal comparison because these ids come
+    /// off the wire and are matched, never displayed or sorted.
+    /// </remarks>
+    private readonly Dictionary<string, AgentToolCallViewModel> _toolCards = new(StringComparer.Ordinal);
 
     private CancellationTokenSource? _turnCancellation;
     private MessageViewModel? _streamingMessage;
@@ -125,8 +138,32 @@ public sealed partial class ChatViewModel : ObservableObject
     [ObservableProperty]
     private string _inputHint = string.Empty;
 
+    /// <summary>
+    /// Whether the next message goes to the agent instead of straight to the model.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not remembered between sessions. An agent run can edit files and run programs,
+    /// and starting an application in a mode that does that - because of a switch flipped days ago -
+    /// is not a default anybody should inherit by surprise.
+    /// </remarks>
+    [ObservableProperty]
+    private bool _isAgentMode;
+
+    /// <summary>
+    /// Which folder an agent run would work in, shown while agent mode is on.
+    /// </summary>
+    /// <remarks>
+    /// Named rather than implied. Everything the agent can read or change is under this path, and a
+    /// user about to let a model edit files is entitled to see which files those are before sending.
+    /// </remarks>
+    public string AgentHint => _workspace.Root is { Length: > 0 } root
+        ? $"Agent mode · working in {root}"
+        : "Agent mode · no folder open. Choose one under Settings.";
+
     public ChatViewModel(
         IChatService chatService,
+        IAgentService agent,
+        IWorkspaceService workspace,
         IConversationService conversations,
         IAttachmentService attachments,
         IExportService exportService,
@@ -138,6 +175,8 @@ public sealed partial class ChatViewModel : ObservableObject
         ILogger<ChatViewModel> logger)
     {
         _chatService = chatService;
+        _agent = agent;
+        _workspace = workspace;
         _conversations = conversations;
         _attachments = attachments;
         _exportService = exportService;
@@ -153,6 +192,10 @@ public sealed partial class ChatViewModel : ObservableObject
         _renderTimer.Tick += OnRenderTick;
 
         Messages.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsEmpty));
+
+        // The folder is chosen in Settings, so the hint under the composer would otherwise go on
+        // naming a folder the agent is no longer working in.
+        _workspace.RootChanged += (_, _) => OnPropertyChanged(nameof(AgentHint));
 
         ApplyRenderingSettings();
     }
@@ -226,7 +269,18 @@ public sealed partial class ChatViewModel : ObservableObject
             Messages.Clear();
             foreach (var message in detail.Messages)
             {
-                Messages.Add(new MessageViewModel(message, renderMarkdown, _markdownParser));
+                var view = new MessageViewModel(message, renderMarkdown, _markdownParser);
+
+                // A tool row is an answer to the step above it, not a message to the user. Folding it
+                // into that step is what makes a reopened conversation look like the one that was
+                // closed, rather than a transcript with the agent's working out pasted into it.
+                if (view.IsTool)
+                {
+                    LastAssistant()?.ToolCalls.Add(AgentToolCallViewModel.Restored(message));
+                    continue;
+                }
+
+                Messages.Add(view);
             }
 
             ClearPendingAttachments();
@@ -284,6 +338,14 @@ public sealed partial class ChatViewModel : ObservableObject
             return;
         }
 
+        // Checked here rather than after the draft is cleared: a refusal that also loses what the
+        // user typed is two problems where there was one.
+        if (IsAgentMode && !_workspace.IsOpen)
+        {
+            BannerMessage = "The agent needs a folder to work in. Open one under Settings, or turn agent mode off to just chat.";
+            return;
+        }
+
         // Cleared immediately: the message is already committed from the user's point of
         // view, and leaving it in the box invites an accidental double send.
         Draft = string.Empty;
@@ -293,6 +355,20 @@ public sealed partial class ChatViewModel : ObservableObject
         ClearPendingAttachments();
 
         var conversationId = await EnsureConversationAsync(model).ConfigureAwait(true);
+
+        if (IsAgentMode)
+        {
+            await RunAgentAsync(new AgentRunRequest
+            {
+                ConversationId = conversationId,
+                Content = text,
+                ProviderId = model.ProviderId,
+                ModelId = model.ModelId,
+                Attachments = attachments,
+            }).ConfigureAwait(true);
+
+            return;
+        }
 
         var request = new SendMessageRequest
         {
@@ -685,6 +761,245 @@ public sealed partial class ChatViewModel : ObservableObject
 
             RequestScrollToEnd();
         }
+    }
+
+    /// <summary>
+    /// Runs one agent turn, translating <see cref="AgentEvent"/>s into UI state.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately the same shape as <see cref="RunTurnAsync"/> - same cancellation source, same
+    /// render timer, same finally - because the two differ only in what the events mean. What is new
+    /// is that a turn is now several messages instead of one, and that part of what happens in it is
+    /// not text. The tool cards hang off the step that asked for them, so nothing the agent did to the
+    /// user's files is shown apart from the words that led to it.
+    /// </remarks>
+    private async Task RunAgentAsync(AgentRunRequest request)
+    {
+        CancelTurn();
+
+        _turnCancellation = new CancellationTokenSource();
+        var token = _turnCancellation.Token;
+
+        IsGenerating = true;
+        _renderTimer.Start();
+
+        var renderMarkdown = _settings.Current.Chat.RenderMarkdown;
+
+        _toolCards.Clear();
+
+        try
+        {
+            await foreach (var evt in _agent.RunAsync(request, token).WithCancellation(token).ConfigureAwait(true))
+            {
+                switch (evt)
+                {
+                    case AgentEvent.UserMessageSaved(var dto):
+                        Messages.Add(new MessageViewModel(dto, renderMarkdown, _markdownParser));
+                        RequestScrollToEnd();
+                        break;
+
+                    case AgentEvent.TitleGenerated(var id, var title):
+                        Title = title;
+                        TitleChanged?.Invoke(this, new ConversationTitleChangedEventArgs(id, title));
+                        break;
+
+                    case AgentEvent.StepStarted(_, var dto):
+                        // One last parse of the step that is ending, while it is still the message the
+                        // render timer is pointed at.
+                        _streamingMessage?.RebuildBlocks();
+
+                        _streamingMessage = new MessageViewModel(dto, renderMarkdown, _markdownParser);
+                        Messages.Add(_streamingMessage);
+                        RequestScrollToEnd();
+                        break;
+
+                    case AgentEvent.ContentDelta(_, var text):
+                        _streamingMessage?.AppendDelta(text);
+                        break;
+
+                    case AgentEvent.ReasoningDelta(_, var text):
+                        _streamingMessage?.AppendReasoning(text);
+                        break;
+
+                    case AgentEvent.ToolCallProposed(var messageId, var call, var risk):
+                        Card(messageId, call, risk);
+                        RequestScrollToEnd();
+                        break;
+
+                    case AgentEvent.ToolCallStarted(var messageId, var call):
+                        Card(messageId, call, risk: null).Start();
+                        break;
+
+                    // No step id on this one, so it lands on the step still in hand - which is the step
+                    // that asked, because the loop finishes a call before it starts another.
+                    case AgentEvent.ToolCallFinished(var call, var outcome, var row, var summary, var detail):
+                        Card(messageId: null, call, risk: null).Finish(outcome, row.Content, summary, detail);
+                        RequestScrollToEnd();
+                        break;
+
+                    // Tokens, but no elapsed time: see MessageViewModel.Complete.
+                    case AgentEvent.StepCompleted(_, _, var input, var output, _):
+                        _streamingMessage?.Complete(input, output, generationTimeMs: null);
+                        break;
+
+                    case AgentEvent.Completed(_, var steps, var reason, _):
+                        NoteRunEnd(steps, reason);
+
+                        // A finished run is the strongest proof there is that the provider is
+                        // reachable, which clears the offline strip on a network the OS considered
+                        // healthy all along (a captive portal, most often).
+                        _connectivity.ReportReachable();
+                        break;
+
+                    case AgentEvent.Failed(_, var kind, var userMessage, var details, var retryable):
+                        HandleFailure(kind, userMessage, details, retryable);
+                        break;
+
+                    case AgentEvent.Cancelled(_, var steps):
+                        NoteStopped(steps);
+                        break;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected: the user pressed Stop. Everything the run had already done is on disk,
+            // including the tool rows - the loop writes those with CancellationToken.None so that a
+            // file which was written is never left unrecorded.
+            NoteStopped(steps: null);
+        }
+        catch (Exception ex)
+        {
+            // A bug rather than a provider failure - provider failures arrive as Failed events.
+            _logger.LogError(ex, "Unexpected failure during an agent run.");
+            HandleFailure(AIErrorKind.Unknown, "Something went wrong while the agent was working.", ex.Message, true);
+        }
+        finally
+        {
+            _renderTimer.Stop();
+
+            // A card still running is one whose tool was interrupted, and saying so is exactly what
+            // this transcript is for: a write that was cut off may or may not have happened, and
+            // leaving the card spinning would claim otherwise.
+            foreach (var card in _toolCards.Values)
+            {
+                card.Abandon();
+            }
+
+            _toolCards.Clear();
+
+            // One final parse so the last tokens are rendered rather than left as raw text.
+            _streamingMessage?.RebuildBlocks();
+            _streamingMessage = null;
+
+            IsGenerating = false;
+
+            _turnCancellation?.Dispose();
+            _turnCancellation = null;
+
+            RequestScrollToEnd();
+        }
+    }
+
+    /// <summary>
+    /// Finds or creates the card for one call.
+    /// </summary>
+    /// <remarks>
+    /// Creating it here rather than only on the proposal is what keeps the transcript honest about
+    /// calls that never got that far: a tool the model invented, or arguments that were not valid
+    /// JSON, go straight to their answer without ever being proposed.
+    /// </remarks>
+    private AgentToolCallViewModel Card(Guid? messageId, AIToolCall call, AgentToolRisk? risk)
+    {
+        if (_toolCards.TryGetValue(call.Id, out var existing))
+        {
+            return existing;
+        }
+
+        var card = AgentToolCallViewModel.Live(call, risk);
+        _toolCards[call.Id] = card;
+
+        StepMessage(messageId)?.ToolCalls.Add(card);
+
+        return card;
+    }
+
+    /// <summary>The message a card belongs under: the step named by the event, or the one in hand.</summary>
+    private MessageViewModel? StepMessage(Guid? messageId)
+    {
+        if (messageId is { } id)
+        {
+            // From the end: the step being answered is the last thing in the transcript.
+            for (var i = Messages.Count - 1; i >= 0; i--)
+            {
+                if (Messages[i].Id == id)
+                {
+                    return Messages[i];
+                }
+            }
+        }
+
+        return _streamingMessage;
+    }
+
+    /// <summary>The step a restored tool row answers, which is the last one loaded before it.</summary>
+    private MessageViewModel? LastAssistant()
+    {
+        for (var i = Messages.Count - 1; i >= 0; i--)
+        {
+            if (Messages[i].IsAssistant)
+            {
+                return Messages[i];
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Says what a stopped run leaves behind, wherever that can honestly be said.
+    /// </summary>
+    /// <remarks>
+    /// Stop during a step marks that step cancelled, which is what the user is looking at. Stop
+    /// between steps - while a tool was running, or while its question was on screen - leaves nothing
+    /// mid-stream to mark, and silently doing nothing would look like the button had not worked.
+    /// </remarks>
+    private void NoteStopped(int? steps)
+    {
+        if (_streamingMessage is { IsStreaming: true } message)
+        {
+            message.Cancel();
+            return;
+        }
+
+        BannerMessage = steps is { } count and > 0
+            ? $"Stopped after {count} step{(count == 1 ? string.Empty : "s")}. Nothing further was changed."
+            : "Stopped. Nothing further was changed.";
+    }
+
+    /// <summary>
+    /// Says why a run ended, when the reason is not simply that the agent had finished.
+    /// </summary>
+    /// <remarks>
+    /// A budget that ran out is not a failure and not an answer, and it is the one thing about a run
+    /// the transcript cannot show on its own: the last step reads like any other. The elapsed time is
+    /// left out of the messages on purpose - it belongs to the run, and pinning it on the last step
+    /// would be a number that means nothing.
+    /// </remarks>
+    private void NoteRunEnd(int steps, AgentStopReason reason)
+    {
+        BannerMessage = reason switch
+        {
+            AgentStopReason.StepLimit =>
+                $"The agent stopped after {steps} steps, which is as many as one run gets. Send another message if there is more to do.",
+
+            AgentStopReason.TimeLimit =>
+                $"The agent ran out of time after {steps} step{(steps == 1 ? string.Empty : "s")}. Send another message if there is more to do.",
+
+            _ => BannerMessage,
+        };
+
+        _logger.LogInformation("Agent run ended after {Steps} step(s): {Reason}.", steps, reason);
     }
 
     private void HandleFailure(AIErrorKind kind, string userMessage, string? details, bool isRetryable)

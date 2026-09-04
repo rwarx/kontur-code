@@ -27,6 +27,7 @@ namespace AIClient.App.ViewModels;
 public sealed partial class MessageViewModel : ObservableObject
 {
     private readonly System.Text.StringBuilder _buffer = new();
+    private readonly System.Text.StringBuilder _reasoningBuffer = new();
     private readonly MarkdownParser _parser;
 
     [ObservableProperty]
@@ -62,6 +63,22 @@ public sealed partial class MessageViewModel : ObservableObject
     [ObservableProperty]
     private bool _isRenderingMarkdown = true;
 
+    /// <summary>
+    /// What the model said it was thinking, when the provider sends it.
+    /// </summary>
+    /// <remarks>
+    /// Kept out of <see cref="Content"/> deliberately. It is not part of the answer, it is not sent
+    /// back to the provider on the next step, and mixing it into the text would put it through the
+    /// markdown parser and into anything the user copies.
+    /// </remarks>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasReasoning))]
+    private string _reasoning = string.Empty;
+
+    /// <summary>Whether the reasoning is showing. Collapsed by default.</summary>
+    [ObservableProperty]
+    private bool _isReasoningExpanded;
+
     /// <param name="parser">
     /// Shared with every other message: the Markdig pipeline it wraps is expensive to build
     /// and stateless once built, so one instance serves the whole transcript.
@@ -88,6 +105,10 @@ public sealed partial class MessageViewModel : ObservableObject
 
         Attachments = new ObservableCollection<AttachmentDto>(dto.Attachments);
 
+        // The count drives whether the tool section shows at all, and cards arrive one event at a
+        // time long after this constructor has run.
+        ToolCalls.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasToolCalls));
+
         if (dto.Content.Length > 0)
         {
             RebuildBlocks();
@@ -106,8 +127,32 @@ public sealed partial class MessageViewModel : ObservableObject
     /// <summary>Rendered markdown. Assistant messages only; user text is shown verbatim.</summary>
     public ObservableCollection<MarkdownBlock> Blocks { get; } = [];
 
+    /// <summary>
+    /// The tools this step asked for, in the order it asked.
+    /// </summary>
+    /// <remarks>
+    /// They hang off the assistant message rather than sitting in the transcript as messages of their
+    /// own. A tool row means nothing without the step that asked for it - it is not addressed to the
+    /// user and it is not an answer - and keeping the two together is also what lets a card be created
+    /// by one event and finished by another.
+    /// </remarks>
+    public ObservableCollection<AgentToolCallViewModel> ToolCalls { get; } = [];
+
     public bool IsUser => Role == MessageRole.User;
     public bool IsAssistant => Role == MessageRole.Assistant;
+
+    /// <summary>
+    /// A stored answer from a tool.
+    /// </summary>
+    /// <remarks>
+    /// These rows are loaded so the agent's own memory of the conversation is complete, but they are
+    /// folded into the step that asked for them instead of being shown in the transcript.
+    /// </remarks>
+    public bool IsTool => Role == MessageRole.Tool;
+
+    public bool HasToolCalls => ToolCalls.Count > 0;
+
+    public bool HasReasoning => Reasoning.Length > 0;
 
     /// <summary>True while tokens are arriving, which drives the caret and the Stop button.</summary>
     public bool IsStreaming => Status == MessageStatus.Streaming;
@@ -133,6 +178,25 @@ public sealed partial class MessageViewModel : ObservableObject
 
         _buffer.Append(text);
         Content = _buffer.ToString();
+    }
+
+    /// <summary>
+    /// Appends a chunk of the model's thinking.
+    /// </summary>
+    /// <remarks>
+    /// Buffered the same way as the answer, and for the same reason: providers send this in small
+    /// pieces, and a step that spends half a minute deciding which file to open would otherwise be
+    /// half a minute of nothing on screen.
+    /// </remarks>
+    public void AppendReasoning(string text)
+    {
+        if (text.Length == 0)
+        {
+            return;
+        }
+
+        _reasoningBuffer.Append(text);
+        Reasoning = _reasoningBuffer.ToString();
     }
 
     /// <summary>
@@ -182,7 +246,11 @@ public sealed partial class MessageViewModel : ObservableObject
     }
 
     /// <summary>Applies the terminal state of a turn.</summary>
-    public void Complete(int? inputTokens, int? outputTokens, int generationTimeMs)
+    /// <param name="generationTimeMs">
+    /// Null when nothing honest can be put here. An agent step is one of several requests in a run,
+    /// and giving the last step the whole run's elapsed time would be a number that means nothing.
+    /// </param>
+    public void Complete(int? inputTokens, int? outputTokens, int? generationTimeMs)
     {
         InputTokens = inputTokens;
         OutputTokens = outputTokens;

@@ -12,6 +12,234 @@
 
     <UserControl.Resources>
 
+        <!--
+            One line of a diff. Shared by the approval card and the tool-call cards, and defined before
+            both of them: a StaticResource cannot look forward.
+
+            A Border per line rather than a coloured run, because the tint has to reach the full width
+            of the card - a green patch that stops at the end of the text makes a short added line look
+            like a partial change.
+        -->
+        <DataTemplate x:Key="DiffLineTemplate" DataType="{x:Type vm:DiffLine}">
+            <Border Padding="6,0">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="Transparent" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Kind}" Value="Added">
+                                <Setter Property="Background" Value="{StaticResource DiffAddedBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Kind}" Value="Removed">
+                                <Setter Property="Background" Value="{StaticResource DiffRemovedBrush}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
+                <!--
+                    Never wrapped. The first character of a diff line is what it means, so a line
+                    folded onto a second row would show text with no marker in front of it.
+                -->
+                <TextBlock Text="{Binding Text}"
+                           FontFamily="{StaticResource CodeFont}"
+                           FontSize="12"
+                           TextWrapping="NoWrap">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Kind}" Value="Header">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Kind}" Value="Notice">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <Setter Property="FontStyle" Value="Italic" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Border>
+        </DataTemplate>
+
+        <!--
+            One tool call, under the step that asked for it.
+
+            The header is always there, in every state, and the result is behind a chevron that only
+            appears when there is a result to show. An Expander would have been less code, but it
+            offers an arrow on a card with nothing under it, and greying that arrow out greys the
+            headline with it - the one line the card exists to show.
+        -->
+        <DataTemplate x:Key="ToolCallTemplate" DataType="{x:Type vm:AgentToolCallViewModel}">
+            <Border Margin="0,4,0,0"
+                    Padding="8,6"
+                    CornerRadius="{StaticResource CardCorner}"
+                    Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="1">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- The tool's own name, which the summary usually replaces in the headline. -->
+                        <Border Grid.Column="0" Style="{StaticResource Badge}" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding ToolName}"
+                                       Style="{StaticResource BadgeText}"
+                                       FontFamily="{StaticResource CodeFont}" />
+                        </Border>
+
+                        <!--
+                            Marks the calls that did something rather than looked at something, so a
+                            long run can be scanned for the ones that matter. Absent for a read, and
+                            absent for a restored card, which no longer knows.
+                        -->
+                        <Border Grid.Column="1" Margin="4,0,0,0" VerticalAlignment="Center">
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource Badge}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Risk}" Value="Write">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Risk}" Value="Execute">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock>
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource BadgeText}">
+                                        <Setter Property="Foreground" Value="{StaticResource ApprovalAccentBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Risk}" Value="Write">
+                                                <Setter Property="Text" Value="changed files" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Risk}" Value="Execute">
+                                                <Setter Property="Text" Value="ran a program" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Border>
+
+                        <!--
+                            Trimmed, never wrapped. A summary is one line by construction, and a card
+                            that grows a second row as its text arrives makes the transcript jump
+                            under whatever the user was reading.
+                        -->
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Headline}"
+                                   Margin="8,0,8,0"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip="{Binding Headline}" />
+
+                        <TextBlock Grid.Column="3" Text="{Binding StateText}" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource SubtleText}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding State}" Value="Proposed">
+                                            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorSecondaryBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="Running">
+                                            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorSecondaryBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="Failed">
+                                            <Setter Property="Foreground" Value="{StaticResource ApprovalAccentBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="Denied">
+                                            <Setter Property="Foreground" Value="{StaticResource ApprovalAccentBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="Abandoned">
+                                            <Setter Property="Foreground" Value="{StaticResource ApprovalAccentBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <ToggleButton Grid.Column="4"
+                                      IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                      Visibility="{Binding HasBody, Converter={StaticResource BoolToVisibility}}"
+                                      Background="Transparent"
+                                      BorderThickness="0"
+                                      Padding="4,0"
+                                      MinWidth="0"
+                                      MinHeight="0"
+                                      Margin="4,0,0,0"
+                                      VerticalAlignment="Center"
+                                      ToolTip="Show what this returned">
+                            <ui:SymbolIcon FontSize="14">
+                                <ui:SymbolIcon.Style>
+                                    <Style TargetType="ui:SymbolIcon">
+                                        <Setter Property="Symbol" Value="ChevronDown24" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                                <Setter Property="Symbol" Value="ChevronUp24" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ui:SymbolIcon.Style>
+                            </ui:SymbolIcon>
+                        </ToggleButton>
+                    </Grid>
+
+                    <!--
+                        The result, in one of its two forms. Which one was decided when the body was
+                        set, because deciding it here would mean the template guessing at whether a
+                        line beginning with a hyphen is a deletion or a bullet.
+
+                        A darker well than the card so the two do not merge, and both forms are
+                        capped and scrollable: a diff arrives capped by TextDiff, but a file the
+                        agent read arrives however long the file is.
+                    -->
+                    <Border Margin="0,8,0,0"
+                            CornerRadius="6"
+                            Background="{DynamicResource ApplicationBackgroundBrush}"
+                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}">
+                        <Grid>
+                            <ScrollViewer MaxHeight="220"
+                                          Padding="4,6"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Auto"
+                                          Visibility="{Binding IsBodyDiff, Converter={StaticResource BoolToVisibility}}">
+                                <ItemsControl ItemsSource="{Binding BodyLines}"
+                                              ItemTemplate="{StaticResource DiffLineTemplate}"
+                                              Focusable="False" />
+                            </ScrollViewer>
+
+                            <!--
+                                A TextBox rather than a TextBlock: a tool result is the sort of thing
+                                a user wants to copy out - a path, an error, a line of a file - and
+                                selection is what makes that possible.
+                            -->
+                            <TextBox Text="{Binding Body, Mode=OneWay}"
+                                     IsReadOnly="True"
+                                     MaxHeight="220"
+                                     Padding="4,6"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     FontFamily="{StaticResource CodeFont}"
+                                     FontSize="12"
+                                     TextWrapping="NoWrap"
+                                     VerticalScrollBarVisibility="Auto"
+                                     HorizontalScrollBarVisibility="Auto"
+                                     Visibility="{Binding IsBodyText, Converter={StaticResource BoolToVisibility}}" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
         <!-- One message. Role decides the shape, status decides the extras. -->
         <DataTemplate x:Key="MessageTemplate" DataType="{x:Type vm:MessageViewModel}">
             <Grid Margin="0,0,0,20" HorizontalAlignment="Stretch">
@@ -100,6 +328,31 @@
                     </StackPanel>
 
                     <!--
+                        What the model said it was thinking, when the provider sends it. Above the
+                        answer because that is the order it happened in, and collapsed because it is
+                        working out rather than an answer - and it is not what the model will be shown
+                        of its own turn on the next step.
+                    -->
+                    <Expander Margin="0,0,0,8"
+                              IsExpanded="{Binding IsReasoningExpanded, Mode=TwoWay}"
+                              Visibility="{Binding HasReasoning, Converter={StaticResource BoolToVisibility}}">
+                        <Expander.Header>
+                            <TextBlock Text="Reasoning" FontSize="12" />
+                        </Expander.Header>
+
+                        <TextBox Text="{Binding Reasoning, Mode=OneWay}"
+                                 IsReadOnly="True"
+                                 TextWrapping="Wrap"
+                                 MaxHeight="220"
+                                 Margin="0,6,0,0"
+                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                 FontSize="12"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Background="Transparent"
+                                 BorderThickness="0" />
+                    </Expander>
+
+                    <!--
                         Rendered markdown. Blocks are reconciled by content hash during
                         streaming, so this ItemsControl only rebuilds the tail.
                     -->
@@ -111,6 +364,17 @@
                     <TextBlock Text="{Binding Content}"
                                TextWrapping="Wrap"
                                Visibility="{Binding IsRenderingMarkdown, Converter={StaticResource InverseBoolToVisibility}}" />
+
+                    <!--
+                        The tools this step asked for, under the text that asked for them. Not
+                        virtualised: a step is capped at a handful of calls, and each card lays out
+                        its result only once expanded.
+                    -->
+                    <ItemsControl ItemsSource="{Binding ToolCalls}"
+                                  ItemTemplate="{StaticResource ToolCallTemplate}"
+                                  Focusable="False"
+                                  Margin="0,6,0,0"
+                                  Visibility="{Binding HasToolCalls, Converter={StaticResource BoolToVisibility}}" />
                 </StackPanel>
 
                 <!-- Error state with a separate technical section and Retry (section 21). -->
@@ -229,52 +493,6 @@
                     </StackPanel>
                 </Grid>
             </Grid>
-        </DataTemplate>
-
-        <!--
-            One line of an approval preview. A Border per line rather than a coloured run, because
-            the tint has to reach the full width of the card: a green patch that stops at the end of
-            the text makes a short added line look like a partial change.
-        -->
-        <DataTemplate x:Key="ApprovalPreviewLineTemplate" DataType="{x:Type vm:ApprovalPreviewLine}">
-            <Border Padding="6,0">
-                <Border.Style>
-                    <Style TargetType="Border">
-                        <Setter Property="Background" Value="Transparent" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding Kind}" Value="Added">
-                                <Setter Property="Background" Value="{StaticResource DiffAddedBrush}" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Kind}" Value="Removed">
-                                <Setter Property="Background" Value="{StaticResource DiffRemovedBrush}" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Border.Style>
-
-                <!--
-                    Never wrapped. The first character of a diff line is what it means, so a line
-                    folded onto a second row would show text with no marker in front of it.
-                -->
-                <TextBlock Text="{Binding Text}"
-                           FontFamily="{StaticResource CodeFont}"
-                           FontSize="12"
-                           TextWrapping="NoWrap">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Kind}" Value="Header">
-                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding Kind}" Value="Notice">
-                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
-                                    <Setter Property="FontStyle" Value="Italic" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-            </Border>
         </DataTemplate>
 
     </UserControl.Resources>
@@ -455,7 +673,7 @@
                                   VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Auto">
                         <ItemsControl ItemsSource="{Binding PreviewLines}"
-                                      ItemTemplate="{StaticResource ApprovalPreviewLineTemplate}"
+                                      ItemTemplate="{StaticResource DiffLineTemplate}"
                                       Focusable="False" />
                     </ScrollViewer>
                 </Border>
@@ -596,6 +814,7 @@
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
@@ -610,8 +829,24 @@
                                    Margin="0,0,4,0"
                                    Command="{Binding AttachFilesCommand}" />
 
+                        <!--
+                            Agent mode. A toggle in the composer rather than a setting, because it
+                            changes what pressing Send does: the model gets to read and change files
+                            under the folder that is open, asking first for anything it cannot undo.
+                        -->
+                        <ToggleButton Grid.Column="1"
+                                      IsChecked="{Binding IsAgentMode, Mode=TwoWay}"
+                                      Content="Agent"
+                                      FontSize="12"
+                                      Padding="10,4"
+                                      MinWidth="0"
+                                      MinHeight="0"
+                                      VerticalAlignment="Bottom"
+                                      Margin="0,0,4,4"
+                                      ToolTip="Let the model work in the folder you opened. It asks before anything it cannot take back." />
+
                         <TextBox x:Name="DraftBox"
-                                 Grid.Column="1"
+                                 Grid.Column="2"
                                  Text="{Binding Draft, UpdateSourceTrigger=PropertyChanged}"
                                  AcceptsReturn="True"
                                  TextWrapping="Wrap"
@@ -626,7 +861,7 @@
                                  SpellCheck.IsEnabled="True" />
 
                         <!-- Send and Stop swap: only one is ever meaningful. -->
-                        <ui:Button Grid.Column="2"
+                        <ui:Button Grid.Column="3"
                                    Appearance="Primary"
                                    Icon="{ui:SymbolIcon Send24}"
                                    ToolTip="Send (Enter)"
@@ -635,7 +870,7 @@
                                    Command="{Binding SendCommand}"
                                    Visibility="{Binding IsGenerating, Converter={StaticResource InverseBoolToVisibility}}" />
 
-                        <ui:Button Grid.Column="2"
+                        <ui:Button Grid.Column="3"
                                    Appearance="Danger"
                                    Icon="{ui:SymbolIcon Stop24}"
                                    ToolTip="Stop generating (Esc)"
@@ -646,10 +881,24 @@
                     </Grid>
                 </Border>
 
-                <TextBlock Grid.Row="3"
-                           Style="{StaticResource SubtleText}"
-                           Text="{Binding InputHint}"
-                           Margin="4,6,0,0" />
+                <Grid Grid.Row="3" Margin="4,6,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Style="{StaticResource SubtleText}"
+                               Text="{Binding InputHint}" />
+
+                    <!-- Which folder is at stake, while it is still possible not to send. -->
+                    <TextBlock Grid.Column="1"
+                               Style="{StaticResource SubtleText}"
+                               Text="{Binding AgentHint}"
+                               Margin="12,0,0,0"
+                               Foreground="{StaticResource ApprovalAccentBrush}"
+                               Visibility="{Binding IsAgentMode, Converter={StaticResource BoolToVisibility}}" />
+                </Grid>
             </Grid>
         </Border>
     </Grid>
