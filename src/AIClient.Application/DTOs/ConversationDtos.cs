@@ -52,6 +52,23 @@ public sealed record MessageDto
     public int? OutputTokens { get; init; }
     public int? GenerationTimeMs { get; init; }
     public IReadOnlyList<AttachmentDto> Attachments { get; init; } = [];
+
+    /// <summary>
+    /// On an assistant message, the tool calls it made, as stored. Null when it only wrote text.
+    /// </summary>
+    public string? ToolCallsJson { get; init; }
+
+    /// <summary>On a <see cref="MessageRole.Tool"/> message, the call it answers.</summary>
+    public string? ToolCallId { get; init; }
+
+    /// <summary>On a <see cref="MessageRole.Tool"/> message, the tool that produced the content.</summary>
+    public string? ToolName { get; init; }
+
+    /// <summary>
+    /// On a <see cref="MessageRole.Tool"/> message, whether the tool did what was asked. A refusal
+    /// is still a complete message - see <see cref="Domain.Entities.Message.ToolSucceeded"/>.
+    /// </summary>
+    public bool? ToolSucceeded { get; init; }
 }
 
 /// <summary>An attachment as the UI sees it. <see cref="TextContent"/> is omitted in list views.</summary>
@@ -74,6 +91,18 @@ public sealed record NewMessage
     public string? ProviderId { get; init; }
     public string? ModelId { get; init; }
     public IReadOnlyList<NewAttachment> Attachments { get; init; } = [];
+
+    /// <summary>The tool calls an assistant message made, as JSON. See <see cref="MessageDto.ToolCallsJson"/>.</summary>
+    public string? ToolCallsJson { get; init; }
+
+    /// <summary>On a tool message, the call it answers. Required for the message to be sendable.</summary>
+    public string? ToolCallId { get; init; }
+
+    /// <summary>On a tool message, the tool that produced the content.</summary>
+    public string? ToolName { get; init; }
+
+    /// <summary>On a tool message, whether the tool did what was asked.</summary>
+    public bool? ToolSucceeded { get; init; }
 }
 
 /// <summary>Input for attaching a file to a new message.</summary>
@@ -101,4 +130,15 @@ public sealed record MessageUpdate
     public int? InputTokens { get; init; }
     public int? OutputTokens { get; init; }
     public int? GenerationTimeMs { get; init; }
+
+    /// <summary>
+    /// The tool calls the finished stream turned out to contain.
+    /// </summary>
+    /// <remarks>
+    /// Set at the end of a step rather than when the placeholder is created, because the calls
+    /// are only whole once the stream is. Null leaves the column alone, like every other field
+    /// here; an assistant message that called nothing therefore stays null rather than being
+    /// written as an empty array.
+    /// </remarks>
+    public string? ToolCallsJson { get; init; }
 }

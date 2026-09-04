@@ -169,6 +169,10 @@ public sealed class ConversationService : IConversationService
                 InputTokens = m.InputTokens,
                 OutputTokens = m.OutputTokens,
                 GenerationTimeMs = m.GenerationTimeMs,
+                ToolCallsJson = m.ToolCallsJson,
+                ToolCallId = m.ToolCallId,
+                ToolName = m.ToolName,
+                ToolSucceeded = m.ToolSucceeded,
                 Attachments = m.Attachments
                     .Select(a => new AttachmentDto
                     {
@@ -321,6 +325,10 @@ public sealed class ConversationService : IConversationService
             ModelId = message.ModelId,
             SequenceNumber = nextSequence + 1,
             CreatedAt = DateTimeOffset.UtcNow,
+            ToolCallsJson = message.ToolCallsJson,
+            ToolCallId = message.ToolCallId,
+            ToolName = message.ToolName,
+            ToolSucceeded = message.ToolSucceeded,
         };
 
         foreach (var attachment in message.Attachments)
@@ -401,6 +409,11 @@ public sealed class ConversationService : IConversationService
         if (update.GenerationTimeMs is { } generationTime)
         {
             message.GenerationTimeMs = generationTime;
+        }
+
+        if (update.ToolCallsJson is not null)
+        {
+            message.ToolCallsJson = update.ToolCallsJson;
         }
 
         // A successful update clears a stale error from a previous failed attempt.
@@ -510,6 +523,10 @@ public sealed class ConversationService : IConversationService
         InputTokens = message.InputTokens,
         OutputTokens = message.OutputTokens,
         GenerationTimeMs = message.GenerationTimeMs,
+        ToolCallsJson = message.ToolCallsJson,
+        ToolCallId = message.ToolCallId,
+        ToolName = message.ToolName,
+        ToolSucceeded = message.ToolSucceeded,
         Attachments = message.Attachments
             .Select(a => new AttachmentDto
             {

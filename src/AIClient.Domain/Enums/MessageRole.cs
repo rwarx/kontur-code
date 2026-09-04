@@ -15,6 +15,15 @@ public enum MessageRole
     /// <summary>Produced by the model.</summary>
     Assistant = 2,
 
-    /// <summary>Reserved for future tool/function-calling support. Not produced in the MVP.</summary>
+    /// <summary>
+    /// The answer a tool gave to a call the assistant made. Written by the agent loop, and never
+    /// by a person.
+    /// </summary>
+    /// <remarks>
+    /// A row with this role is only meaningful next to the assistant row that asked for it: it
+    /// carries <see cref="Entities.Message.ToolCallId"/>, and a provider handed one without the
+    /// matching assistant call - or an assistant call without its answers - returns 400 rather
+    /// than continuing. The transcript therefore stores both halves or neither.
+    /// </remarks>
     Tool = 3,
 }
