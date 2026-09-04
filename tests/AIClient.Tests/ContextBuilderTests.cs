@@ -2,6 +2,7 @@ using AIClient.Application.DTOs;
 using AIClient.Application.Services;
 using AIClient.Domain.Enums;
 using AIClient.Domain.Interfaces;
+using AIClient.Domain.Models;
 using AIClient.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -375,6 +376,206 @@ public sealed class ContextBuilderTests : IAsyncLifetime
     /// <summary>360 Latin characters, which the estimator prices at about 100 tokens.</summary>
     private static readonly string Filler = new('a', 360);
 
+    // Section 18, the agent half: a tool exchange has to come back out of the database in the
+    // one shape every provider accepts - the call and its answer, in that order, or neither.
+
+    [Fact]
+    public async Task A_tool_exchange_is_replayed_as_the_pair_the_provider_expects()
+    {
+        var chat = await NewChatAsync(
+            User("what is in the readme?"),
+            AssistantCalling("Let me look.", Call("call_1", "read_file", """{"path":"README.md"}""")),
+            ToolResult("call_1", "read_file", "# Project"),
+            Assistant("It is the project readme."));
+
+        var result = await BuildAsync(chat);
+
+        Assert.Equal(["user", "assistant", "tool", "assistant"], result.Messages.Select(m => m.Role));
+
+        var call = Assert.Single(result.Messages[1].ToolCalls);
+        Assert.Equal("call_1", call.Id);
+        Assert.Equal("read_file", call.Name);
+        Assert.Contains("README.md", call.ArgumentsJson, StringComparison.Ordinal);
+
+        // The answer is addressed to the call. Without the id the provider cannot pair them.
+        Assert.Equal("call_1", result.Messages[2].ToolCallId);
+        Assert.Equal("read_file", result.Messages[2].Name);
+        Assert.Equal("# Project", result.Messages[2].Content);
+    }
+
+    [Fact]
+    public async Task An_assistant_turn_that_said_nothing_and_only_acted_is_still_sent()
+    {
+        // The normal shape of an agent step: no commentary, just the call. Judged by text alone
+        // this row looks empty, and dropping it would orphan the answer that follows.
+        var chat = await NewChatAsync(
+            User("read the readme"),
+            AssistantCalling(string.Empty, Call("call_1", "read_file")),
+            ToolResult("call_1", "read_file", "# Project"));
+
+        var result = await BuildAsync(chat);
+
+        Assert.Equal(["user", "assistant", "tool"], result.Messages.Select(m => m.Role));
+        Assert.Single(result.Messages[1].ToolCalls);
+    }
+
+    [Fact]
+    public async Task Several_calls_in_one_step_are_answered_as_one_block()
+    {
+        var chat = await NewChatAsync(
+            User("compare the two files"),
+            AssistantCalling(
+                string.Empty,
+                Call("call_1", "read_file"),
+                Call("call_2", "read_file")),
+            ToolResult("call_1", "read_file", "first"),
+            ToolResult("call_2", "read_file", "second"));
+
+        var result = await BuildAsync(chat);
+
+        Assert.Equal(["user", "assistant", "tool", "tool"], result.Messages.Select(m => m.Role));
+        Assert.Equal(2, result.Messages[1].ToolCalls.Count);
+        Assert.Equal(["call_1", "call_2"], result.Messages.Skip(2).Select(m => m.ToolCallId));
+    }
+
+    [Fact]
+    public async Task A_call_that_never_got_an_answer_loses_the_call_and_keeps_the_words()
+    {
+        // The app can be killed between writing the call and writing its result. What the model
+        // said is still true and still useful; the unanswered call is a 400.
+        var chat = await NewChatAsync(
+            User("read the readme"),
+            AssistantCalling("I will read it now.", Call("call_1", "read_file")),
+            User("never mind"));
+
+        var result = await BuildAsync(chat);
+
+        Assert.Equal(["user", "assistant", "user"], result.Messages.Select(m => m.Role));
+        Assert.Empty(result.Messages[1].ToolCalls);
+        Assert.Equal("I will read it now.", result.Messages[1].Content);
+    }
+
+    [Fact]
+    public async Task A_call_with_no_words_and_no_answer_is_dropped_outright()
+    {
+        var chat = await NewChatAsync(
+            User("read the readme"),
+            AssistantCalling(string.Empty, Call("call_1", "read_file")),
+            User("never mind"));
+
+        var result = await BuildAsync(chat);
+
+        // Nothing survives stripping the calls from it, so there is nothing to send.
+        Assert.Equal(["user", "user"], result.Messages.Select(m => m.Role));
+    }
+
+    [Fact]
+    public async Task An_answer_whose_call_is_gone_is_dropped()
+    {
+        var chat = await NewChatAsync(
+            User("read the readme"),
+            ToolResult("call_1", "read_file", "# Project"),
+            User("well?"));
+
+        var result = await BuildAsync(chat);
+
+        Assert.Equal(["user", "user"], result.Messages.Select(m => m.Role));
+    }
+
+    [Fact]
+    public async Task An_answer_stored_ahead_of_its_call_counts_as_no_answer_at_all()
+    {
+        // Presence is not pairing. A result that sits before the call it names cannot be sent, so
+        // treating it as an answer would keep the call and leave it unanswered - the same 400,
+        // arrived at by being too clever.
+        var chat = await NewChatAsync(
+            User("read the readme"),
+            ToolResult("call_1", "read_file", "# Project"),
+            AssistantCalling("Let me look.", Call("call_1", "read_file")));
+
+        var result = await BuildAsync(chat);
+
+        Assert.Equal(["user", "assistant"], result.Messages.Select(m => m.Role));
+        Assert.Empty(result.Messages[1].ToolCalls);
+    }
+
+    [Fact]
+    public async Task A_transcript_too_damaged_to_read_costs_the_step_and_not_the_request()
+    {
+        var chat = await NewChatAsync(
+            User("read the readme"),
+            new NewMessage
+            {
+                Role = MessageRole.Assistant,
+                Content = "Let me look.",
+                ToolCallsJson = "{ this is not json",
+            },
+            User("well?"));
+
+        var result = await BuildAsync(chat);
+
+        Assert.Equal(["user", "assistant", "user"], result.Messages.Select(m => m.Role));
+        Assert.Empty(result.Messages[1].ToolCalls);
+    }
+
+    [Fact]
+    public async Task A_refused_call_stays_in_the_history_so_the_model_can_correct_itself()
+    {
+        // A refusal is a complete message, not a failed one. Dropping it would let the model
+        // propose the same forbidden path on every following step.
+        var chat = await NewChatAsync(
+            User("read the whole disk"),
+            AssistantCalling(string.Empty, Call("call_1", "read_file")),
+            new NewMessage
+            {
+                Role = MessageRole.Tool,
+                Content = "The path leaves the workspace.",
+                ToolCallId = "call_1",
+                ToolName = "read_file",
+                ToolSucceeded = false,
+            });
+
+        var result = await BuildAsync(chat);
+
+        Assert.Equal(["user", "assistant", "tool"], result.Messages.Select(m => m.Role));
+        Assert.Equal("The path leaves the workspace.", result.Messages[2].Content);
+    }
+
+    [Fact]
+    public async Task Trimming_drops_a_call_and_its_answer_together()
+    {
+        // The reason the builder groups them at all. Dropping the call alone would leave an
+        // orphaned answer; dropping the answer alone would leave an unanswered call.
+        var chat = await NewChatAsync(
+            User("a"),
+            AssistantCalling(string.Empty, Call("call_1", "read_file")),
+            ToolResult("call_1", "read_file", new string('b', 720)),
+            User("final question"));
+
+        var result = await BuildAsync(chat, contextWindow: 150, reservedOutputTokens: 0);
+
+        Assert.Equal(["final question"], result.Messages.Select(m => m.Content));
+        Assert.Equal(3, result.DroppedMessageCount);
+    }
+
+    [Fact]
+    public async Task What_a_call_carries_is_counted_against_the_budget()
+    {
+        // A write_file call is three kilobytes of source in its arguments and nothing in its
+        // text. Pricing it by text alone would overrun the window by exactly the amount that
+        // matters, and the provider would be the one to notice.
+        var chat = await NewChatAsync(
+            User("write the file"),
+            AssistantCalling(string.Empty, Call("call_1", "write_file", Filler)),
+            ToolResult("call_1", "write_file", "ok"));
+
+        var result = await BuildAsync(chat);
+
+        Assert.True(
+            result.EstimatedTokens > 100,
+            $"A 360-character argument object was priced at {result.EstimatedTokens} tokens in total.");
+    }
+
     private async Task<Guid> NewChatAsync(params NewMessage[] messages)
     {
         var service = _db.Conversations();
@@ -410,4 +611,26 @@ public sealed class ContextBuilderTests : IAsyncLifetime
 
     private static NewMessage Assistant(string content) =>
         new() { Role = MessageRole.Assistant, Content = content };
+
+    /// <summary>An assistant step that decided to act, stored the way the agent loop stores it.</summary>
+    private static NewMessage AssistantCalling(string content, params AIToolCall[] calls) =>
+        new()
+        {
+            Role = MessageRole.Assistant,
+            Content = content,
+            ToolCallsJson = AgentTranscript.Write(calls),
+        };
+
+    private static NewMessage ToolResult(string callId, string name, string content) =>
+        new()
+        {
+            Role = MessageRole.Tool,
+            Content = content,
+            ToolCallId = callId,
+            ToolName = name,
+            ToolSucceeded = true,
+        };
+
+    private static AIToolCall Call(string id, string name, string argumentsJson = "{}") =>
+        new(id, name, argumentsJson);
 }

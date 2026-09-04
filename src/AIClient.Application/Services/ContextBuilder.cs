@@ -43,11 +43,13 @@ public sealed class ContextBuilder : IContextBuilder
         }
 
         var history = SelectHistory(conversation.Messages, request.UpToMessageId);
-        var turns = history.Select(ToTurn).ToList();
+        var blocks = Group([.. history.Select(ToTurn)]);
 
         var systemPrompt = string.IsNullOrWhiteSpace(request.SystemPrompt) ? null : request.SystemPrompt.Trim();
         var budget = CalculateBudget(request);
-        var dropped = budget is null ? 0 : Trim(turns, systemPrompt, budget.Value);
+        var dropped = budget is null ? 0 : Trim(blocks, systemPrompt, budget.Value);
+
+        var turns = blocks.SelectMany(block => block).ToList();
 
         var messages = new List<AIChatMessage>(turns.Count + 1);
         if (systemPrompt is not null)
@@ -55,7 +57,7 @@ public sealed class ContextBuilder : IContextBuilder
             messages.Add(AIChatMessage.System(systemPrompt));
         }
 
-        messages.AddRange(turns.Select(t => new AIChatMessage(t.WireRole, t.Text)));
+        messages.AddRange(turns.Select(ToWire));
 
         var estimated = TokenEstimator.EstimateMessage(systemPrompt) + turns.Sum(t => t.Tokens);
 
@@ -89,14 +91,112 @@ public sealed class ContextBuilder : IContextBuilder
             }
         }
 
-        return ordered
+        var eligible = ordered
             // System turns are supplied separately, from settings or the conversation.
-            .Where(m => m.Role is MessageRole.User or MessageRole.Assistant)
+            .Where(m => m.Role is MessageRole.User or MessageRole.Assistant or MessageRole.Tool)
             // A failed turn has no content worth sending, and an empty assistant turn
             // (a placeholder that never received tokens) would confuse the model.
             .Where(m => m.Status != MessageStatus.Failed)
-            .Where(m => !string.IsNullOrWhiteSpace(m.Content) || m.Attachments.Count > 0)
-            .ToList();
+            .Where(HasSomethingToSend);
+
+        return Repair(eligible);
+    }
+
+    /// <summary>
+    /// Whether a stored message carries anything a model can use.
+    /// </summary>
+    /// <remarks>
+    /// An assistant message with tool calls and no text is the normal shape of an agent step - the
+    /// model announces nothing and acts - so the presence of calls counts as content. Judging it
+    /// by text alone would drop exactly the messages that explain what the agent did.
+    /// </remarks>
+    private static bool HasSomethingToSend(MessageDto message) =>
+        !string.IsNullOrWhiteSpace(message.Content)
+        || message.Attachments.Count > 0
+        || message.ToolCallsJson is not null;
+
+    /// <summary>
+    /// Removes the surviving half of any broken assistant/tool pair.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The pair can break for ordinary reasons: the app was killed between writing the call and
+    /// writing its result, the user deleted one message, or a tool result was too damaged to read
+    /// back. Whatever the cause, a call with no answer and an answer with no call are both a 400
+    /// from every provider, which would make the conversation impossible to continue at all.
+    /// </para>
+    /// <para>
+    /// An assistant message whose answers are missing keeps its text and loses its calls, because
+    /// what it said is still true and still useful; one that said nothing is dropped entirely. A
+    /// result whose call is missing has nothing to be attached to and is dropped.
+    /// </para>
+    /// </remarks>
+    private static List<MessageDto> Repair(IEnumerable<MessageDto> messages)
+    {
+        var eligible = messages.ToList();
+
+        // Where each call's answer sits, not merely whether one exists. A result that comes before
+        // the call it names cannot be sent - it is dropped below - so counting it as an answer
+        // would keep the call and leave it unanswered, which is the exact 400 this method exists
+        // to prevent. The last position wins, because any answer after the call is enough.
+        var answers = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        for (var i = 0; i < eligible.Count; i++)
+        {
+            if (eligible[i] is { Role: MessageRole.Tool, ToolCallId: { } id })
+            {
+                answers[id] = i;
+            }
+        }
+
+        // Filled as the walk moves forward, so a result is only kept when the call it answers
+        // came earlier. Order is part of the pairing, not just presence.
+        var asked = new HashSet<string>(StringComparer.Ordinal);
+        var repaired = new List<MessageDto>(eligible.Count);
+
+        for (var i = 0; i < eligible.Count; i++)
+        {
+            var message = eligible[i];
+
+            switch (message.Role)
+            {
+                case MessageRole.Assistant when message.ToolCallsJson is not null:
+                    var calls = AgentTranscript.Read(message.ToolCallsJson);
+
+                    if (calls.Count > 0 && calls.All(call => Answered(call.Id, i)))
+                    {
+                        foreach (var call in calls)
+                        {
+                            asked.Add(call.Id);
+                        }
+
+                        repaired.Add(message);
+                    }
+                    else if (!string.IsNullOrWhiteSpace(message.Content))
+                    {
+                        repaired.Add(message with { ToolCallsJson = null });
+                    }
+
+                    break;
+
+                case MessageRole.Tool:
+                    if (message.ToolCallId is not null && asked.Contains(message.ToolCallId))
+                    {
+                        repaired.Add(message);
+                    }
+
+                    break;
+
+                default:
+                    repaired.Add(message);
+                    break;
+            }
+        }
+
+        return repaired;
+
+        bool Answered(string callId, int askedAt) =>
+            answers.TryGetValue(callId, out var answeredAt) && answeredAt > askedAt;
     }
 
     /// <summary>
@@ -136,9 +236,65 @@ public sealed class ContextBuilder : IContextBuilder
             text = builder.ToString();
         }
 
-        var wireRole = message.Role == MessageRole.User ? "user" : "assistant";
-        return new Turn(message.Id, wireRole, text, TokenEstimator.EstimateMessage(text), message.Role);
+        // Only an assistant turn can carry calls, and reading them here rather than at send time
+        // means a transcript damaged on disk costs one step of history instead of the request.
+        var calls = message.Role == MessageRole.Assistant
+            ? AgentTranscript.Read(message.ToolCallsJson)
+            : [];
+
+        // The arguments are counted, not just the text. An assistant step whose only content is a
+        // write_file call carrying three kilobytes of source would otherwise be estimated at zero
+        // and the budget would be overrun by exactly the amount that matters.
+        var tokens = TokenEstimator.EstimateMessage(text)
+            + calls.Sum(call => TokenEstimator.EstimateMessage(call.ArgumentsJson));
+
+        return new Turn(message.Id, message.Role, text, tokens, calls, message.ToolCallId, message.ToolName);
     }
+
+    /// <summary>
+    /// Collects each assistant turn together with the tool results answering it.
+    /// </summary>
+    /// <remarks>
+    /// Trimming is what forces this. A tool result is only legal when the call it answers is still
+    /// in the transcript, so an assistant step and its results have to leave together or stay
+    /// together - dropping the call alone turns the next request into a 400. Grouping them once,
+    /// here, means the trimming pass never has to know that rule.
+    /// </remarks>
+    private static List<List<Turn>> Group(List<Turn> turns)
+    {
+        var blocks = new List<List<Turn>>();
+
+        foreach (var turn in turns)
+        {
+            // The head of a block is the turn that made the calls; anything else starts its own.
+            if (turn.Role == MessageRole.Tool && blocks.Count > 0 && blocks[^1][0].Calls.Count > 0)
+            {
+                blocks[^1].Add(turn);
+                continue;
+            }
+
+            blocks.Add([turn]);
+        }
+
+        return blocks;
+    }
+
+    /// <summary>Renders one turn in the shape the provider contract expects.</summary>
+    private static AIChatMessage ToWire(Turn turn) => turn.Role switch
+    {
+        MessageRole.User => AIChatMessage.User(turn.Text),
+
+        // The id and the name are guaranteed by Repair, which drops any result that lost its call.
+        // The fallbacks exist so a defect there is a worse answer rather than a crash.
+        MessageRole.Tool => AIChatMessage.Tool(
+            turn.ToolCallId ?? string.Empty,
+            turn.ToolName ?? "tool",
+            turn.Text),
+
+        _ => turn.Calls.Count > 0
+            ? AIChatMessage.Assistant(turn.Text, turn.Calls)
+            : AIChatMessage.Assistant(turn.Text),
+    };
 
     /// <summary>
     /// Token budget for the prompt, or null when the model's window is unknown and
@@ -159,34 +315,45 @@ public sealed class ContextBuilder : IContextBuilder
     }
 
     /// <summary>
-    /// Drops oldest turns until the prompt fits. Returns how many were removed.
+    /// Drops oldest blocks until the prompt fits. Returns how many messages were removed.
     /// </summary>
-    private static int Trim(List<Turn> turns, string? systemPrompt, int budget)
+    private static int Trim(List<List<Turn>> blocks, string? systemPrompt, int budget)
     {
         var fixedCost = TokenEstimator.EstimateMessage(systemPrompt);
-        var total = fixedCost + turns.Sum(t => t.Tokens);
+        var total = fixedCost + blocks.Sum(Cost);
         var dropped = 0;
 
-        // Always keep the final turn: it is the question being asked. If it alone
+        // Always keep the final block: it is the question being asked. If it alone
         // overflows the window the provider will say so, which is the honest outcome -
         // silently truncating the user's actual question would be worse.
-        while (total > budget && turns.Count > 1)
+        while (total > budget && blocks.Count > 1)
         {
-            total -= turns[0].Tokens;
-            turns.RemoveAt(0);
-            dropped++;
+            total -= Cost(blocks[0]);
+            dropped += blocks[0].Count;
+            blocks.RemoveAt(0);
         }
 
         // Trimming can leave the history starting on an assistant turn, which several
-        // providers reject. Drop that dangling reply too.
-        while (turns.Count > 1 && turns[0].Role == MessageRole.Assistant)
+        // providers reject. Drop that dangling reply too - and its tool results with it,
+        // which is exactly what a block being atomic buys.
+        while (blocks.Count > 1 && blocks[0][0].Role == MessageRole.Assistant)
         {
-            turns.RemoveAt(0);
-            dropped++;
+            dropped += blocks[0].Count;
+            blocks.RemoveAt(0);
         }
 
         return dropped;
+
+        static int Cost(List<Turn> block) => block.Sum(turn => turn.Tokens);
     }
 
-    private readonly record struct Turn(Guid Id, string WireRole, string Text, int Tokens, MessageRole Role);
+    /// <param name="Calls">Tool calls on an assistant turn; empty on every other role.</param>
+    private readonly record struct Turn(
+        Guid Id,
+        MessageRole Role,
+        string Text,
+        int Tokens,
+        IReadOnlyList<AIToolCall> Calls,
+        string? ToolCallId,
+        string? ToolName);
 }
