@@ -5,14 +5,18 @@ conversations in a local SQLite file.
 
 This is the first stage of a longer plan. The architecture is the one an AI-assisted IDE will
 need - a domain that knows nothing about HTTP, a UI that cannot reach a provider, streaming that
-runs end to end as `IAsyncEnumerable<T>` - while the feature set is deliberately a workspace:
-chat, sessions, models, providers, settings, local storage. No editor, no repository awareness, no
-agents. Those are later stages, and nothing here forecloses them.
+runs end to end as `IAsyncEnumerable<T>` - and the feature set is a workspace plus an agent that can
+work in a folder you choose: chat, sessions, models, providers, settings, local storage, and a tool
+loop that reads and edits files under your supervision. There is no editor and no repository
+awareness yet. Those are later stages, and nothing here forecloses them.
 
 ## What it does
 
 - **Streaming chat.** Tokens appear as they arrive. Stop mid-answer and the partial text is kept,
   not discarded. Regenerate replaces the answer in place, optionally on a different model.
+- **Agent mode.** A toggle in the composer sends the message to a tool loop instead of straight to
+  the model. It can list, read, search, write, edit, move and delete files under one folder you
+  nominate, and it asks before every change. See [Agent mode](#agent-mode).
 - **Markdown and code.** Headings, lists, tables, quotes and fenced code rendered as WPF content
   rather than HTML in a browser control, with syntax highlighting for the common languages.
 - **Sessions.** Create, rename, pin, search and delete conversations. Titles are generated from
@@ -25,8 +29,8 @@ agents. Those are later stages, and nothing here forecloses them.
 - **Attachments.** Text and source files are read, size-capped and inlined into the prompt.
   Binaries are refused even when renamed to `.txt`.
 - **Export.** A conversation to Markdown or JSON.
-- **Settings.** Appearance, chat defaults, sampling parameters, storage and attachment limits,
-  all persisted locally.
+- **Settings.** Appearance, chat defaults, sampling parameters, storage and attachment limits, the
+  agent's folder and its budgets, all persisted locally.
 - **Fluent shell.** Light, dark or follow-the-system theme, Mica backdrop, command palette.
 
 ## Requirements
@@ -90,6 +94,44 @@ set AICLIENT_Providers__Nvidia=http://localhost:11434/v1
 Adding a provider properly is a subclass and one registration line; see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
+## Agent mode
+
+Turn on **Agent** in the composer and the message goes to a loop instead of to a single completion.
+The model gets a set of tools, asks for the ones it needs, sees what they returned, and continues
+until it has an answer or a budget runs out. The transcript shows the work: one card per call, with
+the arguments summarised, the outcome, and the result behind a chevron.
+
+The first time you turn the toggle on it asks which folder to work in. That folder is the whole of
+the agent's reach - it is remembered between sessions, shown under the composer while the mode is
+on, and changed or closed in Settings → Agent. With no folder open the agent can do nothing at all,
+which is how the application starts.
+
+| Tool | Does | Asks first |
+| --- | --- | --- |
+| `list_files` | Lists a directory, ignoring `.git`, `bin`, `obj`, `node_modules` and friends | No |
+| `read_file` | Reads a text file, size-capped and optionally by line range | No |
+| `search_files` | Searches file contents, literally or by regex, capped at 150 matching lines | No |
+| `write_file` | Creates or replaces a file | Yes |
+| `edit_file` | Replaces an exact snippet inside a file | Yes |
+| `create_directory` | Creates a folder | Yes |
+| `move_file` | Moves or renames | Yes |
+| `delete_file` | Deletes a file or an empty folder | Yes |
+
+Reads are refused outside the folder, and so are the paths that carry credentials or version-control
+internals - `.git`, `.env`, key and certificate files - whether they are named directly, reached
+through `..`, or reached through a symlink pointing out of the tree.
+
+Every tool in the lower half of that table stops and asks, every time. The question leads with one
+line naming the effect - `Create src/Widget.cs`, `Overwrite 42 lines in src/Widget.cs`,
+`Delete docs/old.md` - and an edit or an overwrite carries a diff under it. **Approve** applies it,
+**Deny** hands the model a refusal it can react to and carry on from, and stopping the run marks
+whatever was open as interrupted rather than guessing whether it landed. There is no "approve
+everything" switch, and nothing the agent does can execute a program.
+
+Three budgets in Settings bound a run: steps per message (25), a time limit (10 minutes, 0 for
+none), and the largest file the agent may open (512 KB). A model that proposes the same call three
+times in a row is told so rather than being allowed to loop.
+
 ## Where your data lives
 
 Everything is under `%APPDATA%\AIClient`, and nothing leaves the machine except the requests you
@@ -103,6 +145,10 @@ send to your chosen provider.
 | `attachments\` | Copies of attached files, when that option is on |
 
 There is no telemetry, no account, and no sync.
+
+The folder you give the agent is the one exception: it is somewhere you chose, the agent writes there
+directly, and only its path is kept under `%APPDATA%`. Nothing is copied into the application's own
+storage, so undoing a change the agent made is a job for your version control, not for this app.
 
 ## API keys
 
@@ -134,7 +180,7 @@ tree and the binding engine - and cleared the moment it is saved. `SecureStorage
 dotnet test
 ```
 
-398 tests against a real migrated SQLite file, real DPAPI, and fake HTTP handlers replaying recorded
+719 tests against a real migrated SQLite file, real DPAPI, and fake HTTP handlers replaying recorded
 provider responses. A fresh clone with no key and no network passes: the eight tests that need a
 live provider skip themselves and say so.
 
@@ -189,14 +235,16 @@ tests/AIClient.Tests         The suite above.
 
 Dependencies point one way: App → Application → Domain, with Infrastructure implementing the
 interfaces the two middle layers declare and registering itself through a single
-`AddInfrastructure` call. The App project references no provider type and no `DbContext`, which is
-what keeps a future editor or agent host from having to be threaded through the UI.
+`AddInfrastructure` call. The App project references no provider type and no `DbContext`: the agent
+loop it drives lives in Application and is reached through `IAgentService`, which is what kept
+adding an agent from having to be threaded through the UI, and is what a future editor will use too.
 [ARCHITECTURE.md](ARCHITECTURE.md) has the diagram, the streaming pipeline and the reasoning.
 [DEVELOPMENT.md](DEVELOPMENT.md) covers migrations, configuration and the conventions.
 
 ## Not in this version
 
-No editor, no file tree, no repository awareness, no agents or tool calling, no MCP, no image input,
-no plugins. This release is the workspace those features will eventually live in, and the layering
-is the reason they can arrive without a rewrite - but none of it is here yet, and the feature list
-above is the whole of it.
+No editor, no file tree, no repository awareness, no MCP, no image input, no plugins. The agent can
+read and change files but cannot run a program: there is no shell tool, and nothing in the
+application executes code on your behalf. Multiple agents, background runs and a diff-review pane
+are later stages - the layering is the reason they can arrive without a rewrite, but none of it is
+here yet, and the feature list above is the whole of it.

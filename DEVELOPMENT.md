@@ -64,6 +64,11 @@ Deleting `aiclient.db` resets the app to a first run. Deleting `secrets\` forget
 nothing else. The tests never touch any of this: `AppPaths` has a constructor overload taking a root
 directory, and every test that needs a profile passes a temporary one.
 
+The one thing written outside that tree is whatever the agent writes in the folder the user opened, and
+it goes there directly - nothing is staged, copied or backed up under `%APPDATA%` first. That is a
+deliberate choice and the reason the approval gate exists: the undo for an agent's edit is the user's
+version control, so the change has to be shown before it is made rather than reversed after.
+
 To read the log while the app runs, tail the newest file in `logs\`. EF Core's own categories are
 filtered to `Warning` in [App.xaml.cs](src/AIClient.App/App.xaml.cs) - at `Information` it prints
 every statement it executes, which buries the application's own diagnostics and puts SQL one step
@@ -130,10 +135,56 @@ set AICLIENT_Providers__Nvidia=http://localhost:11434/v1
 ```
 
 Anything the app writes rather than reads - theme, sampling defaults, attachment limits, log
-retention - is in the `Settings` table, one JSON row per section, and is not configurable from a
-file. Adding a setting means adding a property to one of the four classes in
-[`Configuration`](src/AIClient.Application/Configuration) and nothing else: no migration, and an
-older row deserialises with the new property at its default.
+retention, the agent's folder and budgets - is in the `Settings` table, one JSON row per section, and
+is not configurable from a file. Adding a setting means adding a property to one of the section
+classes in [`Configuration`](src/AIClient.Application/Configuration) and nothing else: no migration,
+and an older row deserialises with the new property at its default. Adding a whole section means one
+more constant in `AppSettings.Keys` and one more property on `AppSettings`; the key is what the row is
+found by, so renaming one silently abandons everybody's saved values.
+
+## The agent's safety model
+
+Read this before changing anything under `Services/Tools/`, `Workspace/`, or `AgentService`. The rules
+below are not defensive habits; §28 of the brief is what they implement, and each one exists because
+its absence has a specific consequence.
+
+**One root, resolved every time.** `WorkspaceService` takes a path relative to the open root, resolves
+it, and compares the result against the root before touching anything. That is the only check that
+matters, and it is why the service takes relative paths in the first place: a method that accepts an
+absolute path invites a caller to skip the resolution. Enumeration sets
+`AttributesToSkip = FileAttributes.ReparsePoint` so a walk cannot leave the tree through a junction,
+and links are resolved with `ResolveLinkTarget(returnFinalTarget: true)` before the comparison.
+
+**Refusal by name as well as by path.** Version-control internals and the file names that carry
+credentials - `.env` and its variants, `credentials.json`, `secrets.*`, `*.pem`, `*.key`, `*.pfx` and
+the rest of the list in `WorkspaceService` - are refused even inside the root. `.env.example` is
+allowed, because it exists in order to be committed. Extend those lists rather than adding a check at
+a call site: a rule that lives in one tool is a rule the next tool will not have.
+
+**Risk decides the gate, and nothing else does.** A tool declares
+`AgentToolRisk.Read` or `.Write`, and `AgentService` puts everything above `Read` to `IAgentApproval`.
+There is no allowlist to maintain and no per-tool flag to forget. A new tool that changes a file and
+declares itself `Read` is the one mistake this design cannot catch, so that is the line to look at in
+review.
+
+**The default implementation refuses.** Infrastructure registers `DenyingAgentApproval`; the App layer
+replaces it because `AddAppServices()` runs after `AddInfrastructure()`. A headless host - a test, a
+future CLI - therefore gets an agent that can read and nothing more, without having to opt out of
+anything.
+
+**No execution.** There is no shell tool, and §28 forbids one in this version. If one is ever added it
+needs its own design review, not a new file under `Services/Tools/`: the workspace sandbox constrains
+paths, and a process constrained only by its working directory is not sandboxed at all.
+
+**Caps, not trust.** `AgentSettings` bounds a run - `MaxSteps`, `MaxDurationSeconds`, `MaxFileBytes`,
+`MaxReadCharacters`, `MaxListEntries`, `MaxSearchResults`, `MaxIdenticalCalls`. They are clamped where
+they are saved rather than validated where they are typed, so a value in the database can be trusted
+by the loop without being re-checked.
+
+**Nothing about a tool call is logged verbatim.** Arguments can contain file contents, and file
+contents can contain the secrets the name-based refusal is there to protect. The logs get a tool name,
+a step number, a conversation id, an error kind, an elapsed time - and not a path, not an argument, not
+a result. `WorkspaceService` does not even log which folder was opened.
 
 ## Database and migrations
 
@@ -197,7 +248,7 @@ dotnet test --filter "Category=Live"
 temperature 0 with a 64-token cap. The variables are read and never written, and nothing in the suite
 stores a key through `ISecureStorage` or under `%APPDATA%`.
 
-Four conventions hold across the suite, and each is load-bearing rather than stylistic:
+Five conventions hold across the suite, and each is load-bearing rather than stylistic:
 
 - **A real SQLite file, never the in-memory provider.** The package is not referenced at all.
   [`TestDatabase`](tests/AIClient.Tests/Support/TestDatabase.cs) creates a temporary directory,
@@ -216,6 +267,13 @@ Four conventions hold across the suite, and each is load-bearing rather than sty
 - **`RecordingLogger<T>` rather than `NullLogger<T>` wherever §26 is the subject.** "No secret ever
   reaches the log" is a claim about output, so the output is captured and searched - including
   `Trace` and `Debug`, where careless logging is likeliest to hide.
+- **Real directories for the workspace, and a real escape attempt for each rule.**
+  [`WorkspacePathTests`](tests/AIClient.Tests/WorkspacePathTests.cs) and
+  [`WorkspaceServiceTests`](tests/AIClient.Tests/WorkspaceServiceTests.cs) build a temporary tree and
+  assert that each way out of it is refused. Two of them need a directory symlink, which needs
+  Developer Mode or elevation, so they skip out loud on a machine with neither rather than pass
+  quietly - they cover the half of the containment rule no string comparison can check. A path guard
+  tested against strings alone is a guard tested against the author's idea of what a file system does.
 
 Test names are sentences with underscores - `A_stored_key_comes_back_exactly_as_it_went_in` - so a
 failure in CI output reads as the broken behaviour rather than as a method to go and look up. Comments
@@ -314,6 +372,21 @@ usual cause; deleting `aiclient.db` recreates it empty.
 **The model picker is empty.** A provider with no key contributes nothing. Settings → Providers,
 paste a key, **Refresh**. The catalogue is cached in SQLite, so the picker works offline afterwards but
 never before the first successful refresh.
+
+**The agent refuses a file that is plainly inside the folder.** Check the name against the refusal
+lists in [`WorkspaceService`](src/AIClient.Infrastructure/Workspace/WorkspaceService.cs) before
+suspecting the path guard: `.env`, `credentials.json`, `*.pem` and their neighbours are refused inside
+the root as well as outside it, and so is anything under `.git`. The refusal text names the rule.
+
+**The agent asks for approval and nothing appears.** `IAgentApproval` resolves to
+`DenyingAgentApproval` unless the App layer's registration has replaced it, which depends on
+`AddAppServices()` running after `AddInfrastructure(...)` in
+[App.xaml.cs](src/AIClient.App/App.xaml.cs). Reorder those two calls and every write silently becomes
+a denial.
+
+**Agent mode is on and Send refuses.** No folder is open. Settings → Agent → **Choose…**, or turn the
+toggle off. The toggle also offers the picker itself the first time it goes on; declining it turns the
+mode back off rather than leaving a switch that does nothing.
 
 **A key that worked yesterday is reported as absent.** DPAPI is scoped to the Windows account, so a
 blob written by a different account - a restored backup, a copied profile, a different user - cannot be
