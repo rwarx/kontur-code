@@ -368,7 +368,11 @@ public sealed class WorkspaceService : IWorkspaceService
                 return WorkspaceResult<WorkspaceWrite>.Fail($"'{path}' is a directory, not a file.");
             }
 
-            var newline = Environment.NewLine;
+            // A new file keeps the line endings its own content was written with, falling back to the
+            // platform's only when there are none to read. Models write bare line feeds, and
+            // re-casting those to CRLF makes every file the agent adds to an LF project the one file
+            // that shows up as a whole-file diff the first time anything touches it.
+            var newline = TextContent.DominantNewline(content);
             var bom = false;
             var linesBefore = 0;
             var existed = File.Exists(full);

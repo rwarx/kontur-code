@@ -427,6 +427,21 @@ public sealed class WorkspaceServiceTests : IAsyncLifetime
         Assert.Equal("alpha\nbeta\n", await Raw("lf.txt"));
     }
 
+    /// <remarks>
+    /// The other half of the same rule. There is no existing file to take the endings from, so they
+    /// come from the content itself rather than from the host: a project full of LF files should not
+    /// acquire one CRLF file simply because the agent was the one who added it.
+    /// </remarks>
+    [Fact]
+    public async Task A_new_file_keeps_the_line_endings_it_was_written_with()
+    {
+        await _service.WriteAsync(Parse("new/lf.txt"), "alpha\nbeta\n", Token);
+        await _service.WriteAsync(Parse("new/crlf.txt"), "alpha\r\nbeta\r\n", Token);
+
+        Assert.Equal("alpha\nbeta\n", await Raw("new/lf.txt"));
+        Assert.Equal("alpha\r\nbeta\r\n", await Raw("new/crlf.txt"));
+    }
+
     [Fact]
     public async Task A_write_keeps_a_byte_order_mark()
     {
