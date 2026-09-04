@@ -52,9 +52,9 @@ even on `Microsoft.Extensions.*`.
   and the identity pair `Id`/`DisplayName`. Implementations must be safe to call concurrently,
   since one instance is shared by every conversation.
 - [`AIStreamEvent`](src/AIClient.Domain/Models/AIStreamEvent.cs) - a closed record hierarchy
-  (`ContentDelta`, `ReasoningDelta`, `Usage`, `Completed`, `Error`) rather than a struct with a kind
-  flag, so adding a tool-call event later is additive and the compiler points at every `switch` that
-  needs updating.
+  (`ContentDelta`, `ReasoningDelta`, `ToolCallDelta`, `ToolCalls`, `Usage`, `Completed`, `Error`)
+  rather than a struct with a kind flag. Tool calling was added exactly that way: two new cases, and
+  the compiler pointed at every `switch` that had to learn them.
 - [`AIErrorKind`](src/AIClient.Domain/Enums/AIErrorKind.cs) - fifteen provider-agnostic failure
   classes. The UI switches on this and never parses a status code.
 - [`ISecureStorage`](src/AIClient.Domain/Interfaces/ISecureStorage.cs), `IContextBuilder`,
@@ -73,6 +73,10 @@ not at all.
   model's window.
 - [`ProviderErrorMapper`](src/AIClient.Application/Services/ProviderErrorMapper.cs) - HTTP status
   and transport exception to `AIErrorKind` plus a sentence fit to show a human.
+- [`AgentService`](src/AIClient.Application/Services/AgentService.cs) - the multi-step loop, discussed
+  below. Beside it, [`AgentToolRegistry`](src/AIClient.Application/Services/AgentToolRegistry.cs) and
+  the eight tools in `Services/Tools/`, each one an `IAgentTool` that declares its own JSON schema and
+  its own risk level.
 - `AttachmentService`, `ExportService`, `HeuristicTitleGenerator`, `TokenEstimator`.
 - [`MarkdownParser`](src/AIClient.Application/Markdown/MarkdownParser.cs) and
   [`SyntaxHighlighter`](src/AIClient.Application/Markdown/SyntaxHighlighter.cs) - Markdig in,
@@ -95,6 +99,9 @@ provide, and EF Core decides how.
 - [`ServerSentEventReader`](src/AIClient.Infrastructure/Http/ServerSentEventReader.cs),
   [`DpapiSecureStorage`](src/AIClient.Infrastructure/SecureStorage/DpapiSecureStorage.cs),
   `NetworkConnectivityMonitor`, `AppPaths`.
+- [`WorkspaceService`](src/AIClient.Infrastructure/Workspace/WorkspaceService.cs) - the sandbox. Every
+  path the agent names is resolved against one root and refused if it lands outside, and it is the
+  only place in the solution that touches a user file on the agent's behalf.
 - [`DependencyInjection.cs`](src/AIClient.Infrastructure/DependencyInjection.cs) - the composition
   root, and the only file here that App is allowed to call.
 
@@ -189,6 +196,75 @@ Cyrillic and CJK, which fragment further. No tokeniser ships with the app: the c
 per model family, the providers report real usage in the response, and an estimate is only needed to
 decide what to trim. It deliberately over-estimates, because sending one message less history is
 harmless while under-estimating is an HTTP 400 the user has to recover from.
+
+## An agent run, end to end
+
+[`AgentService.RunAsync`](src/AIClient.Application/Services/AgentService.cs) is the second entry point
+into a conversation, parallel to `ChatService` rather than layered on it. A chat turn is one request
+and one answer; an agent run is a loop, and the two share the context builder, the provider registry
+and the message table but not a code path. Merging them was considered and rejected: `ChatService` is
+the file to read to understand a turn, and folding a step loop, a tool registry and an approval gate
+into it would cost that.
+
+```text
+provider bytes ──► AIStreamEvent ──► AgentEvent ──► MessageViewModel + AgentToolCallViewModel
+  (SSE frames)      (Domain)          (Application)    (App)
+```
+
+One iteration of the loop is one step:
+
+1. **Commit a placeholder** assistant row with `Status = Streaming` and emit `StepStarted`, exactly as
+   a chat turn does. The transcript is the loop's memory, so it has to be readable at every instant.
+2. **Prepare and stream.** The tool schemas come from `IAgentToolRegistry`, are offered on every step
+   but the last, and the reply is accumulated in a buffer that is flushed to the database at most once
+   a second. `ReasoningDelta` is forwarded here, unlike in chat: a step that spends thirty seconds
+   deciding which file to open is otherwise thirty seconds of nothing.
+3. **Decide what happened.** `AIStreamEvent.ToolCalls` - the provider's reassembled set - and not
+   `finish_reason`, is what decides whether the run continues. Words and no calls ends the run.
+4. **Act.** Each call is parsed, checked against the repeat counter, put to the approval gate if its
+   risk is above `Read`, executed, and given a row. In that order, so that nobody is shown a dialog
+   about malformed JSON and a model stuck in a loop cannot turn the approval prompt into the loop.
+5. **Loop**, with the tool rows now part of the history the next request is built from.
+
+Every call gets an answer row, whatever became of it - unknown tool, unparseable arguments, denial,
+too many attempts. A call with no answer is not a smaller failure; it is a hole in the next request,
+which providers reject outright. The single exception is a run that stops mid-way: nothing is
+fabricated on the model's behalf, and the replay drops the unanswered calls instead.
+
+A run ends in exactly one of `Completed`, `Failed` or `Cancelled`, and `Completed` carries an
+`AgentStopReason` - `Answered`, `StepLimit` or `TimeLimit`. On the last permitted step the tools are
+withheld, so a run that hits the step limit ends in a sentence rather than on a file listing, and it
+is still reported as `StepLimit` because saying it answered would hide that there may be more to do.
+
+### The approval gate
+
+[`IAgentApproval`](src/AIClient.Application/Interfaces/IAgentApproval.cs) is one method, and section
+28's whole safety position rests on it. Everything above `AgentToolRisk.Read` passes through it; the
+default registration is `DenyingAgentApproval`, which refuses, so a host that forgets to implement it
+gets an agent that can only read.
+
+It is an interface rather than an event because the loop has to *wait*, and the answer takes as long
+as a person takes. The App layer's implementation marshals to the dispatcher, shows the card inline in
+the transcript, and honours the run's cancellation token so that pressing Stop closes the question
+instead of leaving the run wedged behind it. Cancellation while a question is open is not a denial:
+nothing is reported to the model, because the turn is over.
+
+A denial *is* reported - as a tool result saying so - because a model told "the user declined" can
+propose something else, while a model told nothing repeats itself.
+
+### The sandbox
+
+[`IWorkspaceService`](src/AIClient.Application/Interfaces/IWorkspaceService.cs) is the only way a tool
+reaches a file, and it is deliberately not a `FileInfo` wrapper. Every method takes a path relative to
+one root, resolves it, and refuses anything that lands outside - through `..`, through an absolute
+path, or through a symlink, which is why the enumeration options set
+`AttributesToSkip = FileAttributes.ReparsePoint`. On top of that it refuses version-control internals
+and the file names that carry credentials, and caps what one call can return: file size, characters
+per read, directory entries, search hits.
+
+The root is chosen by the user, persisted, and re-validated against the disk on load, since a folder
+can be moved or deleted between sessions. With no root the service reports `IsOpen == false` and every
+tool fails cleanly, which is the state the application starts in.
 
 ## Persistence
 
@@ -466,9 +542,14 @@ rather than a rewrite, and it is worth naming where.
 - **More providers.** `IAIProvider` is five members, and an OpenAI-compatible one is a subclass plus
   two registration lines. Anthropic or a local runtime with a different protocol implements the
   interface directly; nothing above Infrastructure changes.
-- **Tool calling.** `AIStreamEvent` is a closed hierarchy, so adding a case makes every incomplete
-  switch a compile error rather than a silent no-op. The same holds for `ChatTurnEvent` one layer up,
-  which is what would carry a tool call to the UI.
+- **More tools.** [`IAgentTool`](src/AIClient.Application/Interfaces/IAgentTool.cs) is a name, a JSON
+  schema, a risk level and an `ExecuteAsync`. Adding one is a class and a registration line, and the
+  risk level alone decides whether the approval gate stops it - there is no second list to keep in
+  step. The one thing the seam is not built for is a tool that reaches outside the workspace: it would
+  have to bring its own sandbox, and `run_command` is exactly that case.
+- **An editor.** The agent already reads and writes through `IWorkspaceService`, so a document surface
+  would share the sandbox rather than open files itself, and `ContextBuilder` already accepts a source
+  that is not a chat message.
 - **A different shell.** `UseWPF` is set in exactly one project, so the WPF assemblies are not even
   referenced by the other three, and WPF-UI reaches no further than App with the theme service behind
   `IAppThemeService`. Domain and Application could not touch a UI type if they tried - plain `net10.0`
