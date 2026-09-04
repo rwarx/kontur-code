@@ -100,6 +100,12 @@ public sealed class AIClientDbContext : DbContext
             entity.Property(e => e.ModelId).HasMaxLength(192);
             entity.Property(e => e.ErrorMessage).HasMaxLength(2048);
 
+            // Tool ids are provider-issued and short; the name matches an IAgentTool.Name. The
+            // call array is left unbounded because one step may call several tools and an
+            // argument object can legitimately carry a file's worth of text.
+            entity.Property(e => e.ToolCallId).HasMaxLength(128);
+            entity.Property(e => e.ToolName).HasMaxLength(64);
+
             entity.HasOne(e => e.Conversation)
                 .WithMany(c => c.Messages)
                 .HasForeignKey(e => e.ConversationId)
