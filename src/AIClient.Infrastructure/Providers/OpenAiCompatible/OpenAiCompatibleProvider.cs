@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using AIClient.Application.Services;
 using AIClient.Domain.Enums;
 using AIClient.Domain.Interfaces;
@@ -123,18 +124,7 @@ public abstract class OpenAiCompatibleProvider : IAIProvider
         AIChatRequest request,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var payload = new OpenAiWire.ChatRequest
-        {
-            Model = request.ModelId,
-            Messages = request.Messages
-                .Select(m => new OpenAiWire.ChatMessage { Role = m.Role, Content = m.Content })
-                .ToList(),
-            Stream = request.Stream,
-            Temperature = request.Temperature,
-            TopP = request.TopP,
-            MaxTokens = request.MaxTokens,
-            StreamOptions = request.Stream ? new OpenAiWire.StreamOptions() : null,
-        };
+        var payload = BuildPayload(request);
 
         if (!request.Stream)
         {
@@ -175,6 +165,7 @@ public abstract class OpenAiCompatibleProvider : IAIProvider
 
         var finishReason = (string?)null;
         var sawUsage = false;
+        var toolCalls = new ToolCallAccumulator();
 
         await foreach (var data in ServerSentEventReader.ReadAsync(stream, cancellationToken).ConfigureAwait(false))
         {
@@ -254,6 +245,14 @@ public abstract class OpenAiCompatibleProvider : IAIProvider
             {
                 yield return new AIStreamEvent.ContentDelta(delta.Content);
             }
+
+            if (delta.ToolCalls is { Count: > 0 } fragments)
+            {
+                foreach (var progress in toolCalls.Add(fragments))
+                {
+                    yield return progress;
+                }
+            }
         }
 
         // A content filter stop is not a transport failure, but the user needs to be told
@@ -272,8 +271,113 @@ public abstract class OpenAiCompatibleProvider : IAIProvider
             Logger.LogDebug("{Provider} did not report token usage for this response.", DisplayName);
         }
 
+        if (toolCalls.HasCalls)
+        {
+            var calls = toolCalls.Build();
+
+            LogToolCallDefects(toolCalls);
+
+            if (calls.Count > 0)
+            {
+                yield return new AIStreamEvent.ToolCalls(calls);
+            }
+        }
+
         yield return new AIStreamEvent.Completed(finishReason);
     }
+
+    /// <summary>Projects the provider-agnostic request onto the OpenAI payload.</summary>
+    /// <remarks>
+    /// Tool-related fields are omitted entirely when no tools were offered, rather than sent
+    /// empty. A gateway that predates tool calling ignores fields it does not know but several
+    /// reject <c>"tools": []</c> outright, so plain chat produces byte-for-byte the payload it
+    /// produced before any of this existed.
+    /// </remarks>
+    private OpenAiWire.ChatRequest BuildPayload(AIChatRequest request) => new()
+    {
+        Model = request.ModelId,
+        Messages = request.Messages.Select(ToWire).ToList(),
+        Stream = request.Stream,
+        Temperature = request.Temperature,
+        TopP = request.TopP,
+        MaxTokens = request.MaxTokens,
+        StreamOptions = request.Stream ? new OpenAiWire.StreamOptions() : null,
+        Tools = request.Tools.Count == 0 ? null : request.Tools.Select(ToWire).ToList(),
+        ToolChoice = request.Tools.Count == 0 ? null : ToWire(request.ToolChoice),
+    };
+
+    private static OpenAiWire.ChatMessage ToWire(AIChatMessage message) => new()
+    {
+        Role = message.Role,
+        // An assistant turn that only calls tools has no text, and the field is dropped rather
+        // than sent as an empty string, which would show up in the model's own history.
+        Content = message.Content.Length == 0 && message.ToolCalls.Count > 0 ? null : message.Content,
+        ToolCalls = message.ToolCalls.Count == 0
+            ? null
+            : message.ToolCalls
+                .Select(call => new OpenAiWire.ToolCallSpec
+                {
+                    Id = call.Id,
+                    Function = new OpenAiWire.FunctionCallSpec
+                    {
+                        Name = call.Name,
+                        Arguments = call.ArgumentsJson,
+                    },
+                })
+                .ToList(),
+        ToolCallId = message.ToolCallId,
+        Name = message.Name,
+    };
+
+    private OpenAiWire.ToolSpec ToWire(AIToolDefinition tool)
+    {
+        JsonNode? parameters;
+
+        try
+        {
+            parameters = JsonNode.Parse(tool.ParametersJsonSchema);
+        }
+        catch (JsonException ex)
+        {
+            // A tool's schema is a compile-time constant, so this is a defect rather than
+            // anything a user did. Classified as an invalid request so it surfaces as a failed
+            // turn naming the tool instead of an unhandled exception mid-stream.
+            throw new AIProviderException(
+                AIErrorKind.InvalidRequest,
+                $"The '{tool.Name}' tool has an invalid parameter schema and cannot be offered to the model.",
+                $"{ex.GetType().Name}: {ex.Message}",
+                Id,
+                ex);
+        }
+
+        if (parameters is null)
+        {
+            throw new AIProviderException(
+                AIErrorKind.InvalidRequest,
+                $"The '{tool.Name}' tool has an empty parameter schema and cannot be offered to the model.",
+                "schema parsed to null",
+                Id);
+        }
+
+        return new OpenAiWire.ToolSpec
+        {
+            Function = new OpenAiWire.FunctionSpec
+            {
+                Name = tool.Name,
+                Description = tool.Description,
+                Parameters = parameters,
+            },
+        };
+    }
+
+    private static string? ToWire(AIToolChoice choice) => choice switch
+    {
+        AIToolChoice.None => "none",
+        AIToolChoice.Required => "required",
+        // Auto is the default on every backend, and omitting the field is accepted by more of
+        // them than sending the word is.
+        _ => null,
+    };
 
     /// <summary>Fallback path for models that do not support streaming.</summary>
     private async IAsyncEnumerable<AIStreamEvent> SendNonStreamingAsync(
@@ -302,7 +406,8 @@ public abstract class OpenAiCompatibleProvider : IAIProvider
             .ConfigureAwait(false);
 
         var choice = body?.Choices?.FirstOrDefault();
-        var content = choice?.Message?.Content ?? choice?.Delta?.Content;
+        var message = choice?.Message ?? choice?.Delta;
+        var content = message?.Content;
 
         if (!string.IsNullOrEmpty(content))
         {
@@ -314,7 +419,48 @@ public abstract class OpenAiCompatibleProvider : IAIProvider
             yield return new AIStreamEvent.Usage(usage.PromptTokens, usage.CompletionTokens);
         }
 
+        // Complete already, but folded through the same accumulator so the two paths cannot
+        // disagree about ids, ordering or a call the provider left half-specified.
+        if (message?.ToolCalls is { Count: > 0 } fragments)
+        {
+            var accumulator = new ToolCallAccumulator();
+            accumulator.Add(fragments);
+
+            var calls = accumulator.Build();
+
+            LogToolCallDefects(accumulator);
+
+            if (calls.Count > 0)
+            {
+                yield return new AIStreamEvent.ToolCalls(calls);
+            }
+        }
+
         yield return new AIStreamEvent.Completed(choice?.FinishReason);
+    }
+
+    /// <summary>
+    /// Reports the two ways a provider can hand over a tool call that cannot be used. Logged at
+    /// warning because both mean the model asked for something the app is about to ignore, and
+    /// neither is visible anywhere else.
+    /// </summary>
+    private void LogToolCallDefects(ToolCallAccumulator accumulator)
+    {
+        if (accumulator.DiscardedCount > 0)
+        {
+            Logger.LogWarning(
+                "{Provider} sent {Count} tool call(s) with no function name; they were ignored.",
+                DisplayName,
+                accumulator.DiscardedCount);
+        }
+
+        if (accumulator.TruncatedCount > 0)
+        {
+            Logger.LogWarning(
+                "{Provider} sent {Count} tool call(s) whose arguments exceeded the size cap and were truncated.",
+                DisplayName,
+                accumulator.TruncatedCount);
+        }
     }
 
     public async Task<ProviderTestResult> TestConnectionAsync(CancellationToken cancellationToken)

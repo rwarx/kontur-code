@@ -173,10 +173,107 @@ public static class WireFixtures
     """;
 
     /// <summary>
+    /// One tool call, streamed the way the protocol actually sends one: the id and the name in
+    /// the opening frame with empty arguments, then the argument JSON a few characters at a time,
+    /// then a frame carrying <c>finish_reason: tool_calls</c> and the usage block.
+    /// </summary>
+    public static readonly string ToolCallStream = Sse(
+        """{"id":"gen-3","choices":[{"index":0,"delta":{"role":"assistant","content":null,"tool_calls":[{"index":0,"id":"call_read_1","type":"function","function":{"name":"read_file","arguments":""}}]}}]}""",
+        """{"id":"gen-3","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"path\":"}}]}}]}""",
+        """{"id":"gen-3","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\"src/App"}}]}}]}""",
+        """{"id":"gen-3","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":".xaml.cs\"}"}}]}}]}""",
+        """{"id":"gen-3","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":120,"completion_tokens":18,"total_tokens":138}}""",
+        "[DONE]");
+
+    /// <summary>
+    /// Two calls in one turn, opened in separate frames and with their arguments interleaved -
+    /// which is what a model asking to read two files at once produces, and the case an
+    /// accumulator keyed on anything but the index gets wrong.
+    /// </summary>
+    public static readonly string ParallelToolCallStream = Sse(
+        """{"choices":[{"index":0,"delta":{"role":"assistant","content":null,"tool_calls":[{"index":0,"id":"call_a","type":"function","function":{"name":"list_files","arguments":""}}]}}]}""",
+        """{"choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"id":"call_b","type":"function","function":{"name":"search_files","arguments":""}}]}}]}""",
+        """{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"path\""}}]}}]}""",
+        """{"choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"function":{"arguments":"{\"query\""}}]}}]}""",
+        """{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":":\"src\"}"}}]}}]}""",
+        """{"choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"function":{"arguments":":\"TODO\"}"}}]}}]}""",
+        """{"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}""",
+        "[DONE]");
+
+    /// <summary>
+    /// Two calls from a backend that omits <c>index</c> altogether. Both deserialise to index 0,
+    /// so only the differing ids say these are separate calls; joining on the index alone splices
+    /// one name onto the other's arguments.
+    /// </summary>
+    public static readonly string UnindexedToolCallStream = Sse(
+        """{"choices":[{"index":0,"delta":{"tool_calls":[{"id":"call_x","type":"function","function":{"name":"list_files","arguments":"{}"}}]}}]}""",
+        """{"choices":[{"index":0,"delta":{"tool_calls":[{"id":"call_y","type":"function","function":{"name":"read_file","arguments":"{\"path\":\"a.txt\"}"}}]}}]}""",
+        """{"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}""",
+        "[DONE]");
+
+    /// <summary>
+    /// A turn where the model both says something and calls a tool, and finishes with
+    /// <c>stop</c> rather than <c>tool_calls</c>. Providers disagree here, which is why nothing
+    /// downstream is allowed to decide on the finish reason alone.
+    /// </summary>
+    public static readonly string ToolCallWithTextStream = Sse(
+        """{"choices":[{"index":0,"delta":{"role":"assistant","content":"Let me look at that file."}}]}""",
+        """{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_c","type":"function","function":{"name":"read_file","arguments":"{\"path\":\"a.txt\"}"}}]}}]}""",
+        """{"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}""",
+        "[DONE]");
+
+    /// <summary>A call with an id but no function name, which cannot be dispatched to anything.</summary>
+    public static readonly string AnonymousToolCallStream = Sse(
+        """{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_z","type":"function","function":{"arguments":"{}"}}]}}]}""",
+        """{"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}""",
+        "[DONE]");
+
+    /// <summary>A tool call from a model that does not stream: the same shape, arriving whole.</summary>
+    public const string NonStreamingToolCallCompletion = """
+    {
+      "id": "gen-4",
+      "model": "test/model",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_whole",
+                "type": "function",
+                "function": { "name": "list_files", "arguments": "{\"path\":\".\"}" }
+              }
+            ]
+          },
+          "finish_reason": "tool_calls"
+        }
+      ],
+      "usage": { "prompt_tokens": 90, "completion_tokens": 12, "total_tokens": 102 }
+    }
+    """;
+
+    /// <summary>
     /// Splits a body into fixed-size pieces, so a stream test can force reads to end
     /// part-way through a JSON frame.
     /// </summary>
     public static IReadOnlyList<string> SplitEvery(string body, int size) =>
         [.. Enumerable.Range(0, (body.Length + size - 1) / size)
             .Select(i => body.Substring(i * size, Math.Min(size, body.Length - (i * size))))];
+
+    /// <summary>
+    /// Wraps one JSON document per SSE frame, with the blank line the protocol separates them
+    /// with.
+    /// </summary>
+    /// <remarks>
+    /// The tool-call fixtures below use this so each frame can be a raw string literal. Their
+    /// payloads contain JSON-escaped quotes - the argument text is itself a JSON string - and
+    /// written as ordinary literals they would need four levels of backslash to say
+    /// <c>{"path":"a.cs"}</c>, which is how a fixture ends up testing the escaping rather than
+    /// the parser. The frame separator stays an explicit <c>\n</c> rather than the file's own
+    /// line endings, so a checkout that normalises them cannot change what is under test.
+    /// </remarks>
+    private static string Sse(params string[] frames) =>
+        string.Concat(frames.Select(frame => $"data: {frame}\n\n"));
 }

@@ -1,3 +1,5 @@
+using AIClient.Domain.Enums;
+
 namespace AIClient.Domain.Models;
 
 /// <summary>
@@ -19,4 +21,17 @@ public sealed record AIChatRequest
 
     /// <summary>When false the provider must issue a non-streaming request.</summary>
     public bool Stream { get; init; } = true;
+
+    /// <summary>
+    /// Tools the model may call this turn. Empty - the default - means plain chat, and the
+    /// field is left out of the payload entirely, so a model or gateway that has never heard
+    /// of tool calling behaves exactly as it did before this existed.
+    /// </summary>
+    public IReadOnlyList<AIToolDefinition> Tools { get; init; } = [];
+
+    /// <summary>
+    /// How hard to push towards a call. Ignored, and omitted from the payload, when
+    /// <see cref="Tools"/> is empty.
+    /// </summary>
+    public AIToolChoice ToolChoice { get; init; } = AIToolChoice.Auto;
 }
