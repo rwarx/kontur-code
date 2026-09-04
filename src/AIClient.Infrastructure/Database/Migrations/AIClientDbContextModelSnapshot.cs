@@ -172,6 +172,20 @@ namespace AIClient.Infrastructure.Database.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ToolCallId")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ToolCallsJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ToolName")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool?>("ToolSucceeded")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ConversationId", "SequenceNumber");
