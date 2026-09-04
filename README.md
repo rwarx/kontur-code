@@ -116,6 +116,7 @@ which is how the application starts.
 | `create_directory` | Creates a folder | Yes |
 | `move_file` | Moves or renames | Yes |
 | `delete_file` | Deletes a file or an empty folder | Yes |
+| `run_command` | Runs one allowed program in the folder and returns its output and exit code | Yes |
 
 Reads are refused outside the folder, and so are the paths that carry credentials or version-control
 internals - `.git`, `.env`, key and certificate files - whether they are named directly, reached
@@ -126,11 +127,24 @@ line naming the effect - `Create src/Widget.cs`, `Overwrite 42 lines in src/Widg
 `Delete docs/old.md` - and an edit or an overwrite carries a diff under it. **Approve** applies it,
 **Deny** hands the model a refusal it can react to and carry on from, and stopping the run marks
 whatever was open as interrupted rather than guessing whether it landed. There is no "approve
-everything" switch, and nothing the agent does can execute a program.
+everything" switch.
+
+`run_command` is the one that reaches outside the folder, so it is fenced differently. It is off
+until you turn it on in Settings → Running programs, and then only the programs on your list can
+run - `dotnet`, `git`, `npm` and the other toolchains, by name and never by path. There is no shell:
+the program is started directly with an argument list, so `&&`, `|`, `>` and `$HOME` are text passed
+to it rather than syntax, and a shell is not on the shipped list because allowing one would make the
+rest of the list decorative. Approval is asked for every single call and is never remembered - ten
+commands is ten questions - and the dialog shows the program and each argument in full, because the
+flag that makes a command destructive is in the argument list. What a program does once it is
+running is bounded by your account, not by the workspace, which is why the switch is a decision you
+take rather than a default.
 
 Three budgets in Settings bound a run: steps per message (25), a time limit (10 minutes, 0 for
-none), and the largest file the agent may open (512 KB). A model that proposes the same call three
-times in a row is told so rather than being allowed to loop.
+none), and the largest file the agent may open (512 KB). A command has two of its own: how long it
+may run before it is killed (2 minutes) and how much of its output is kept (20,000 characters, the
+end rather than the beginning, because that is where a build says what went wrong). A model that
+proposes the same call three times in a row is told so rather than being allowed to loop.
 
 ## Where your data lives
 
@@ -244,7 +258,7 @@ adding an agent from having to be threaded through the UI, and is what a future 
 ## Not in this version
 
 No editor, no file tree, no repository awareness, no MCP, no image input, no plugins. The agent can
-read and change files but cannot run a program: there is no shell tool, and nothing in the
-application executes code on your behalf. Multiple agents, background runs and a diff-review pane
-are later stages - the layering is the reason they can arrive without a rewrite, but none of it is
-here yet, and the feature list above is the whole of it.
+read files, change them and run the programs you have allowed, but there is no shell and no way for
+it to ask for one. Multiple agents, background runs and a diff-review pane are later stages - the
+layering is the reason they can arrive without a rewrite, but none of it is here yet, and the
+feature list above is the whole of it.

@@ -161,25 +161,47 @@ the rest of the list in `WorkspaceService` - are refused even inside the root. `
 allowed, because it exists in order to be committed. Extend those lists rather than adding a check at
 a call site: a rule that lives in one tool is a rule the next tool will not have.
 
-**Risk decides the gate, and nothing else does.** A tool declares
-`AgentToolRisk.Read` or `.Write`, and `AgentService` puts everything above `Read` to `IAgentApproval`.
-There is no allowlist to maintain and no per-tool flag to forget. A new tool that changes a file and
-declares itself `Read` is the one mistake this design cannot catch, so that is the line to look at in
-review.
+**Risk decides the gate, and nothing else does.** A tool declares `AgentToolRisk.Read`, `.Write` or
+`.Execute`, and `AgentService` puts everything above `Read` to `IAgentApproval`. There is no allowlist
+to maintain and no per-tool flag to forget. A new tool that changes a file and declares itself `Read`
+is the one mistake this design cannot catch, so that is the line to look at in review.
+
+**A standing yes covers files, never programs.** Approving a `Write` can be remembered for the rest of
+the run, because the answer to "may you edit files in this folder" does not change between two edits.
+`Execute` is excluded from both halves of that - `RunState.IsAllowedForRun` and `RunState.Remember` in
+[`AgentService`](src/AIClient.Application/Services/AgentService.cs) - so ten commands is ten questions.
+The reason is that two commands are not the same question: `git status` and `git clean -xfd` differ by
+an argument, and the approval dialog is the only place that difference is ever shown to a person.
 
 **The default implementation refuses.** Infrastructure registers `DenyingAgentApproval`; the App layer
 replaces it because `AddAppServices()` runs after `AddInfrastructure()`. A headless host - a test, a
 future CLI - therefore gets an agent that can read and nothing more, without having to opt out of
 anything.
 
-**No execution.** There is no shell tool, and §28 forbids one in this version. If one is ever added it
-needs its own design review, not a new file under `Services/Tools/`: the workspace sandbox constrains
-paths, and a process constrained only by its working directory is not sandboxed at all.
+**Execution is fenced separately, because the workspace cannot fence it.** §28 forbade running code and
+the user overrode that, asking for a full coding agent; `run_command` is the result, and it is the one
+tool the path sandbox does not contain. A guard bounds what a program is *started* on, not what it does
+once running: `npm install` reaches the network and a test suite reads whatever the machine will give
+it. So the containment is a different shape, and all four parts of it are outside the model's reach -
+off until the user turns it on, an allowlist of program names only a person edits, approval on every
+single call, and no shell. The fourth is what makes the second worth having: an allowlist in front of a
+shell is decoration, since `cmd /c anything` passes it, so the tool's schema has no command-line field
+to smuggle one into and `RunCommandTool.Describe` refuses a `command` carrying a path, a space or a
+shell operator. A second execution tool would need that same argument made again from scratch, not a
+new file under `Services/Tools/`.
+
+**No environment for a child to leak.** `ProcessRunner` strips this application's own variables and
+anything whose name looks like a credential before starting a program. A build script that prints its
+environment is a log, and §26 says a key never reaches one - so the variables go rather than the
+printing being trusted not to happen. Deliberately over-eager: a build that wanted `LICENSE_KEY` is a
+smaller problem than one that echoes an API key into a transcript.
 
 **Caps, not trust.** `AgentSettings` bounds a run - `MaxSteps`, `MaxDurationSeconds`, `MaxFileBytes`,
-`MaxReadCharacters`, `MaxListEntries`, `MaxSearchResults`, `MaxIdenticalCalls`. They are clamped where
-they are saved rather than validated where they are typed, so a value in the database can be trusted
-by the loop without being re-checked.
+`MaxReadCharacters`, `MaxListEntries`, `MaxSearchResults`, `MaxIdenticalCalls`, and for commands
+`CommandTimeoutSeconds` and `MaxCommandOutputCharacters`. They are clamped where they are saved rather
+than validated where they are typed, so a value in the database can be trusted by the loop without
+being re-checked. `timeout_seconds` on a call is a request the tool takes the minimum of, never a way
+to raise the ceiling.
 
 **Nothing about a tool call is logged verbatim.** Arguments can contain file contents, and file
 contents can contain the secrets the name-based refusal is there to protect. The logs get a tool name,

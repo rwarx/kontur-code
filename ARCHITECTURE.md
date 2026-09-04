@@ -266,6 +266,34 @@ The root is chosen by the user, persisted, and re-validated against the disk on 
 can be moved or deleted between sessions. With no root the service reports `IsOpen == false` and every
 tool fails cleanly, which is the state the application starts in.
 
+### Running a program, which the sandbox cannot cover
+
+[`RunCommandTool`](src/AIClient.Application/Services/Tools/RunCommandTool.cs) is the one tool the
+section above does not describe, because a path guard bounds what a program is *started* on and nothing
+about what it does afterwards. `npm install` reaches the network, a test suite reads whatever the
+machine will give it, and a build script is a program someone else wrote. So the containment is a
+different shape, and none of its four parts is reachable by the model:
+
+1. **Off until the user turns it on**, once, in Settings, where the consequence is written out.
+2. **An allowlist of program names.** Matched bare, case-insensitively, with a trailing `.exe` ignored
+   on both sides. Not on it is a refusal that names the list, so a model does not spend three steps
+   guessing synonyms.
+3. **Approval on every call.** `AgentToolRisk.Execute` is excluded from the standing yes a run can
+   accumulate for file tools, so ten commands is ten questions, and the dialog shows every argument
+   unabbreviated - the flag that makes `git clean -xfd` destructive is in the argument list.
+4. **No shell.** The program is started directly with an argument list through
+   [`IProcessRunner`](src/AIClient.Application/Interfaces/IProcessRunner.cs), so `&&`, `|`, `>` and
+   `$HOME` are text the program receives rather than syntax anything interprets.
+
+The fourth is what makes the second worth having - an allowlist in front of a shell is decoration,
+since `cmd /c anything` passes it - which is why the schema has no command-line field and
+`RunCommandTool.Describe` refuses a `command` carrying a path, whitespace or a shell operator before
+the allowlist is consulted. `ProcessRunner` drains both pipes as they fill rather than after the wait,
+so a chatty build cannot deadlock on a full one, closes standard input so a program waiting to be asked
+something sees the end of it instead of burning the timeout, kills the whole process tree
+(`Kill(entireProcessTree: true)`) on a timeout or a cancellation, and strips this application's own
+environment variables so a child that prints its environment cannot print a key.
+
 ## Persistence
 
 One SQLite file, six tables, and a single migration
@@ -545,8 +573,9 @@ rather than a rewrite, and it is worth naming where.
 - **More tools.** [`IAgentTool`](src/AIClient.Application/Interfaces/IAgentTool.cs) is a name, a JSON
   schema, a risk level and an `ExecuteAsync`. Adding one is a class and a registration line, and the
   risk level alone decides whether the approval gate stops it - there is no second list to keep in
-  step. The one thing the seam is not built for is a tool that reaches outside the workspace: it would
-  have to bring its own sandbox, and `run_command` is exactly that case.
+  step. The one thing the seam is not built for is a tool that reaches outside the workspace: it has to
+  bring its own gates, as `run_command` does, and those gates are the design work rather than the
+  class.
 - **An editor.** The agent already reads and writes through `IWorkspaceService`, so a document surface
   would share the sandbox rather than open files itself, and `ContextBuilder` already accepts a source
   that is not a chat message.
