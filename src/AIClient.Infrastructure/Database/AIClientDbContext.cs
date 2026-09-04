@@ -26,6 +26,17 @@ public sealed class AIClientDbContext : DbContext
     public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<AppSettingsEntry> Settings => Set<AppSettingsEntry>();
 
+    public DbSet<GraphNodeRow> GraphNodes => Set<GraphNodeRow>();
+    public DbSet<GraphEdgeRow> GraphEdges => Set<GraphEdgeRow>();
+    public DbSet<GraphChangeRow> GraphChanges => Set<GraphChangeRow>();
+
+    // The spatial half. Kept in three tables of their own rather than as columns on GraphNodes so
+    // that the separation is enforced by the schema: there is nowhere here to record a fact about
+    // the project, and nowhere there to record a position.
+    public DbSet<CanvasViewRow> CanvasViews => Set<CanvasViewRow>();
+    public DbSet<CanvasPlacementRow> CanvasPlacements => Set<CanvasPlacementRow>();
+    public DbSet<CanvasAreaRow> CanvasAreas => Set<CanvasAreaRow>();
+
     /// <summary>
     /// Applies the timestamp conversion once, for the whole model.
     /// </summary>
@@ -137,6 +148,155 @@ public sealed class AIClientDbContext : DbContext
             entity.HasKey(e => e.Key);
             entity.Property(e => e.Key).HasMaxLength(64);
             entity.Property(e => e.Value).IsRequired();
+        });
+
+        ConfigureGraph(modelBuilder);
+        ConfigureCanvas(modelBuilder);
+    }
+
+    /// <summary>
+    /// The knowledge graph: what is true about the project, and the log of how it got that way.
+    /// </summary>
+    private static void ConfigureGraph(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<GraphNodeRow>(entity =>
+        {
+            entity.ToTable("GraphNodes");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Kind).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Key).HasMaxLength(512).IsRequired();
+            entity.Property(e => e.Title).HasMaxLength(512).IsRequired();
+            entity.Property(e => e.Summary).HasMaxLength(2048);
+
+            // Long enough for any path WorkspacePath will accept, which caps at 400 characters.
+            entity.Property(e => e.SourcePath).HasMaxLength(512);
+
+            // The identity of a node, and the reason re-indexing is an upsert rather than a
+            // rebuild: the walk looks a node up by (kind, key), so the id survives, and with the
+            // id every placement and every hand-drawn edge pointing at it survives too.
+            entity.HasIndex(e => new { e.Kind, e.Key }).IsUnique();
+
+            // A file that disappeared becomes Missing rather than being deleted, so both the
+            // "what is stale" sweep and the ordinary "draw the live graph" read filter on this.
+            entity.HasIndex(e => e.Status);
+        });
+
+        modelBuilder.Entity<GraphEdgeRow>(entity =>
+        {
+            entity.ToTable("GraphEdges");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Kind).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Label).HasMaxLength(256);
+
+            // No navigation properties on purpose. An edge is not owned by either of its ends, and
+            // giving it two would invite loading a graph one node at a time.
+            entity.HasOne<GraphNodeRow>()
+                .WithMany()
+                .HasForeignKey(e => e.FromId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne<GraphNodeRow>()
+                .WithMany()
+                .HasForeignKey(e => e.ToId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Traversal goes both ways - dependencies and dependents - so both ends are indexed.
+            entity.HasIndex(e => e.FromId);
+            entity.HasIndex(e => e.ToId);
+
+            // The kind belongs in the key: "A depends_on B" and "A calls B" are two facts about
+            // one pair, and both are allowed.
+            entity.HasIndex(e => new { e.FromId, e.ToId, e.Kind }).IsUnique();
+        });
+
+        modelBuilder.Entity<GraphChangeRow>(entity =>
+        {
+            entity.ToTable("GraphChanges");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Summary).HasMaxLength(512).IsRequired();
+            entity.Property(e => e.MutationsJson).IsRequired();
+
+            // The timeline reads newest first, and undo reads the newest applied entry.
+            entity.HasIndex(e => e.CreatedAt);
+
+            // A model's suggestion sits here until someone accepts it; the canvas asks for exactly
+            // the proposed ones on every load.
+            entity.HasIndex(e => e.State);
+        });
+    }
+
+    /// <summary>
+    /// The spatial projection: where things are drawn, and nothing about what they are.
+    /// </summary>
+    /// <remarks>
+    /// The test of this schema is that dropping all three of these tables loses no fact about the
+    /// project - the next open recomputes a layout and everything else is still in the graph. That
+    /// is why no column here carries meaning, and why every foreign key points from here into the
+    /// graph rather than the other way round: a projection may depend on the truth, never the
+    /// reverse.
+    /// </remarks>
+    private static void ConfigureCanvas(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<CanvasViewRow>(entity =>
+        {
+            entity.ToTable("CanvasViews");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(128).IsRequired();
+            entity.Property(e => e.LayoutMode).HasMaxLength(32).IsRequired();
+
+            // Clearing rather than cascading: a view whose root node was deleted becomes a view of
+            // the whole graph, which is recoverable. Deleting the view with it would throw away the
+            // arrangement of every other card on it.
+            entity.HasOne<GraphNodeRow>()
+                .WithMany()
+                .HasForeignKey(e => e.RootNodeId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<CanvasPlacementRow>(entity =>
+        {
+            entity.ToTable("CanvasPlacements");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Accent).HasMaxLength(32);
+
+            entity.HasOne(e => e.View)
+                .WithMany()
+                .HasForeignKey(e => e.ViewId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne<GraphNodeRow>()
+                .WithMany()
+                .HasForeignKey(e => e.NodeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // One position per node per view. The same node sits somewhere else on another view,
+            // which is what having views is for.
+            entity.HasIndex(e => new { e.ViewId, e.NodeId }).IsUnique();
+
+            // "Which views show this node" - asked when a node is opened from the inspector or
+            // from a search result.
+            entity.HasIndex(e => e.NodeId);
+        });
+
+        modelBuilder.Entity<CanvasAreaRow>(entity =>
+        {
+            entity.ToTable("CanvasAreas");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).HasMaxLength(128).IsRequired();
+            entity.Property(e => e.Accent).HasMaxLength(32);
+
+            entity.HasOne(e => e.View)
+                .WithMany()
+                .HasForeignKey(e => e.ViewId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // A frame outlives the component it stood for, and becomes a plain visual divider.
+            entity.HasOne<GraphNodeRow>()
+                .WithMany()
+                .HasForeignKey(e => e.GroupNodeId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.ViewId);
         });
     }
 }

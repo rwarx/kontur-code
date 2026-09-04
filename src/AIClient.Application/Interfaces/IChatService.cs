@@ -1,5 +1,6 @@
 using AIClient.Application.DTOs;
 using AIClient.Domain.Enums;
+using AIClient.Domain.Graph;
 
 namespace AIClient.Application.Interfaces;
 
@@ -37,6 +38,16 @@ public sealed record SendMessageRequest
     public required string ProviderId { get; init; }
     public required string ModelId { get; init; }
     public IReadOnlyList<NewAttachment> Attachments { get; init; } = [];
+
+    /// <summary>
+    /// What was picked out on the Canvas when the message was sent, if anything.
+    /// </summary>
+    /// <remarks>
+    /// Passed straight through to the context build and used nowhere else here, so a question asked
+    /// about three nodes travels the same path as one typed into an empty chat. Null - the ordinary
+    /// case - makes the turn identical to what it was before the graph existed.
+    /// </remarks>
+    public GraphSelection? Selection { get; init; }
 }
 
 /// <summary>Input for <see cref="IChatService.RegenerateAsync"/>.</summary>

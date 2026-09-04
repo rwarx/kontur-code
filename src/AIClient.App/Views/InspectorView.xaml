@@ -1,0 +1,343 @@
+<!--
+    The Inspector: what the graph knows about the current selection.
+
+    Present only when there is something to inspect. The panel collapses rather than emptying,
+    and the shell gives it an auto-width column, so an unselected canvas really is the whole
+    window - which is the point of putting detail here instead of on the cards.
+
+    Everything shown is a fact already in the graph. There is no editing surface: a change to the
+    project's model goes through a GraphChangeSet, and the panel's job is to make a selection
+    legible and to hand it to the AI, not to be a property grid.
+-->
+<UserControl x:Class="AIClient.App.Views.InspectorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:InspectorViewModel}"
+             d:DesignHeight="700" d:DesignWidth="320">
+
+    <UserControl.Resources>
+
+        <!-- A quiet label above each group. Small and secondary: the content is what matters. -->
+        <Style x:Key="InspectorSection" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Margin" Value="0,16,0,6" />
+        </Style>
+
+        <!--
+            Relation rows are buttons because they navigate - clicking one selects and centres the
+            other node on the canvas. Styled flat so the list still reads as a list.
+        -->
+        <Style x:Key="InspectorRow" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+            <Setter Property="Appearance" Value="Transparent" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="Margin" Value="-6,0,0,0" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+
+        <Style x:Key="InspectorAction" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+            <Setter Property="Appearance" Value="Secondary" />
+            <Setter Property="Padding" Value="9,4" />
+            <Setter Property="Margin" Value="0,0,6,6" />
+            <Setter Property="FontSize" Value="11" />
+        </Style>
+
+        <!--
+            One relation. The other node's glyph and colour come from the same table the canvas
+            uses, so a row here and a card out there look like the same thing.
+        -->
+        <DataTemplate x:Key="InspectorRelationTemplate">
+            <ui:Button Style="{StaticResource InspectorRow}"
+                       Command="{Binding DataContext.ActivateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       CommandParameter="{Binding NodeId}"
+                       ToolTip="{Binding Title}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="{Binding Arrow}"
+                               FontSize="11"
+                               Margin="0,0,6,0"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding Glyph}"
+                               FontSize="10"
+                               Margin="0,0,6,0"
+                               VerticalAlignment="Center"
+                               Foreground="{Binding Brush}" />
+
+                    <TextBlock Grid.Column="2"
+                               Text="{Binding Title}"
+                               FontSize="12"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+
+                    <TextBlock Grid.Column="3"
+                               Text="{Binding Kind}"
+                               Style="{StaticResource SubtleText}"
+                               FontSize="10"
+                               Margin="8,0,0,0"
+                               VerticalAlignment="Center" />
+                </Grid>
+            </ui:Button>
+        </DataTemplate>
+
+        <!-- A metadata pair. The name is fixed-width so the values line up down the panel. -->
+        <DataTemplate x:Key="InspectorFactTemplate">
+            <Grid Margin="0,0,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="96" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="{Binding Name}"
+                           Style="{StaticResource SubtleText}"
+                           FontSize="11"
+                           Margin="0,0,8,0" />
+
+                <TextBlock Grid.Column="1"
+                           Text="{Binding Value}"
+                           FontSize="11"
+                           TextWrapping="Wrap"
+                           TextTrimming="CharacterEllipsis"
+                           MaxHeight="32" />
+            </Grid>
+        </DataTemplate>
+
+        <!-- One change log entry: what happened, when, and who did it. -->
+        <DataTemplate x:Key="InspectorHistoryTemplate">
+            <StackPanel Margin="0,0,0,8">
+                <TextBlock Text="{Binding Summary}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           TextTrimming="CharacterEllipsis"
+                           MaxHeight="34" />
+
+                <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                    <TextBlock Text="{Binding When}" Style="{StaticResource SubtleText}" FontSize="10" />
+                    <TextBlock Text="·" Style="{StaticResource SubtleText}" FontSize="10" Margin="5,0" />
+                    <TextBlock Text="{Binding Origin}" Style="{StaticResource SubtleText}" FontSize="10" />
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+        <!--
+            A titled group that disappears when it has nothing in it.
+
+            HeaderedItemsControl rather than a StackPanel with a count-to-visibility converter: the
+            control already tracks HasItems, so one style covers every group here and the panel
+            never shows a heading above an empty list.
+        -->
+        <Style x:Key="InspectorGroup" TargetType="HeaderedItemsControl">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="HeaderedItemsControl">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Header, RelativeSource={RelativeSource TemplatedParent}}"
+                                       Style="{StaticResource InspectorSection}" />
+                            <ItemsPresenter />
+                        </StackPanel>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="HasItems" Value="False">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+    </UserControl.Resources>
+
+    <!--
+        Fixed width, and collapsed when there is no selection. The shell gives this column an auto
+        width, so collapsing here is what hands the space back to the canvas.
+    -->
+    <Border Width="320"
+            Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}"
+            Background="{DynamicResource ApplicationBackgroundBrush}"
+            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+            BorderThickness="1,0,0,0">
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Header: the glyph and colour of the canvas card, at a size worth reading. -->
+            <Grid Margin="16,14,14,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="{Binding Glyph}"
+                           FontSize="15"
+                           Margin="0,1,10,0"
+                           VerticalAlignment="Top"
+                           Foreground="{Binding KindBrush}" />
+
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="{Binding Title}"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding Title}"
+                               Visibility="{Binding IsSingle, Converter={StaticResource BoolToVisibility}}" />
+
+                    <TextBlock Text="{Binding Headline}"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis"
+                               Visibility="{Binding IsMulti, Converter={StaticResource BoolToVisibility}}" />
+
+                    <StackPanel Orientation="Horizontal"
+                                Margin="0,2,0,0"
+                                Visibility="{Binding IsSingle, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="{Binding KindLabel}" Style="{StaticResource SubtleText}" FontSize="11" />
+                        <TextBlock Text="·"
+                                   Style="{StaticResource SubtleText}"
+                                   FontSize="11"
+                                   Margin="5,0"
+                                   Visibility="{Binding OriginText, Converter={StaticResource StringToVisibility}}" />
+                        <TextBlock Text="{Binding OriginText}" Style="{StaticResource SubtleText}" FontSize="11" />
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding KindBreakdown}"
+                               Style="{StaticResource SubtleText}"
+                               FontSize="11"
+                               Margin="0,2,0,0"
+                               Visibility="{Binding IsMulti, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+            </Grid>
+
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="16,0,14,14">
+                <StackPanel>
+
+                    <TextBlock Text="{Binding Summary}"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               LineHeight="17"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Visibility="{Binding HasSummary, Converter={StaticResource BoolToVisibility}}" />
+
+                    <!--
+                        The source line is a path and a line span, not a copy of the code: the graph
+                        points at the file, and the file stays the only place the text lives.
+                    -->
+                    <StackPanel Visibility="{Binding HasSource, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="Source" Style="{StaticResource InspectorSection}" />
+                        <TextBlock Text="{Binding SourceText}"
+                                   FontFamily="{StaticResource CodeFont}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <!-- Amber, like every other thing in this app that is true but inconvenient. -->
+                    <TextBlock Text="{Binding StatusText}"
+                               FontSize="11"
+                               Margin="0,12,0,0"
+                               TextWrapping="Wrap"
+                               Foreground="{StaticResource ApprovalAccentBrush}"
+                               Visibility="{Binding HasStatus, Converter={StaticResource BoolToVisibility}}" />
+
+                    <HeaderedItemsControl Header="Metadata"
+                                          Style="{StaticResource InspectorGroup}"
+                                          ItemsSource="{Binding Facts}"
+                                          ItemTemplate="{StaticResource InspectorFactTemplate}" />
+
+                    <HeaderedItemsControl Header="Depends on"
+                                          Style="{StaticResource InspectorGroup}"
+                                          ItemsSource="{Binding Outgoing}"
+                                          ItemTemplate="{StaticResource InspectorRelationTemplate}" />
+
+                    <!-- Both directions: "what breaks if I change this" is an incoming question. -->
+                    <HeaderedItemsControl Header="Used by"
+                                          Style="{StaticResource InspectorGroup}"
+                                          ItemsSource="{Binding Incoming}"
+                                          ItemTemplate="{StaticResource InspectorRelationTemplate}" />
+
+                    <StackPanel Visibility="{Binding IsHistoryLoading, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="History" Style="{StaticResource InspectorSection}" />
+                        <TextBlock Text="Reading the change log…" Style="{StaticResource SubtleText}" FontSize="11" />
+                    </StackPanel>
+
+                    <HeaderedItemsControl Header="History"
+                                          Style="{StaticResource InspectorGroup}"
+                                          ItemsSource="{Binding History}"
+                                          ItemTemplate="{StaticResource InspectorHistoryTemplate}" />
+                </StackPanel>
+            </ScrollViewer>
+
+            <TextBlock Grid.Row="2"
+                       Text="{Binding Notice}"
+                       Margin="16,0,14,10"
+                       FontSize="11"
+                       TextWrapping="Wrap"
+                       Foreground="{StaticResource ApprovalAccentBrush}"
+                       Visibility="{Binding Notice, Converter={StaticResource StringToVisibility}}" />
+
+            <!--
+                The four questions, in the order a person asks them, and then the two ways to reach
+                the file itself. The questions travel to the existing chat as a selection plus a
+                sentence; nothing here talks to a provider.
+            -->
+            <Border Grid.Row="3"
+                    Padding="16,10,10,4"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="0,1,0,0">
+                <WrapPanel>
+                    <ui:Button Content="Explain"
+                               Style="{StaticResource InspectorAction}"
+                               Command="{Binding AskAiCommand}"
+                               CommandParameter="explain" />
+                    <ui:Button Content="Analyze"
+                               Style="{StaticResource InspectorAction}"
+                               Command="{Binding AskAiCommand}"
+                               CommandParameter="analyze" />
+                    <ui:Button Content="Refactor"
+                               Style="{StaticResource InspectorAction}"
+                               Command="{Binding AskAiCommand}"
+                               CommandParameter="refactor" />
+                    <ui:Button Content="Generate tests"
+                               Style="{StaticResource InspectorAction}"
+                               Command="{Binding AskAiCommand}"
+                               CommandParameter="tests" />
+                    <ui:Button Content="View code"
+                               Style="{StaticResource InspectorAction}"
+                               ToolTip="Read the file next to the canvas"
+                               Command="{Binding ViewCodeCommand}" />
+                    <ui:Button Content="Open source"
+                               Style="{StaticResource InspectorAction}"
+                               ToolTip="Show the file in Explorer"
+                               Command="{Binding OpenSourceCommand}" />
+                </WrapPanel>
+            </Border>
+
+        </Grid>
+    </Border>
+
+</UserControl>

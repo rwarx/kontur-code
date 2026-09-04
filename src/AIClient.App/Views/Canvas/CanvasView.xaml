@@ -1,0 +1,617 @@
+<UserControl x:Class="AIClient.App.Views.Canvas.CanvasView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:canvas="clr-namespace:AIClient.App.Views.Canvas"
+             xmlns:vm="clr-namespace:AIClient.App.ViewModels.Canvas"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:CanvasViewModel}"
+             d:DesignHeight="700" d:DesignWidth="1000"
+             Focusable="True"
+             ClipToBounds="True">
+
+    <!--
+        Shortcuts live on the control rather than in a shortcut system of their own: WPF already
+        resolves input bindings from the focused element outwards, so these win while the canvas
+        has focus and the window's own bindings keep working everywhere else.
+    -->
+    <UserControl.InputBindings>
+        <KeyBinding Key="D0" Modifiers="Ctrl" Command="{Binding ResetViewCommand}" />
+        <KeyBinding Key="NumPad0" Modifiers="Ctrl" Command="{Binding ResetViewCommand}" />
+        <KeyBinding Key="OemPlus" Modifiers="Ctrl" Command="{Binding ZoomInCommand}" />
+        <KeyBinding Key="Add" Modifiers="Ctrl" Command="{Binding ZoomInCommand}" />
+        <KeyBinding Key="OemMinus" Modifiers="Ctrl" Command="{Binding ZoomOutCommand}" />
+        <KeyBinding Key="Subtract" Modifiers="Ctrl" Command="{Binding ZoomOutCommand}" />
+        <KeyBinding Key="F" Command="{Binding FitToContentCommand}" />
+        <KeyBinding Key="E" Command="{Binding ZoomToSelectionCommand}" />
+        <KeyBinding Key="V" Command="{Binding UseSelectToolCommand}" />
+        <KeyBinding Key="H" Command="{Binding UsePanToolCommand}" />
+        <KeyBinding Key="Return" Command="{Binding OpenSelectedCodeCommand}" />
+        <KeyBinding Key="Escape" Command="{Binding DismissCommand}" />
+    </UserControl.InputBindings>
+
+    <UserControl.Resources>
+
+        <!--
+            One card. Everything above the trigger block is read from the graph; only Width, Height
+            and the position applied by the panel are canvas state. Nothing here can write a fact.
+        -->
+        <DataTemplate x:Key="CanvasNodeTemplate" DataType="{x:Type vm:CanvasNodeViewModel}">
+            <Grid Width="{Binding Width}" Height="{Binding Height}">
+
+                <!-- Drawn outside the card so the card's own border can stay a single pixel. -->
+                <Border x:Name="Halo"
+                        Margin="-3"
+                        CornerRadius="11"
+                        BorderThickness="2"
+                        BorderBrush="{DynamicResource AccentTextFillColorSecondaryBrush}"
+                        Opacity="0" />
+
+                <Border x:Name="Card"
+                        CornerRadius="{StaticResource CardCorner}"
+                        Background="{DynamicResource ControlFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!--
+                            The kind's colour as a strip rather than a tint: the card background stays
+                            the same for every kind, so the text keeps its contrast and a canvas of two
+                            hundred cards does not turn into a paint chart.
+                        -->
+                        <Border Grid.Column="0"
+                                Width="3"
+                                CornerRadius="8,0,0,8"
+                                Background="{Binding KindBrush}" />
+
+                        <Grid Grid.Column="1" Margin="12,0,12,0" VerticalAlignment="Center">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0"
+                                       Text="{Binding Glyph}"
+                                       FontSize="12"
+                                       Margin="0,0,7,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{Binding KindBrush}" />
+
+                            <TextBlock Grid.Row="0" Grid.Column="1"
+                                       Text="{Binding Title}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="1"
+                                       Text="{Binding Subtitle}"
+                                       Style="{StaticResource SubtleText}"
+                                       FontSize="11"
+                                       Margin="0,3,0,0" />
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsHovered}" Value="True">
+                    <Setter TargetName="Card" Property="Background"
+                            Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter TargetName="Halo" Property="Opacity" Value="1" />
+                    <Setter TargetName="Card" Property="BorderBrush"
+                            Value="{DynamicResource AccentTextFillColorSecondaryBrush}" />
+                </DataTrigger>
+
+                <!--
+                    The file behind the node is gone. Faded rather than removed: the placement and any
+                    hand-made relations around it are still worth keeping, and the inspector says why.
+                -->
+                <DataTrigger Binding="{Binding IsMissing}" Value="True">
+                    <Setter TargetName="Card" Property="Opacity" Value="0.45" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!--
+            One relation. The curve arrives as a frozen geometry in world coordinates, so the template
+            root is a Canvas: it arranges its children at the origin and lets each path draw where its
+            own geometry says it belongs.
+        -->
+        <DataTemplate x:Key="CanvasEdgeTemplate" DataType="{x:Type vm:CanvasEdgeViewModel}">
+            <Canvas>
+                <Path x:Name="Curve"
+                      Data="{Binding Curve}"
+                      Stroke="{DynamicResource ControlStrokeColorDefaultBrush}"
+                      StrokeThickness="1.2" />
+
+                <Path x:Name="Head"
+                      Data="{Binding Arrow}"
+                      Fill="{DynamicResource ControlStrokeColorDefaultBrush}" />
+
+                <!-- The kind is shown only for a relation the selection touches; always-on labels
+                     turn a graph of any size into a wall of words. -->
+                <Border x:Name="Label"
+                        Canvas.Left="{Binding LabelX}"
+                        Canvas.Top="{Binding LabelY}"
+                        Width="80"
+                        Visibility="{Binding IsHighlighted, Converter={StaticResource BoolToVisibility}}"
+                        Background="{DynamicResource ApplicationBackgroundBrush}"
+                        CornerRadius="3"
+                        Padding="4,1">
+                    <TextBlock Text="{Binding KindLabel}"
+                               FontSize="10"
+                               TextAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </Border>
+            </Canvas>
+
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsHighlighted}" Value="True">
+                    <Setter TargetName="Curve" Property="Stroke"
+                            Value="{DynamicResource AccentTextFillColorSecondaryBrush}" />
+                    <Setter TargetName="Curve" Property="StrokeThickness" Value="1.8" />
+                    <Setter TargetName="Head" Property="Fill"
+                            Value="{DynamicResource AccentTextFillColorSecondaryBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- Position is the only thing the panel is told; the card template knows nothing about it. -->
+        <Style x:Key="CanvasNodeContainer" TargetType="{x:Type ContentPresenter}">
+            <Setter Property="Canvas.Left" Value="{Binding X}" />
+            <Setter Property="Canvas.Top" Value="{Binding Y}" />
+        </Style>
+
+        <!--
+            BasedOn matters more than it looks: without it the style replaces WPF-UI's own, and the
+            button falls back to the system chrome - a flat grey block next to correctly themed ones.
+        -->
+        <Style x:Key="CanvasToolButton" TargetType="{x:Type ui:Button}"
+               BasedOn="{StaticResource {x:Type ui:Button}}">
+            <Setter Property="Appearance" Value="Transparent" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+
+        <!-- The AI actions, on the canvas and in the inspector, are text and nothing else: an icon
+             for "Refactor" would be a guess, and these read fine as words. -->
+        <Style x:Key="CanvasActionButton" TargetType="{x:Type ui:Button}"
+               BasedOn="{StaticResource {x:Type ui:Button}}">
+            <Setter Property="Appearance" Value="Transparent" />
+            <Setter Property="Padding" Value="8,3" />
+            <Setter Property="Margin" Value="0,0,2,0" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+
+        <Style x:Key="CanvasChromeButton" TargetType="{x:Type ui:Button}"
+               BasedOn="{StaticResource {x:Type ui:Button}}">
+            <Setter Property="Appearance" Value="Transparent" />
+            <Setter Property="Padding" Value="8,2" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+
+
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource ApplicationBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--
+            The code panel takes width from the surface rather than floating over it. That costs a
+            second column and buys the thing a floating panel cannot have: the surface is told its new
+            size, re-culls to it, and no card ends up hidden behind a wall of text.
+        -->
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" MinWidth="240" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <!--
+            Where the selection sits in the graph, not on disk. It follows containment edges, so when
+            a class node arrives its crumb is the file that declares it.
+        -->
+        <Grid Grid.Row="0" Grid.ColumnSpan="2" Height="34">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!--
+                The way back. Bound through the window because the shell owns navigation and this
+                control only knows about a graph - the same route SettingsView takes for its own
+                Done button, so there is one idiom for "leave this page" in the app.
+            -->
+            <ui:Button Grid.Column="0"
+                       Style="{StaticResource CanvasChromeButton}"
+                       Margin="12,0,0,0"
+                       Content="← Chat"
+                       ToolTip="Back to the conversation"
+                       Command="{Binding DataContext.ShowChatCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+
+            <TextBlock Grid.Column="1"
+                       Margin="8,0,12,0"
+                       VerticalAlignment="Center"
+                       FontSize="12"
+                       TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       Text="{Binding Breadcrumb}" />
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,12,0">
+                <ui:Button Style="{StaticResource CanvasChromeButton}"
+                           Content="Reindex"
+                           ToolTip="Walk the project folder again and update the graph"
+                           Command="{Binding IndexWorkspaceCommand}" />
+                <ui:Button Style="{StaticResource CanvasChromeButton}"
+                           Content="Folder…"
+                           ToolTip="Choose the project folder to project onto the canvas"
+                           Command="{Binding OpenFolderCommand}" />
+            </StackPanel>
+        </Grid>
+
+        <!--
+            The work surface. Every gesture is handled here rather than on the cards: hit-testing runs
+            in world coordinates against the culled set, so zoom cannot change what counts as a hit and
+            two hundred cards cost two hundred rectangles instead of two hundred event subscriptions.
+        -->
+        <Grid x:Name="Surface"
+              Grid.Row="1"
+              Grid.Column="0"
+              Background="Transparent"
+              ClipToBounds="True"
+              SizeChanged="OnSurfaceSizeChanged"
+              MouseLeftButtonDown="OnSurfaceMouseLeftButtonDown"
+              MouseLeftButtonUp="OnSurfaceMouseLeftButtonUp"
+              MouseDown="OnSurfaceMouseDown"
+              MouseUp="OnSurfaceMouseUp"
+              MouseMove="OnSurfaceMouseMove"
+              MouseLeave="OnSurfaceMouseLeave"
+              MouseWheel="OnSurfaceMouseWheel">
+
+            <!--
+                A shade darker than the shell, so the canvas reads as a surface you work on rather
+                than as another page of the app.
+
+                It carries the pan cursor as well, because it is the innermost thing the pointer can
+                hit anywhere on the surface - the dot grid and the world layer are both invisible to
+                hit testing - and WPF takes the first cursor it finds walking outwards from there.
+                Setting it here rather than on the control leaves the toolbar, the pill and the empty
+                state with an ordinary arrow, since none of them is a child of this Border.
+            -->
+            <Border Background="#14000000">
+                <Border.Style>
+                    <Style TargetType="{x:Type Border}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsPanTool}" Value="True">
+                                <Setter Property="Cursor" Value="SizeAll" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+            </Border>
+
+            <!--
+                The dot grid, anchored to the world by the same pan and scale the cards get. Opacity is
+                bound straight to the zoom - values above one clamp - which fades the grid out as the
+                camera pulls back and the dots would otherwise close into a wash.
+
+                A single aliased pixel rather than a sub-pixel circle. An ellipse of radius 0.9 has no
+                whole-pixel form, so it rasterises into a soft diamond that changes shape as the surface
+                pans - a background that shimmers, which is exactly the visual noise a work surface must
+                not have. Aliased, a dot is one crisp pixel wherever it lands.
+            -->
+            <Rectangle IsHitTestVisible="False"
+                       Opacity="{Binding Zoom}"
+                       RenderOptions.EdgeMode="Aliased">
+                <Rectangle.Fill>
+                    <DrawingBrush TileMode="Tile" Viewport="0,0,24,24" ViewportUnits="Absolute">
+                        <DrawingBrush.Transform>
+                            <TransformGroup>
+                                <ScaleTransform ScaleX="{Binding Zoom}" ScaleY="{Binding Zoom}" />
+                                <TranslateTransform X="{Binding PanX}" Y="{Binding PanY}" />
+                            </TransformGroup>
+                        </DrawingBrush.Transform>
+                        <DrawingBrush.Drawing>
+                            <GeometryDrawing Brush="#33808080">
+                                <GeometryDrawing.Geometry>
+                                    <RectangleGeometry Rect="12,12,1,1" />
+                                </GeometryDrawing.Geometry>
+                            </GeometryDrawing>
+                        </DrawingBrush.Drawing>
+                    </DrawingBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+
+            <!--
+                World space. The transform is exactly the camera's own rule - screen = world * zoom +
+                pan - so the arithmetic the viewport is tested against is the arithmetic WPF applies.
+                Not hit-testable: the surface above owns every gesture.
+            -->
+            <Canvas x:Name="World" IsHitTestVisible="False">
+                <Canvas.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform ScaleX="{Binding Zoom}" ScaleY="{Binding Zoom}" />
+                        <TranslateTransform X="{Binding PanX}" Y="{Binding PanY}" />
+                    </TransformGroup>
+                </Canvas.RenderTransform>
+
+                <ItemsControl ItemsSource="{Binding VisibleEdges}"
+                              ItemTemplate="{StaticResource CanvasEdgeTemplate}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+
+                <ItemsControl ItemsSource="{Binding VisibleNodes}"
+                              ItemTemplate="{StaticResource CanvasNodeTemplate}"
+                              ItemContainerStyle="{StaticResource CanvasNodeContainer}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </Canvas>
+
+            <!-- Screen space: the rubber band, drawn where the mouse is rather than where the world is. -->
+            <Canvas IsHitTestVisible="False">
+                <Rectangle Canvas.Left="{Binding MarqueeX}"
+                           Canvas.Top="{Binding MarqueeY}"
+                           Width="{Binding MarqueeWidth}"
+                           Height="{Binding MarqueeHeight}"
+                           Visibility="{Binding IsMarqueeVisible, Converter={StaticResource BoolToVisibility}}"
+                           Fill="#26808080"
+                           Stroke="{DynamicResource AccentTextFillColorSecondaryBrush}"
+                           StrokeThickness="1" />
+            </Canvas>
+
+            <!--
+                The AI surface. It appears next to what is selected instead of living in a panel that
+                is always there: with nothing selected there is nothing to ask about, and the canvas
+                gets the whole window.
+            -->
+            <Canvas>
+                <Border Canvas.Left="{Binding AiSurfaceX}"
+                        Canvas.Top="{Binding AiSurfaceY}"
+                        Width="300"
+                        Visibility="{Binding IsAiSurfaceVisible, Converter={StaticResource BoolToVisibility}}"
+                        Background="{DynamicResource ApplicationBackgroundBrush}"
+                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource CardCorner}"
+                        Padding="6,5">
+                    <StackPanel>
+
+                        <!-- One node: no menu, just the way in. The five questions are in the
+                             inspector, which is already open on that node. -->
+                        <ui:Button Style="{StaticResource CanvasActionButton}"
+                                   HorizontalAlignment="Left"
+                                   Content="Ask Kontur AI…"
+                                   Command="{Binding AskAiCommand}"
+                                   CommandParameter=""
+                                   Visibility="{Binding IsSingleSelection, Converter={StaticResource BoolToVisibility}}" />
+
+                        <StackPanel Visibility="{Binding IsMultiSelection, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{Binding AiSurfaceHeader}"
+                                       Margin="6,1,6,4"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       TextTrimming="CharacterEllipsis"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <WrapPanel>
+                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="Analyze"
+                                           Command="{Binding AskAiCommand}" CommandParameter="analyze" />
+                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="Explain"
+                                           Command="{Binding AskAiCommand}" CommandParameter="explain" />
+                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="Refactor"
+                                           Command="{Binding AskAiCommand}" CommandParameter="refactor" />
+                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="Find problems"
+                                           Command="{Binding AskAiCommand}" CommandParameter="problems" />
+                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="Generate tests"
+                                           Command="{Binding AskAiCommand}" CommandParameter="tests" />
+                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="Ask Kontur AI…"
+                                           Command="{Binding AskAiCommand}" CommandParameter="" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Canvas>
+
+            <!--
+                What the left button does, then where the camera is, then the one arrangement
+                command. Two groups and a single action: a toolbar, and it stays one.
+            -->
+            <Border HorizontalAlignment="Left"
+                    VerticalAlignment="Bottom"
+                    Margin="16"
+                    Padding="4"
+                    Background="{DynamicResource ApplicationBackgroundBrush}"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource CardCorner}">
+                <StackPanel Orientation="Horizontal">
+
+                    <!--
+                        The two modes of the left button. A mode earns a button rather than a modifier
+                        key because it is a state a person stays in: they push a large graph around for
+                        a while, then go back to picking cards. The pill behind the active one is the
+                        whole indicator - the pointer changes with it too, so nothing else is needed.
+                    -->
+                    <Grid>
+                        <Border CornerRadius="5"
+                                Opacity="0.22"
+                                Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                Visibility="{Binding IsSelectTool, Converter={StaticResource BoolToVisibility}}" />
+                        <ui:Button Style="{StaticResource CanvasToolButton}"
+                                   AutomationProperties.Name="Select"
+                                   ToolTip="Select — click picks a card, drag moves it, drag on empty space is a rubber band (V)"
+                                   Command="{Binding UseSelectToolCommand}">
+                            <ui:SymbolIcon Symbol="Cursor24" FontSize="16" />
+                        </ui:Button>
+                    </Grid>
+
+                    <Grid>
+                        <Border CornerRadius="5"
+                                Opacity="0.22"
+                                Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                Visibility="{Binding IsPanTool, Converter={StaticResource BoolToVisibility}}" />
+                        <ui:Button Style="{StaticResource CanvasToolButton}"
+                                   AutomationProperties.Name="Pan"
+                                   ToolTip="Pan — drag anywhere to move the canvas (H)"
+                                   Command="{Binding UsePanToolCommand}">
+                            <ui:SymbolIcon Symbol="HandRight24" FontSize="16" />
+                        </ui:Button>
+                    </Grid>
+
+                    <Border Width="1" Margin="6,6" Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+
+                    <ui:Button Style="{StaticResource CanvasToolButton}" Content="+"
+                               AutomationProperties.Name="Zoom in"
+                               ToolTip="Zoom in (Ctrl +)" Command="{Binding ZoomInCommand}" />
+                    <ui:Button Style="{StaticResource CanvasToolButton}" Content="−"
+                               AutomationProperties.Name="Zoom out"
+                               ToolTip="Zoom out (Ctrl −)" Command="{Binding ZoomOutCommand}" />
+                    <ui:Button Style="{StaticResource CanvasToolButton}" Content="⊙"
+                               AutomationProperties.Name="Zoom to selection"
+                               ToolTip="Zoom to selection (E)" Command="{Binding ZoomToSelectionCommand}" />
+                    <ui:Button Style="{StaticResource CanvasToolButton}" Content="⛶"
+                               AutomationProperties.Name="Fit to content"
+                               ToolTip="Fit to content (F)" Command="{Binding FitToContentCommand}" />
+
+                    <Border Width="1" Margin="6,6" Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+
+                    <ui:Button Style="{StaticResource CanvasActionButton}"
+                               VerticalAlignment="Center"
+                               Content="Auto Layout"
+                               ToolTip="Tidy the cards nobody has arranged by hand"
+                               Command="{Binding AutoLayoutCommand}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Section 11: the walk reports as it goes, so a large project does not look stalled. -->
+            <Border HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    Margin="0,16,0,0"
+                    Padding="12,5"
+                    CornerRadius="14"
+                    Background="{DynamicResource ApplicationBackgroundBrush}"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    Visibility="{Binding IsIndexing, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="7" Height="7" Margin="0,0,8,0" VerticalAlignment="Center"
+                             Fill="{DynamicResource AccentTextFillColorSecondaryBrush}" />
+                    <TextBlock Text="{Binding GraphStatus}" FontSize="12"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Section 10. The one thing to do here, and what will happen when it is done. -->
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="Kontur Code"
+                           FontSize="22"
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="Your project has no knowledge graph yet."
+                           FontSize="13"
+                           Margin="0,10,0,0"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <ui:Button Content="Index Workspace"
+                           Appearance="Primary"
+                           Margin="0,20,0,0"
+                           Padding="18,7"
+                           HorizontalAlignment="Center"
+                           Command="{Binding IndexWorkspaceCommand}" />
+                <TextBlock Text="The graph will be generated from your project structure."
+                           Style="{StaticResource SubtleText}"
+                           Margin="0,14,0,0"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+
+        <!--
+            The file behind a card, when there is one to show. A control of its own because the
+            surface owns enough markup already, and because keeping the line numbers level with the
+            code means copying one scroll offset - work for that control's code-behind, not this one's.
+        -->
+        <canvas:CanvasCodePanel Grid.Row="1"
+                                Grid.Column="1"
+                                DataContext="{Binding Code}"
+                                Visibility="{Binding IsOpen, Converter={StaticResource BoolToVisibility}}" />
+
+        <!-- Counts, whatever the last action had to say, and where the camera is. -->
+        <Border Grid.Row="2"
+                Grid.ColumnSpan="2"
+                Height="28"
+                BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+            <Grid Margin="20,0,16,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource SubtleText}"
+                           Text="{Binding GraphStatus}" />
+
+                <TextBlock Grid.Column="1"
+                           Margin="16,0"
+                           VerticalAlignment="Center"
+                           FontSize="12"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource ApprovalAccentBrush}"
+                           Text="{Binding Notice}"
+                           Visibility="{Binding Notice, Converter={StaticResource StringToVisibility}}" />
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center"
+                               Style="{StaticResource SubtleText}"
+                               Text="{Binding SelectionStatus}" />
+                    <Border Width="1" Height="12" Margin="10,0"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource ControlStrokeColorDefaultBrush}"
+                            Visibility="{Binding SelectionStatus, Converter={StaticResource StringToVisibility}}" />
+                    <TextBlock VerticalAlignment="Center"
+                               Style="{StaticResource SubtleText}"
+                               Text="{Binding ZoomText}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+
+
+    </Grid>
+
+
+</UserControl>

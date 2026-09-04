@@ -5,6 +5,7 @@ using AIClient.Application.Services.Tools;
 using AIClient.Domain.Interfaces;
 using AIClient.Infrastructure.Configuration;
 using AIClient.Infrastructure.Database;
+using AIClient.Infrastructure.Graph;
 using AIClient.Infrastructure.Http;
 using AIClient.Infrastructure.Processes;
 using AIClient.Infrastructure.Providers;
@@ -118,6 +119,21 @@ public static class DependencyInjection
         // Singleton because the open folder is process-wide state: the file tree, the agent and
         // the settings screen all have to agree on which folder that is.
         services.AddSingleton<IWorkspaceService, WorkspaceService>();
+
+        // Singleton for a stronger reason than convenience: the graph is one shared snapshot that
+        // readers hold without locking, and a second instance would mean two versions of the truth
+        // and two sets of subscribers being told different things.
+        services.AddSingleton<IGraphService, GraphService>();
+
+        // Stateless, both of them: an indexing pass owns its own walk and a context build owns its
+        // own StringBuilder, so nothing is shared but the graph they read.
+        services.AddSingleton<IGraphIndexer, WorkspaceGraphIndexer>();
+        services.AddSingleton<IGraphContextSource, GraphContextSource>();
+
+        // The view store is deliberately not a singleton in spirit - it holds nothing - but a
+        // singleton in registration, because it is injected into a singleton ViewModel and the
+        // context factory it uses creates a fresh connection per call anyway.
+        services.AddSingleton<ICanvasViewStore, CanvasViewStore>();
 
         AddAgentTools(services);
 

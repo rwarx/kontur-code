@@ -1,5 +1,6 @@
 using AIClient.App.Services;
 using AIClient.App.ViewModels;
+using AIClient.App.ViewModels.Canvas;
 using AIClient.App.Views;
 using AIClient.Application.Interfaces;
 using AIClient.Application.Markdown;
@@ -44,6 +45,13 @@ public static class ServiceRegistration
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<CommandPaletteViewModel>();
         services.AddSingleton<FirstRunViewModel>();
+
+        // Singletons for the same reason as the panes above, and for one more: the camera and the
+        // selection are the canvas equivalent of an open conversation. Leaving the page and coming
+        // back to a re-centred graph with nothing selected would make the canvas feel like a dialog.
+        services.AddSingleton<CanvasViewModel>();
+        services.AddSingleton<InspectorViewModel>();
+        services.AddSingleton<CanvasCodeViewModel>();
 
         services.AddSingleton<MainWindow>();
 

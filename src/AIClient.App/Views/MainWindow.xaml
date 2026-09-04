@@ -5,6 +5,7 @@
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                  xmlns:views="clr-namespace:AIClient.App.Views"
+                 xmlns:canvas="clr-namespace:AIClient.App.Views.Canvas"
                  xmlns:vm="clr-namespace:AIClient.App.ViewModels"
                  xmlns:app="clr-namespace:AIClient.Application.Interfaces;assembly=AIClient.Application"
                  mc:Ignorable="d"
@@ -25,6 +26,7 @@
         <KeyBinding Key="N" Modifiers="Ctrl" Command="{Binding NewChatCommand}" />
         <KeyBinding Key="K" Modifiers="Ctrl" Command="{Binding FocusSearchCommand}" />
         <KeyBinding Key="OemComma" Modifiers="Ctrl" Command="{Binding ShowSettingsCommand}" />
+        <KeyBinding Key="G" Modifiers="Ctrl" Command="{Binding ShowCanvasCommand}" />
         <KeyBinding Key="P" Modifiers="Ctrl+Shift" Command="{Binding ToggleCommandPaletteCommand}" />
         <KeyBinding Key="B" Modifiers="Ctrl" Command="{Binding ToggleSidebarCommand}" />
         <KeyBinding Key="Escape" Command="{Binding Chat.StopCommand}" />
@@ -165,6 +167,27 @@
                                     Visibility="{Binding DataContext.IsSettingsVisible,
                                                          RelativeSource={RelativeSource AncestorType=Window},
                                                          Converter={StaticResource BoolToVisibility}}" />
+
+                <!--
+                    The canvas takes the whole main area, chat header included: a spatial view of the
+                    graph is not a page with a title bar, and the header's model picker belongs to a
+                    conversation. Two columns rather than a splitter, because the inspector has one
+                    width and collapses itself - an auto column is what hands that space back.
+                -->
+                <Grid Grid.Row="1"
+                      Grid.RowSpan="2"
+                      Visibility="{Binding DataContext.IsCanvasVisible,
+                                           RelativeSource={RelativeSource AncestorType=Window},
+                                           Converter={StaticResource BoolToVisibility}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="320" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <canvas:CanvasView Grid.Column="0" DataContext="{Binding Canvas}" />
+
+                    <views:InspectorView Grid.Column="1" DataContext="{Binding Inspector}" />
+                </Grid>
             </Grid>
         </Grid>
 

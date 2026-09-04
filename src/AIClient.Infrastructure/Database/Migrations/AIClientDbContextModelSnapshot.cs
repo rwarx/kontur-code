@@ -77,6 +77,151 @@ namespace AIClient.Infrastructure.Database.Migrations
                     b.ToTable("Attachments", (string)null);
                 });
 
+            modelBuilder.Entity("AIClient.Domain.Entities.CanvasAreaRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Accent")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("GroupNodeId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("Height")
+                        .HasColumnType("REAL");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("ViewId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("Width")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("X")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("Y")
+                        .HasColumnType("REAL");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupNodeId");
+
+                    b.HasIndex("ViewId");
+
+                    b.ToTable("CanvasAreas", (string)null);
+                });
+
+            modelBuilder.Entity("AIClient.Domain.Entities.CanvasPlacementRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Accent")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("Height")
+                        .HasColumnType("REAL");
+
+                    b.Property<bool>("IsCollapsed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("NodeId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("ViewId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("Width")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("X")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("Y")
+                        .HasColumnType("REAL");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NodeId");
+
+                    b.HasIndex("ViewId", "NodeId")
+                        .IsUnique();
+
+                    b.ToTable("CanvasPlacements", (string)null);
+                });
+
+            modelBuilder.Entity("AIClient.Domain.Entities.CanvasViewRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Depth")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LayoutMode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("PanX")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("PanY")
+                        .HasColumnType("REAL");
+
+                    b.Property<Guid?>("RootNodeId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("Zoom")
+                        .HasColumnType("REAL");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RootNodeId");
+
+                    b.ToTable("CanvasViews", (string)null);
+                });
+
             modelBuilder.Entity("AIClient.Domain.Entities.Conversation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -118,6 +263,156 @@ namespace AIClient.Infrastructure.Database.Migrations
                     b.HasIndex("IsPinned", "UpdatedAt");
 
                     b.ToTable("Conversations", (string)null);
+                });
+
+            modelBuilder.Entity("AIClient.Domain.Entities.GraphChangeRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("AppliedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("InverseJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MutationsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Origin")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("SourceExecutionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("State")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("State");
+
+                    b.ToTable("GraphChanges", (string)null);
+                });
+
+            modelBuilder.Entity("AIClient.Domain.Entities.GraphEdgeRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("FromId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Origin")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("SourceExecutionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ToId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FromId");
+
+                    b.HasIndex("ToId");
+
+                    b.HasIndex("FromId", "ToId", "Kind")
+                        .IsUnique();
+
+                    b.ToTable("GraphEdges", (string)null);
+                });
+
+            modelBuilder.Entity("AIClient.Domain.Entities.GraphNodeRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("EndLine")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MetadataJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Origin")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("SourceExecutionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourcePath")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("StartLine")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("Kind", "Key")
+                        .IsUnique();
+
+                    b.ToTable("GraphNodes", (string)null);
                 });
 
             modelBuilder.Entity("AIClient.Domain.Entities.Message", b =>
@@ -301,6 +596,62 @@ namespace AIClient.Infrastructure.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("Message");
+                });
+
+            modelBuilder.Entity("AIClient.Domain.Entities.CanvasAreaRow", b =>
+                {
+                    b.HasOne("AIClient.Domain.Entities.GraphNodeRow", null)
+                        .WithMany()
+                        .HasForeignKey("GroupNodeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("AIClient.Domain.Entities.CanvasViewRow", "View")
+                        .WithMany()
+                        .HasForeignKey("ViewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("View");
+                });
+
+            modelBuilder.Entity("AIClient.Domain.Entities.CanvasPlacementRow", b =>
+                {
+                    b.HasOne("AIClient.Domain.Entities.GraphNodeRow", null)
+                        .WithMany()
+                        .HasForeignKey("NodeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AIClient.Domain.Entities.CanvasViewRow", "View")
+                        .WithMany()
+                        .HasForeignKey("ViewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("View");
+                });
+
+            modelBuilder.Entity("AIClient.Domain.Entities.CanvasViewRow", b =>
+                {
+                    b.HasOne("AIClient.Domain.Entities.GraphNodeRow", null)
+                        .WithMany()
+                        .HasForeignKey("RootNodeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("AIClient.Domain.Entities.GraphEdgeRow", b =>
+                {
+                    b.HasOne("AIClient.Domain.Entities.GraphNodeRow", null)
+                        .WithMany()
+                        .HasForeignKey("FromId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AIClient.Domain.Entities.GraphNodeRow", null)
+                        .WithMany()
+                        .HasForeignKey("ToId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("AIClient.Domain.Entities.Message", b =>

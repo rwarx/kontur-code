@@ -4,6 +4,7 @@ using System.Text;
 using AIClient.Application.DTOs;
 using AIClient.Application.Interfaces;
 using AIClient.Domain.Enums;
+using AIClient.Domain.Graph;
 using AIClient.Domain.Interfaces;
 using AIClient.Domain.Models;
 using Microsoft.Extensions.Logging;
@@ -82,6 +83,7 @@ public sealed class ChatService : IChatService
                            request.ProviderId,
                            request.ModelId,
                            upToMessageId: null,
+                           request.Selection,
                            cancellationToken).ConfigureAwait(false))
         {
             yield return evt;
@@ -97,11 +99,14 @@ public sealed class ChatService : IChatService
         await _conversations.DeleteFromMessageAsync(request.AssistantMessageId, inclusive: true, cancellationToken)
             .ConfigureAwait(false);
 
+        // No selection: what was picked out on the Canvas at the time is not stored with the message,
+        // and inventing the current selection would answer a question the user did not ask again.
         await foreach (var evt in RunTurnAsync(
                            request.ConversationId,
                            request.ProviderId,
                            request.ModelId,
                            upToMessageId: null,
+                           selection: null,
                            cancellationToken).ConfigureAwait(false))
         {
             yield return evt;
@@ -117,6 +122,7 @@ public sealed class ChatService : IChatService
         string providerId,
         string modelId,
         Guid? upToMessageId,
+        GraphSelection? selection,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var placeholder = await _conversations.AddMessageAsync(
@@ -135,7 +141,7 @@ public sealed class ChatService : IChatService
 
         // Everything that can fail before the stream opens is resolved here, so the
         // iterator below only has to deal with streaming failures.
-        var preparation = await PrepareAsync(conversationId, providerId, modelId, upToMessageId, cancellationToken)
+        var preparation = await PrepareAsync(conversationId, providerId, modelId, upToMessageId, selection, cancellationToken)
             .ConfigureAwait(false);
 
         if (preparation.Failure is { } earlyFailure)
@@ -327,6 +333,7 @@ public sealed class ChatService : IChatService
         string providerId,
         string modelId,
         Guid? upToMessageId,
+        GraphSelection? selection,
         CancellationToken cancellationToken)
     {
         try
@@ -355,6 +362,7 @@ public sealed class ChatService : IChatService
                     ContextWindow = model?.ContextWindow,
                     ReservedOutputTokens = chat.ReservedOutputTokens,
                     UpToMessageId = upToMessageId,
+                    Selection = selection,
                 },
                 cancellationToken).ConfigureAwait(false);
 

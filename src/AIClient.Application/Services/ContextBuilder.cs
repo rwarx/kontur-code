@@ -11,22 +11,41 @@ namespace AIClient.Application.Services;
 /// Builds the message list sent to a model from a stored conversation.
 /// </summary>
 /// <remarks>
-/// Today it composes three sources: the system prompt, the conversation history, and any
-/// attachment text. The composition order and the trimming pass are the parts that will
-/// stay when project files, retrieved memory and tool definitions become additional
-/// sources - which is why they are separated here rather than inlined into the chat service.
+/// Today it composes four sources: the system prompt, a selection on the Canvas, the conversation
+/// history, and any attachment text. The composition order and the trimming pass are the parts that
+/// will stay when retrieved memory and tool definitions become additional sources - which is why
+/// they are separated here rather than inlined into the chat service.
 ///
 /// Trimming is oldest-first and always keeps the system prompt and the most recent user
 /// turn, because dropping either produces a request that cannot be answered sensibly.
 /// </remarks>
 public sealed class ContextBuilder : IContextBuilder
 {
+    /// <summary>
+    /// The window assumed for sizing a graph block when the real one is unknown.
+    /// </summary>
+    /// <remarks>
+    /// An unknown window disables trimming, which is safe for history - it was sent before and fitted
+    /// - but not for a block that could inline half a repository on its first use. A share of a small
+    /// window is a block that fits everywhere, and the cost of guessing low is a shorter excerpt.
+    /// </remarks>
+    private const int AssumedContextWindow = 8192;
+
     private readonly IConversationService _conversations;
+    private readonly IGraphContextSource? _graph;
     private readonly ILogger<ContextBuilder> _logger;
 
-    public ContextBuilder(IConversationService conversations, ILogger<ContextBuilder> logger)
+    /// <param name="graph">
+    /// Optional: with no graph source a selection is ignored rather than fatal, which is what lets
+    /// the existing tests build a context without one.
+    /// </param>
+    public ContextBuilder(
+        IConversationService conversations,
+        ILogger<ContextBuilder> logger,
+        IGraphContextSource? graph = null)
     {
         _conversations = conversations;
+        _graph = graph;
         _logger = logger;
     }
 
@@ -47,6 +66,10 @@ public sealed class ContextBuilder : IContextBuilder
 
         var systemPrompt = string.IsNullOrWhiteSpace(request.SystemPrompt) ? null : request.SystemPrompt.Trim();
         var budget = CalculateBudget(request);
+
+        systemPrompt = await WithGraphAsync(systemPrompt, request, budget, cancellationToken)
+            .ConfigureAwait(false);
+
         var dropped = budget is null ? 0 : Trim(blocks, systemPrompt, budget.Value);
 
         var turns = blocks.SelectMany(block => block).ToList();
@@ -69,6 +92,50 @@ public sealed class ContextBuilder : IContextBuilder
         }
 
         return new ContextBuildResult(messages, estimated, dropped);
+    }
+
+    /// <summary>
+    /// Appends what a Canvas selection means to the system prompt, when there is one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// In the system turn rather than beside the question, for two reasons. It survives the trimming
+    /// pass, which a long conversation would otherwise eat first; and every path that builds a prompt
+    /// - send, regenerate, an agent step - gets it identically without knowing it exists.
+    /// </para>
+    /// <para>
+    /// Added before trimming on purpose: the block is part of the fixed cost, so a large selection
+    /// pushes old turns out of the window instead of overflowing it.
+    /// </para>
+    /// </remarks>
+    private async Task<string?> WithGraphAsync(
+        string? systemPrompt,
+        ContextBuildRequest request,
+        int? budget,
+        CancellationToken cancellationToken)
+    {
+        if (_graph is null || request.Selection is not { IsEmpty: false } selection)
+        {
+            return systemPrompt;
+        }
+
+        var block = await _graph
+            .BuildAsync(
+                selection,
+                budget ?? (AssumedContextWindow - request.ReservedOutputTokens),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (block is null)
+        {
+            return systemPrompt;
+        }
+
+        _logger.LogDebug(
+            "Described {Nodes} selected graph node(s) in the prompt.",
+            selection.NodeIds.Count);
+
+        return systemPrompt is null ? block : $"{systemPrompt}\n\n{block}";
     }
 
     /// <summary>

@@ -39,6 +39,89 @@ public sealed class DatabaseTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_database_from_before_the_graph_upgrades_in_place_with_its_conversations_intact()
+    {
+        // A migration only ever run against an empty file is a migration nobody has tested. The
+        // risk was never the CREATE TABLE; it is the file it lands on - one with real rows, real
+        // indexes and whatever an earlier version of the application left in it. So this uses the
+        // database this machine actually has, and skips out loud when there is none rather than
+        // inventing a "realistic" file, which would test nothing the empty case does not.
+        var real = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "AIClient",
+            "aiclient.db");
+
+        if (!File.Exists(real))
+        {
+            Assert.Skip("This machine has no database from a previous run of the application.");
+        }
+
+        var directory = Path.Combine(
+            Path.GetTempPath(),
+            "aiclient-upgrade",
+            Guid.CreateVersion7().ToString("n"));
+
+        Directory.CreateDirectory(directory);
+
+        try
+        {
+            var copy = Path.Combine(directory, "aiclient.db");
+
+            try
+            {
+                File.Copy(real, copy);
+            }
+            catch (IOException)
+            {
+                Assert.Skip("The application is holding its own database open.");
+            }
+
+            var factory = new FixedFactory(new DbContextOptionsBuilder<AIClientDbContext>()
+                .UseSqlite($"Data Source={copy};Pooling=False")
+                .Options);
+
+            int conversations;
+            List<string> providers;
+
+            await using (var before = factory.CreateDbContext())
+            {
+                conversations = await before.Conversations.CountAsync();
+                providers = await before.Providers.Select(p => p.Id).OrderBy(id => id).ToListAsync();
+
+                await UndoTheGraphMigrationAsync(before);
+
+                Assert.Contains(GraphMigration, await before.Database.GetPendingMigrationsAsync());
+            }
+
+            await new DatabaseInitializer(factory, NullLogger<DatabaseInitializer>.Instance)
+                .InitializeAsync();
+
+            await using var after = factory.CreateDbContext();
+
+            Assert.Empty(await after.Database.GetPendingMigrationsAsync());
+            Assert.Contains(GraphMigration, await after.Database.GetAppliedMigrationsAsync());
+
+            // The new tables are there and usable, and everything that was in the file still is.
+            // A migration that took a user's conversations with it would be discovered by the user.
+            Assert.Empty(await after.GraphNodes.ToListAsync());
+            Assert.Empty(await after.CanvasViews.ToListAsync());
+            Assert.Equal(conversations, await after.Conversations.CountAsync());
+            Assert.Equal(providers, await after.Providers.Select(p => p.Id).OrderBy(id => id).ToListAsync());
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+            catch (IOException)
+            {
+                // The OS clears %TEMP% eventually; a leftover copy is not worth failing over.
+            }
+        }
+    }
+
+    [Fact]
     public async Task Every_timestamp_column_is_stored_as_an_integer()
     {
         // Walked from the model rather than listed by hand, so a timestamp column added
@@ -263,6 +346,40 @@ public sealed class DatabaseTests : IAsyncLifetime
             ModelId = modelId,
             Name = name,
         };
+
+    /// <summary>The migration that introduced the graph, and the one the upgrade test re-applies.</summary>
+    private const string GraphMigration = "20260904063518_AddKnowledgeGraph";
+
+    /// <summary>
+    /// Puts a database back the way it looked before the graph existed.
+    /// </summary>
+    /// <remarks>
+    /// The migration only creates tables - it alters nothing that was already there - so dropping
+    /// those tables and forgetting the history row reconstructs the earlier state exactly. Children
+    /// first, because foreign keys are on. Done here rather than with <c>dotnet ef</c> so the check
+    /// runs in an ordinary test pass with no tool installed.
+    /// </remarks>
+    private static async Task UndoTheGraphMigrationAsync(AIClientDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync("DROP TABLE IF EXISTS CanvasPlacements");
+        await db.Database.ExecuteSqlRawAsync("DROP TABLE IF EXISTS CanvasAreas");
+        await db.Database.ExecuteSqlRawAsync("DROP TABLE IF EXISTS CanvasViews");
+        await db.Database.ExecuteSqlRawAsync("DROP TABLE IF EXISTS GraphEdges");
+        await db.Database.ExecuteSqlRawAsync("DROP TABLE IF EXISTS GraphNodes");
+        await db.Database.ExecuteSqlRawAsync("DROP TABLE IF EXISTS GraphChanges");
+        await db.Database.ExecuteSqlRawAsync(
+            $"DELETE FROM __EFMigrationsHistory WHERE MigrationId = '{GraphMigration}'");
+    }
+
+    /// <summary>An <see cref="IDbContextFactory{TContext}"/> over one fixed connection.</summary>
+    private sealed class FixedFactory : IDbContextFactory<AIClientDbContext>
+    {
+        private readonly DbContextOptions<AIClientDbContext> _options;
+
+        public FixedFactory(DbContextOptions<AIClientDbContext> options) => _options = options;
+
+        public AIClientDbContext CreateDbContext() => new(_options);
+    }
 
     /// <summary>Column name to declared SQLite type, read from the file itself.</summary>
     private async Task<Dictionary<string, string>> ColumnTypesAsync(string table)

@@ -2,6 +2,7 @@ using AIClient.Application.Interfaces;
 using AIClient.Application.Services;
 using AIClient.Domain.Interfaces;
 using AIClient.Infrastructure.Database;
+using AIClient.Infrastructure.Graph;
 using AIClient.Infrastructure.Providers;
 using AIClient.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -83,6 +84,23 @@ public sealed class TestDatabase : IDbContextFactory<AIClientDbContext>, IAsyncD
 
     /// <summary>The real settings store over this database.</summary>
     public SettingsService Settings() => new(this, NullLogger<SettingsService>.Instance);
+
+    /// <summary>
+    /// The real graph store over this database, unloaded.
+    /// </summary>
+    /// <remarks>
+    /// Returned before <c>LoadAsync</c> on purpose: whether a write refuses on an unread graph is
+    /// itself a rule worth testing, and a factory that quietly loaded would make it unreachable.
+    /// A test that wants a working graph calls <c>LoadAsync</c> first, as the shell does.
+    /// </remarks>
+    public GraphService Graph() => new(this, NullLogger<GraphService>.Instance);
+
+    /// <summary>The real spatial store over this database.</summary>
+    /// <remarks>
+    /// Separate from <see cref="Graph"/> because the two are separate in the application, and a test
+    /// that reaches for both is a test about the boundary between them.
+    /// </remarks>
+    public CanvasViewStore Canvas() => new(this, NullLogger<CanvasViewStore>.Instance);
 
     /// <summary>The real registry over this database, backed by whichever providers a test supplies.</summary>
     public ProviderRegistry Registry(ISecureStorage secureStorage, params IAIProvider[] providers) =>

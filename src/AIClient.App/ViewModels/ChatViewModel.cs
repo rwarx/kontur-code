@@ -7,6 +7,7 @@ using AIClient.Application.DTOs;
 using AIClient.Application.Interfaces;
 using AIClient.Application.Markdown;
 using AIClient.Domain.Enums;
+using AIClient.Domain.Graph;
 using AIClient.Domain.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -69,6 +70,17 @@ public sealed partial class ChatViewModel : ObservableObject
 
     private CancellationTokenSource? _turnCancellation;
     private MessageViewModel? _streamingMessage;
+
+    /// <summary>
+    /// The graph selection the next message is about, or null for an ordinary message.
+    /// </summary>
+    /// <remarks>
+    /// Set when a question arrives from the canvas or the inspector, and cleared as soon as a turn
+    /// takes it. The context itself is not assembled here: the selection travels on the request and
+    /// <c>IGraphContextSource</c> turns it into a context block during the normal build, which is
+    /// why the canvas needs no pipeline of its own.
+    /// </remarks>
+    private GraphSelection? _graphSelection;
 
     [ObservableProperty]
     private Guid? _conversationId;
@@ -364,6 +376,7 @@ public sealed partial class ChatViewModel : ObservableObject
         ClearPendingAttachments();
         Draft = string.Empty;
         IsScrolledAway = false;
+        _graphSelection = null;
 
         FocusInputRequested?.Invoke(this, EventArgs.Empty);
     }
@@ -379,6 +392,50 @@ public sealed partial class ChatViewModel : ObservableObject
 
         Draft = suggestion.Prompt;
         FocusInputRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Asks about a graph selection, through the ordinary conversation.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The canvas and the inspector both arrive here. There is no second chat: the question is a
+    /// message like any other, and the only difference is that the request carries the selection so
+    /// the context build can describe it.
+    /// </para>
+    /// <para>
+    /// An empty <paramref name="prompt"/> means the person chose "Ask Kontur AI…" and wants to write
+    /// their own question - the selection is held, the composer is focused, and nothing is sent. A
+    /// question that came from a button is sent straight away, because clicking "Explain" is already
+    /// the decision to ask.
+    /// </para>
+    /// <para>
+    /// Agent mode is deliberately left alone: an agent run has its own context assembly, and giving
+    /// it a selection is a change to the runner rather than to the composer.
+    /// </para>
+    /// </remarks>
+    public async Task AskAboutGraphAsync(GraphSelection selection, string prompt, string label)
+    {
+        _graphSelection = selection.IsEmpty ? null : selection;
+
+        if (string.IsNullOrWhiteSpace(prompt))
+        {
+            _logger.LogInformation("A question about {Label} is waiting on the composer.", label);
+            FocusInputRequested?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        Draft = prompt;
+
+        if (!CanSend)
+        {
+            // Mid-generation, or no model chosen yet. The question stays in the box with the
+            // selection still attached, so pressing send later still asks about the same thing.
+            FocusInputRequested?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        await SendAsync().ConfigureAwait(true);
     }
 
     [RelayCommand(CanExecute = nameof(CanSend))]
@@ -415,6 +472,11 @@ public sealed partial class ChatViewModel : ObservableObject
         Draft = string.Empty;
         BannerMessage = null;
 
+        // Taken in one step, so whichever branch this turn goes down the selection belongs to the
+        // message that was just asked and to nothing after it.
+        var selection = _graphSelection;
+        _graphSelection = null;
+
         var attachments = PendingAttachments.Select(a => a.Attachment).ToList();
         ClearPendingAttachments();
 
@@ -445,6 +507,7 @@ public sealed partial class ChatViewModel : ObservableObject
             ProviderId = model.ProviderId,
             ModelId = model.ModelId,
             Attachments = attachments,
+            Selection = selection,
         };
 
         await RunTurnAsync(token => _chatService.SendMessageAsync(request, token)).ConfigureAwait(true);

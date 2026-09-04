@@ -1,4 +1,5 @@
 using AIClient.App.Services;
+using AIClient.App.ViewModels.Canvas;
 using AIClient.Application.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -11,6 +12,9 @@ public enum ShellPage
 {
     Chat = 0,
     Settings = 1,
+
+    /// <summary>The knowledge graph, spatially. A place to work, not a dialog.</summary>
+    Canvas = 2,
 }
 
 /// <summary>
@@ -53,6 +57,8 @@ public sealed partial class MainViewModel : ObservableObject
         SettingsViewModel settings,
         CommandPaletteViewModel commandPalette,
         FirstRunViewModel firstRun,
+        CanvasViewModel canvas,
+        InspectorViewModel inspector,
         IConversationService conversations,
         ISettingsService settingsService,
         IProviderRegistry registry,
@@ -66,6 +72,8 @@ public sealed partial class MainViewModel : ObservableObject
         Settings = settings;
         CommandPalette = commandPalette;
         FirstRun = firstRun;
+        Canvas = canvas;
+        Inspector = inspector;
 
         _conversations = conversations;
         _settings = settingsService;
@@ -84,6 +92,21 @@ public sealed partial class MainViewModel : ObservableObject
         Settings.SettingsApplied += OnSettingsApplied;
         CommandPalette.CommandInvoked += OnPaletteCommand;
         FirstRun.Finished += OnFirstRunFinished;
+
+        // The canvas and the inspector do not know about each other either. A selection made on the
+        // canvas arrives here and is handed on; a related node clicked in the inspector comes back
+        // the same way. Subscribed once, in the constructor, because both are singletons whose state
+        // outlives a visit to the page.
+        Canvas.SelectionChanged += (_, selection) => Inspector.Show(selection);
+        Inspector.NodeActivated += (_, nodeId) => Canvas.Focus(nodeId);
+
+        // The code panel is the canvas's, so the inspector asks for it the way it asks for a jump.
+        // Nothing awaits the read: the panel shows its own progress and reports its own refusals.
+        Inspector.CodeRequested += (_, nodeId) => Canvas.ShowCodeAsync(nodeId);
+
+        // One handler for both surfaces, so there is exactly one path from a selection to a model.
+        Canvas.AiRequested += OnGraphAiRequested;
+        Inspector.AiRequested += OnGraphAiRequested;
     }
 
     public ChatViewModel Chat { get; }
@@ -92,9 +115,12 @@ public sealed partial class MainViewModel : ObservableObject
     public SettingsViewModel Settings { get; }
     public CommandPaletteViewModel CommandPalette { get; }
     public FirstRunViewModel FirstRun { get; }
+    public CanvasViewModel Canvas { get; }
+    public InspectorViewModel Inspector { get; }
 
     public bool IsChatVisible => CurrentPage == ShellPage.Chat;
     public bool IsSettingsVisible => CurrentPage == ShellPage.Settings;
+    public bool IsCanvasVisible => CurrentPage == ShellPage.Canvas;
 
     /// <summary>Runs the startup sequence once the window is up.</summary>
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -130,6 +156,52 @@ public sealed partial class MainViewModel : ObservableObject
 
     [RelayCommand]
     private void ShowChat() => CurrentPage = ShellPage.Chat;
+
+    /// <summary>
+    /// Opens the canvas, loading the graph the first time.
+    /// </summary>
+    /// <remarks>
+    /// Lazily, not at startup: someone who only ever chats should not pay for a graph read, and the
+    /// load is idempotent, so every later visit is free.
+    /// </remarks>
+    [RelayCommand]
+    private async Task ShowCanvasAsync()
+    {
+        CurrentPage = ShellPage.Canvas;
+
+        try
+        {
+            await Canvas.InitializeAsync().ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            // The canvas reports its own failures in the page; this is only the last resort.
+            _logger.LogError(ex, "The canvas could not be opened.");
+        }
+    }
+
+    /// <summary>
+    /// Carries a question about a selection to the conversation.
+    /// </summary>
+    /// <remarks>
+    /// The page changes first, so the answer is visible while it streams rather than arriving in a
+    /// pane nobody is looking at. The selection stays on the canvas: coming back to it after reading
+    /// the answer is the point of asking from there.
+    /// </remarks>
+    private async void OnGraphAiRequested(object? sender, CanvasAiRequest request)
+    {
+        CurrentPage = ShellPage.Chat;
+
+        try
+        {
+            await Chat.AskAboutGraphAsync(request.Selection, request.Prompt, request.Label)
+                      .ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "The question about {Label} could not be sent.", request.Label);
+        }
+    }
 
     [RelayCommand]
     private void ToggleSidebar() => IsSidebarVisible = !IsSidebarVisible;
@@ -281,6 +353,10 @@ public sealed partial class MainViewModel : ObservableObject
                     ModelPickerRequested?.Invoke(this, EventArgs.Empty);
                     break;
 
+                case PaletteCommand.OpenCanvas:
+                    await ShowCanvasAsync().ConfigureAwait(true);
+                    break;
+
                 case PaletteCommand.OpenSettings:
                     ShowSettings();
                     break;
@@ -329,5 +405,6 @@ public sealed partial class MainViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(IsChatVisible));
         OnPropertyChanged(nameof(IsSettingsVisible));
+        OnPropertyChanged(nameof(IsCanvasVisible));
     }
 }

@@ -1,0 +1,154 @@
+<UserControl x:Class="AIClient.App.Views.Canvas.CanvasCodePanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vm="clr-namespace:AIClient.App.ViewModels.Canvas"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:CanvasCodeViewModel}"
+             d:DesignHeight="600" d:DesignWidth="560"
+             Width="560">
+
+    <UserControl.Resources>
+
+        <!--
+            The gutter and the code share one style because they have to share every metric that
+            decides where a line sits: the same font, the same size, the same padding and the same
+            template. Two controls of different types would agree on the first line and drift apart
+            further down, which is worse than no line numbers at all.
+
+            Deliberately not based on WPF-UI's TextBox style, which is the opposite of the choice made
+            for the toolbar buttons and for the same reason - a text box that looks like a text box is
+            right for an input and wrong here, where the control has to read as a page of code.
+            Everything the system template would otherwise contribute is overridden below, foreground
+            included, so the theme still decides the colour.
+        -->
+        <Style x:Key="CanvasCodeText" TargetType="{x:Type TextBox}">
+            <Setter Property="IsReadOnly" Value="True" />
+            <Setter Property="AcceptsReturn" Value="True" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="FontFamily" Value="{StaticResource CodeFont}" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+
+        <Style x:Key="CanvasCodeGutter" TargetType="{x:Type TextBox}"
+               BasedOn="{StaticResource CanvasCodeText}">
+            <Setter Property="TextAlignment" Value="Right" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+            <Setter Property="VerticalScrollBarVisibility" Value="Hidden" />
+            <Setter Property="HorizontalScrollBarVisibility" Value="Hidden" />
+        </Style>
+
+        <!-- The canvas toolbar's button style lives in CanvasView's own resources, which are not
+             visible from here. One button does not justify moving it into the shared dictionary. -->
+        <Style x:Key="CanvasCodeButton" TargetType="{x:Type ui:Button}"
+               BasedOn="{StaticResource {x:Type ui:Button}}">
+            <Setter Property="Appearance" Value="Transparent" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+
+    </UserControl.Resources>
+
+    <Border BorderThickness="1,0,0,0"
+            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+            Background="{DynamicResource ApplicationBackgroundBrush}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="14,10,8,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock FontSize="13" FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis"
+                               Text="{Binding Title}" />
+
+                    <!-- The path is relative to the project folder, so it is safe to show. -->
+                    <TextBlock Margin="0,2,0,0"
+                               Style="{StaticResource SubtleText}"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding Path}"
+                               Text="{Binding Path}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Margin="0,0,8,0"
+                               VerticalAlignment="Center"
+                               Style="{StaticResource SubtleText}"
+                               Text="{Binding Detail}" />
+
+                    <ui:Button Style="{StaticResource CanvasCodeButton}"
+                               Content="✕"
+                               AutomationProperties.Name="Close code"
+                               ToolTip="Close (Esc)"
+                               Command="{Binding CloseCommand}" />
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!--
+                    The gutter has no scrollbar of its own and cannot be scrolled by hand: its offset
+                    is driven from the code's, which is the only way two boxes stay on the same line.
+                -->
+                <TextBox x:Name="Gutter"
+                         Grid.Column="0"
+                         Margin="14,0,0,10"
+                         Style="{StaticResource CanvasCodeGutter}"
+                         AutomationProperties.Name="Line numbers"
+                         Text="{Binding Gutter, Mode=OneWay}" />
+
+                <TextBox Grid.Column="1"
+                         Margin="10,0,0,10"
+                         Style="{StaticResource CanvasCodeText}"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Auto"
+                         AutomationProperties.Name="File contents"
+                         ScrollViewer.ScrollChanged="OnCodeScrollChanged"
+                         Text="{Binding Text, Mode=OneWay}" />
+
+                <TextBlock Grid.Column="0" Grid.ColumnSpan="2"
+                           Margin="14,0"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Style="{StaticResource SubtleText}"
+                           Text="Reading…"
+                           Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
+
+                <!-- The same amber the status strip uses for a refusal, and the same kind of sentence:
+                     what happened, in words, with no path and no exception text in it. -->
+                <TextBlock Grid.Column="0" Grid.ColumnSpan="2"
+                           Margin="24,0"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           FontSize="12"
+                           Foreground="{StaticResource ApprovalAccentBrush}"
+                           Text="{Binding Error}"
+                           Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}" />
+            </Grid>
+        </Grid>
+    </Border>
+
+</UserControl>

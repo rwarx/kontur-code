@@ -59,6 +59,7 @@ public sealed class SettingsService : ISettingsService
             Chat = Deserialize<ChatSettings>(rows, AppSettings.Keys.Chat),
             Storage = Deserialize<StorageSettings>(rows, AppSettings.Keys.Storage),
             Agent = Deserialize<AgentSettings>(rows, AppSettings.Keys.Agent),
+            Canvas = Deserialize<CanvasSettings>(rows, AppSettings.Keys.Canvas),
         };
 
         _logger.LogInformation("Loaded {Count} settings section(s).", rows.Count);
@@ -98,6 +99,7 @@ public sealed class SettingsService : ISettingsService
             await PersistAsync(AppSettings.Keys.Chat, Current.Chat, cancellationToken).ConfigureAwait(false);
             await PersistAsync(AppSettings.Keys.Storage, Current.Storage, cancellationToken).ConfigureAwait(false);
             await PersistAsync(AppSettings.Keys.Agent, Current.Agent, cancellationToken).ConfigureAwait(false);
+            await PersistAsync(AppSettings.Keys.Canvas, Current.Canvas, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -123,6 +125,7 @@ public sealed class SettingsService : ISettingsService
             var t when t == typeof(ChatSettings) => (Current.Chat, AppSettings.Keys.Chat),
             var t when t == typeof(StorageSettings) => (Current.Storage, AppSettings.Keys.Storage),
             var t when t == typeof(AgentSettings) => (Current.Agent, AppSettings.Keys.Agent),
+            var t when t == typeof(CanvasSettings) => (Current.Canvas, AppSettings.Keys.Canvas),
             _ => throw new ArgumentException(
                 $"'{typeof(TSection).Name}' is not a settings section.", nameof(TSection)),
         };

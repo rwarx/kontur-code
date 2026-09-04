@@ -1,3 +1,4 @@
+using AIClient.Domain.Graph;
 using AIClient.Domain.Models;
 
 namespace AIClient.Domain.Interfaces;
@@ -38,6 +39,16 @@ public sealed record ContextBuildRequest
     /// need the history as it stood before a given turn.
     /// </summary>
     public Guid? UpToMessageId { get; init; }
+
+    /// <summary>
+    /// What the user had picked out on the Canvas when they asked, if anything.
+    /// </summary>
+    /// <remarks>
+    /// Ids and a depth, never coordinates: see <see cref="GraphSelection"/>. Null is the
+    /// ordinary case and leaves the built prompt exactly as it was before this property existed,
+    /// which is what keeps a plain chat message unaffected by the graph existing at all.
+    /// </remarks>
+    public GraphSelection? Selection { get; init; }
 }
 
 /// <summary>Result of a context build, including what had to be dropped.</summary>
