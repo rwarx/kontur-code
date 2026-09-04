@@ -67,6 +67,29 @@ public interface IWorkspaceService
         WorkspacePath path,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Turns a relative path into the absolute directory it names, refusing anything the rest of this
+    /// interface would refuse.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The one method here that hands an absolute path back, and it exists for a single caller: a child
+    /// process needs a real working directory, and the operating system will not take a relative one.
+    /// Everything else on this interface keeps absolute paths on this side of the boundary precisely so
+    /// that a caller cannot do its own path arithmetic - which is why this is here rather than being
+    /// reimplemented next to the code that starts the process. Two path guards that can disagree are
+    /// worse than one.
+    /// </para>
+    /// <para>
+    /// Refuses a path that is not an existing directory, as well as everything
+    /// <see cref="ReadAsync"/> would refuse: outside the root, a protected name, or reached through a
+    /// link leading out.
+    /// </para>
+    /// </remarks>
+    Task<WorkspaceResult<string>> ResolveDirectoryAsync(
+        WorkspacePath path,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Writes a file whole, creating it or replacing its contents.</summary>
     /// <remarks>
     /// Written to a temporary file and moved into place, so an interruption leaves the previous

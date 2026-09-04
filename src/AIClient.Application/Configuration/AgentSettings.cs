@@ -104,4 +104,65 @@ public sealed class AgentSettings
     /// call that had not been made yet.
     /// </remarks>
     public int MaxIdenticalCalls { get; set; } = 3;
+
+    /// <summary>
+    /// Whether the agent may run programs at all. Off until the user turns it on.
+    /// </summary>
+    /// <remarks>
+    /// The one setting in this class that changes what kind of thing the agent is. Reading and writing
+    /// files is bounded by the workspace: the worst case is damage to files in one folder, which version
+    /// control undoes. A program is bounded by nothing the workspace knows about - it can reach the
+    /// network, the rest of the disk and the user's credentials, whatever folder it was started in - so
+    /// the decision to allow that is the user's, taken once, in a screen where the consequence can be
+    /// spelled out. Defaulting this to true would mean an application that gained the ability to run
+    /// arbitrary commands during an update.
+    /// </remarks>
+    public bool AllowCommands { get; set; }
+
+    /// <summary>
+    /// The programs the agent may run, matched by name without a path or an extension.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An allowlist rather than a blocklist, because the set of dangerous programs on a Windows machine
+    /// is not enumerable and the set of useful ones for a coding task is. The entries below are the
+    /// toolchains a project is built and tested with; anything else is a refusal until a person adds it,
+    /// and the model is told to ask rather than being left to guess why a command failed.
+    /// </para>
+    /// <para>
+    /// Note what is absent: <c>cmd</c>, <c>powershell</c>, <c>pwsh</c>, <c>bash</c>, <c>sh</c> and
+    /// <c>wsl</c>. Allowing any one of them makes the rest of this list decorative, since every other
+    /// program on the machine is reachable through it. They are not blocked - a user who adds one has
+    /// decided to, and that is what this list is for - but they are not there to start with, and the
+    /// tool says so when it refuses.
+    /// </para>
+    /// </remarks>
+    public List<string> AllowedCommands { get; set; } =
+    [
+        "dotnet", "msbuild", "nuget",
+        "git",
+        "node", "npm", "npx", "yarn", "pnpm", "tsc",
+        "python", "python3", "pip", "pytest",
+        "cargo", "rustc", "go", "java", "javac", "mvn", "gradle",
+        "docker",
+    ];
+
+    /// <summary>
+    /// How long one command may run before it is killed, in seconds.
+    /// </summary>
+    /// <remarks>
+    /// Two minutes is a build. The number that matters is not the ceiling but that there is one: a
+    /// program waiting on input nobody will type never ends on its own, and a tool call that never
+    /// returns takes the whole run with it - including the time budget, which cannot fire while a step
+    /// is blocked inside a tool.
+    /// </remarks>
+    public int CommandTimeoutSeconds { get; set; } = 120;
+
+    /// <summary>Characters of a command's output kept before the rest is dropped.</summary>
+    /// <remarks>
+    /// Output is the expensive part of running a build: a restore of a large solution prints tens of
+    /// thousands of lines that say nothing but "downloaded". The cap keeps the tail rather than the
+    /// head, because the lines that say what went wrong are at the end.
+    /// </remarks>
+    public int MaxCommandOutputCharacters { get; set; } = 20_000;
 }

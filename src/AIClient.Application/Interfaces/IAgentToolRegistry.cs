@@ -26,6 +26,19 @@ public interface IAgentToolRegistry
     IReadOnlyList<AIToolDefinition> Definitions { get; }
 
     /// <summary>
+    /// The definitions of the tools that can currently do something, which is what a request should
+    /// carry.
+    /// </summary>
+    /// <remarks>
+    /// Differs from <see cref="Definitions"/> only when a tool implements
+    /// <see cref="IAgentToolAvailability"/> and is currently switched off, so in the ordinary case the
+    /// same prebuilt list comes back and nothing is allocated. Withholding a tool is a courtesy to the
+    /// model rather than a security boundary: the tool refuses the call regardless, and this only saves
+    /// the step spent discovering that.
+    /// </remarks>
+    IReadOnlyList<AIToolDefinition> Available();
+
+    /// <summary>
     /// Finds the tool a call names.
     /// </summary>
     /// <remarks>

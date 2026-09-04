@@ -60,9 +60,10 @@ public static class AgentPrompt
     /// </summary>
     /// <param name="basePrompt">The conversation's own prompt, or the configured default. May be null.</param>
     /// <param name="workspaceRoot">The open folder, or null when there is none.</param>
-    public static string Compose(string? basePrompt, string? workspaceRoot)
+    /// <param name="canRunCommands">Whether the user has allowed programs to be run.</param>
+    public static string Compose(string? basePrompt, string? workspaceRoot, bool canRunCommands = false)
     {
-        var parts = new List<string>(3);
+        var parts = new List<string>(4);
 
         if (!string.IsNullOrWhiteSpace(basePrompt))
         {
@@ -70,10 +71,37 @@ public static class AgentPrompt
         }
 
         parts.Add(workspaceRoot is null ? NoWorkspace : Workspace(workspaceRoot));
+
+        if (canRunCommands && workspaceRoot is not null)
+        {
+            parts.Add(Commands);
+        }
+
         parts.Add(Discipline);
 
         return string.Join("\n\n", parts);
     }
+
+    /// <summary>
+    /// Added only when running programs is switched on, and it is about restraint rather than capability.
+    /// </summary>
+    /// <remarks>
+    /// The tool description already says how to call it. What a run needs on top of that is a sense of
+    /// proportion: every command is a question put to a person who is watching, and a model that runs the
+    /// test suite after each of six edits has asked six times for what one call would have told it. The
+    /// last line matters most - a model that cannot get a command approved will otherwise keep proposing
+    /// variations of it until the step budget is gone.
+    /// </remarks>
+    private const string Commands = """
+        You can also run programs, and every run needs the user's approval before it happens - they see
+        the exact command and can refuse it. So:
+        - Verify with a command rather than by assertion. After changing code, build it; after changing
+          behaviour, run the tests. "This should compile" is worth nothing next to an exit code.
+        - Batch the checking. Make the whole change, then build once. Do not build after every edit.
+        - Read the output before deciding what it means. A failing build names the file and the line.
+        - If a command is refused or not allowed, stop asking. Say what you would have run, what it
+          would have told you, and carry on with what you can do without it.
+        """;
 
     private static string Workspace(string root) =>
         $"""

@@ -748,6 +748,55 @@ public sealed class WorkspaceServiceTests : IAsyncLifetime
         Assert.Contains("does not exist", result.Error, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task A_folder_can_be_resolved_to_the_absolute_path_a_child_process_needs()
+    {
+        // The one method here that hands an absolute path back, and it exists for exactly one caller:
+        // a process has to be started somewhere real. It lives on this interface rather than next to
+        // the process code because two path guards that can disagree are worse than one.
+        var root = await _service.ResolveDirectoryAsync(WorkspacePath.Root, Token);
+        var nested = await _service.ResolveDirectoryAsync(Parse("src"), Token);
+
+        Assert.True(root.Success, root.Error);
+        Assert.Equal(_root, root.Value, ignoreCase: true);
+
+        Assert.True(nested.Success, nested.Error);
+        Assert.Equal(Absolute("src"), nested.Value, ignoreCase: true);
+    }
+
+    [Fact]
+    public async Task A_file_named_where_a_folder_belongs_is_told_apart_from_one_that_is_missing()
+    {
+        // Two different corrections. A model that named a file takes its parent; one that named nothing
+        // has to go and look, and collapsing both into "does not exist" sends it looking for the file
+        // it just successfully read.
+        var file = await _service.ResolveDirectoryAsync(Parse("lf.txt"), Token);
+        var absent = await _service.ResolveDirectoryAsync(Parse("nowhere"), Token);
+
+        Assert.False(file.Success);
+        Assert.Contains("is a file, not a folder", file.Error, StringComparison.Ordinal);
+
+        Assert.False(absent.Success);
+        Assert.Contains("does not exist", absent.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Resolving_a_folder_refuses_everything_the_rest_of_the_interface_refuses()
+    {
+        // The whole reason it is here. If this method had its own idea of what is contained, the
+        // sandbox would have a second front door with a different lock on it.
+        var guarded = await _service.ResolveDirectoryAsync(Parse(".git"), Token);
+
+        Assert.False(guarded.Success);
+        Assert.Contains("off limits", guarded.Error, StringComparison.Ordinal);
+
+        await _service.CloseAsync(Token);
+        var closed = await _service.ResolveDirectoryAsync(WorkspacePath.Root, Token);
+
+        Assert.False(closed.Success);
+        Assert.Contains("No folder is open", closed.Error, StringComparison.Ordinal);
+    }
+
     /// <summary>
     /// The project a test operates on: ordinary source, the line-ending and byte-order-mark cases,
     /// the names that are off limits, the names that only look like it, and the folders an agent is

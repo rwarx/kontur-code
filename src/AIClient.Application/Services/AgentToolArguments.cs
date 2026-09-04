@@ -179,6 +179,75 @@ public sealed class AgentToolArguments
     }
 
     /// <summary>
+    /// Reads an optional array of strings: an empty list when it was not sent, and an error when any
+    /// element is something other than a string or a number.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Numbers are accepted and rendered, because a model writing <c>["-j", 4]</c> means the same thing
+    /// as <c>["-j", "4"]</c> and refusing it would spend a step on JSON pedantry. Anything else is an
+    /// error: an object or a nested array in an argument list is not a typo for a string, it is a
+    /// misunderstanding of what the argument is, and coercing it would send the model's confusion
+    /// through to a command line.
+    /// </para>
+    /// <para>
+    /// A bare string is accepted in place of a one-element array for the same reason. What is not
+    /// accepted is splitting it - <c>"build --no-restore"</c> stays one argument, because the moment
+    /// this method splits on spaces it has become a shell, and a filename with a space in it starts
+    /// arriving as two arguments.
+    /// </para>
+    /// </remarks>
+    public bool TryGetStringArray(
+        string name,
+        out IReadOnlyList<string> values,
+        [NotNullWhen(false)] out string? error)
+    {
+        values = [];
+        error = null;
+
+        if (!TryGetProperty(name, out var property))
+        {
+            return true;
+        }
+
+        if (property.ValueKind == JsonValueKind.String)
+        {
+            values = [property.GetString() ?? string.Empty];
+            return true;
+        }
+
+        if (property.ValueKind != JsonValueKind.Array)
+        {
+            error = $"'{name}' must be an array of strings, such as [\"build\", \"--no-restore\"].";
+            return false;
+        }
+
+        var items = new List<string>(property.GetArrayLength());
+
+        foreach (var element in property.EnumerateArray())
+        {
+            switch (element.ValueKind)
+            {
+                case JsonValueKind.String:
+                    items.Add(element.GetString() ?? string.Empty);
+                    break;
+
+                case JsonValueKind.Number:
+                    items.Add(element.GetRawText());
+                    break;
+
+                default:
+                    error = $"Every entry in '{name}' has to be a string. Send each argument separately, "
+                        + "as its own element.";
+                    return false;
+            }
+        }
+
+        values = items;
+        return true;
+    }
+
+    /// <summary>
     /// Finds a property, and treats an explicit null as absent.
     /// </summary>
     /// <remarks>

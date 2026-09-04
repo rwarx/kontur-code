@@ -143,4 +143,57 @@ public sealed class AgentToolArgumentsTests
         Assert.False(arguments.TryGetInt32("b", out _, out var fraction));
         Assert.Equal("'b' must be a whole number.", fraction);
     }
+
+    [Fact]
+    public void An_absent_array_of_strings_is_read_as_an_empty_one()
+    {
+        // 'args' is optional wherever it appears, and a program invoked with none is a legitimate call
+        // rather than a malformed one, so absence is an answer and not an error.
+        Assert.True(AgentToolArguments.TryParse("""{"command": "dotnet"}""", out var arguments, out _));
+
+        Assert.True(arguments.TryGetStringArray("args", out var values, out var error), error);
+        Assert.Empty(values);
+    }
+
+    [Fact]
+    public void A_bare_string_where_an_array_belongs_becomes_one_entry_and_is_never_split()
+    {
+        // The single most consequential line in this type. Models send "build --no-restore" as one
+        // string, and splitting it on spaces would be this application quietly writing a shell: the
+        // same rule would then split a commit message, a path with a space, or a quoted argument.
+        Assert.True(AgentToolArguments.TryParse("""{"args": "build --no-restore"}""", out var arguments, out _));
+
+        Assert.True(arguments.TryGetStringArray("args", out var values, out var error), error);
+        Assert.Equal(["build --no-restore"], values);
+    }
+
+    [Fact]
+    public void An_array_of_strings_comes_back_in_order_with_numbers_taken_as_written()
+    {
+        // A port or a count arrives unquoted often enough to be worth accepting, and its raw text is
+        // exactly what a command line wants - reading it as a number and formatting it again would put
+        // the current culture between the model and the program.
+        Assert.True(
+            AgentToolArguments.TryParse("""{"args": ["run", "--port", 8080, "--ratio", 1.5]}""", out var arguments, out _));
+
+        Assert.True(arguments.TryGetStringArray("args", out var values, out var error), error);
+        Assert.Equal(["run", "--port", "8080", "--ratio", "1.5"], values);
+    }
+
+    [Fact]
+    public void An_entry_that_is_not_a_string_says_which_shape_is_wanted()
+    {
+        // Models send an object here when they mean a flag with a value. Coercing would hand the
+        // model's JSON to a compiler as a filename; refusing says how to send it instead.
+        Assert.True(
+            AgentToolArguments.TryParse("""{"args": ["build", {"c": "Release"}], "n": 4}""", out var arguments, out _));
+
+        Assert.False(arguments.TryGetStringArray("args", out _, out var entry));
+        Assert.Equal(
+            "Every entry in 'args' has to be a string. Send each argument separately, as its own element.",
+            entry);
+
+        Assert.False(arguments.TryGetStringArray("n", out _, out var wrongKind));
+        Assert.Contains("must be an array of strings", wrongKind!, StringComparison.Ordinal);
+    }
 }

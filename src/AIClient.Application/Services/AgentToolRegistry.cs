@@ -24,6 +24,7 @@ namespace AIClient.Application.Services;
 public sealed class AgentToolRegistry : IAgentToolRegistry
 {
     private readonly Dictionary<string, IAgentTool> _byName;
+    private readonly bool _conditional;
 
     public AgentToolRegistry(IEnumerable<IAgentTool> tools)
     {
@@ -56,11 +57,39 @@ public sealed class AgentToolRegistry : IAgentToolRegistry
                 ParametersJsonSchema = tool.ParametersJsonSchema,
             }),
         ];
+
+        _conditional = Tools.Any(tool => tool is IAgentToolAvailability);
     }
 
     public IReadOnlyList<IAgentTool> Tools { get; }
 
     public IReadOnlyList<AIToolDefinition> Definitions { get; }
+
+    public IReadOnlyList<AIToolDefinition> Available()
+    {
+        // The fast path is the only path most of the time, and it hands back the list built in the
+        // constructor rather than a copy of it: a tool that is always available is the rule, and a step
+        // of a run should not allocate a list to say so.
+        if (!_conditional)
+        {
+            return Definitions;
+        }
+
+        var available = new List<AIToolDefinition>(Definitions.Count);
+
+        for (var index = 0; index < Tools.Count; index++)
+        {
+            if (Tools[index] is not IAgentToolAvailability { IsAvailable: false })
+            {
+                available.Add(Definitions[index]);
+            }
+        }
+
+        // Indexes line up because both lists are built from Tools in one order, and Definitions is
+        // never filtered. If that ever stops being true this loop silently offers the wrong schemas,
+        // which is why the two are built together above rather than in separate passes.
+        return available;
+    }
 
     public bool TryGet(string? name, [NotNullWhen(true)] out IAgentTool? tool)
     {

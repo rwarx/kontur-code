@@ -345,6 +345,33 @@ public sealed class WorkspaceService : IWorkspaceService
                 : WorkspaceResult<WorkspaceEntry>.Ok(ToEntry(path, info)));
         });
 
+    public Task<WorkspaceResult<string>> ResolveDirectoryAsync(
+        WorkspacePath path,
+        CancellationToken cancellationToken = default) =>
+        GuardAsync<string>(path, () =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!TryResolve(path, out var full, out var error))
+            {
+                return Task.FromResult(WorkspaceResult<string>.Fail(error));
+            }
+
+            // Distinguished from "does not exist", because a model that named a file where a folder
+            // belongs corrects that by taking the parent, and one that named nothing has to look.
+            if (File.Exists(full))
+            {
+                return Task.FromResult(WorkspaceResult<string>.Fail($"'{path}' is a file, not a folder."));
+            }
+
+            if (!Directory.Exists(full))
+            {
+                return Task.FromResult(WorkspaceResult<string>.Fail($"'{path}' does not exist."));
+            }
+
+            return Task.FromResult(WorkspaceResult<string>.Ok(full));
+        });
+
     public Task<WorkspaceResult<WorkspaceWrite>> WriteAsync(
         WorkspacePath path,
         string content,

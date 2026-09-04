@@ -675,7 +675,10 @@ public sealed class AgentService : IAgentService
                 new ContextBuildRequest
                 {
                     ConversationId = run.ConversationId,
-                    SystemPrompt = AgentPrompt.Compose(conversation?.SystemPrompt ?? chat.SystemPrompt, _workspace.Root),
+                    SystemPrompt = AgentPrompt.Compose(
+                        conversation?.SystemPrompt ?? chat.SystemPrompt,
+                        _workspace.Root,
+                        _settings.Current.Agent.AllowCommands),
                     ContextWindow = model?.ContextWindow,
                     ReservedOutputTokens = chat.ReservedOutputTokens,
                 },
@@ -698,7 +701,7 @@ public sealed class AgentService : IAgentService
                 TopP = Allow(model, "top_p") ? chat.TopP : null,
                 MaxTokens = Allow(model, "max_tokens") ? ClampMaxTokens(chat.MaxTokens, model) : null,
                 Stream = model?.SupportsStreaming ?? true,
-                Tools = _registry.Definitions,
+                Tools = _registry.Available(),
 
                 // The definitions stay attached on the final step. Withdrawing them entirely makes
                 // some providers forget the calls already in the history, which invalidates the very

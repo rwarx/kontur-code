@@ -6,6 +6,7 @@ using AIClient.Domain.Interfaces;
 using AIClient.Infrastructure.Configuration;
 using AIClient.Infrastructure.Database;
 using AIClient.Infrastructure.Http;
+using AIClient.Infrastructure.Processes;
 using AIClient.Infrastructure.Providers;
 using AIClient.Infrastructure.Providers.OpenAiCompatible;
 using AIClient.Infrastructure.Repositories;
@@ -146,6 +147,13 @@ public static class DependencyInjection
         services.AddSingleton<IAgentTool, EditFileTool>();
         services.AddSingleton<IAgentTool, MoveFileTool>();
         services.AddSingleton<IAgentTool, WriteFileTool>();
+
+        // Last, and the only one that can run a program. It is registered unconditionally and refuses
+        // its own calls while the setting is off, rather than being registered conditionally: the
+        // container is built once at startup, and a tool set that depended on a setting read at that
+        // moment would need a restart to reflect the switch the user just turned on.
+        services.AddSingleton<IProcessRunner, ProcessRunner>();
+        services.AddSingleton<IAgentTool, RunCommandTool>();
 
         services.AddSingleton<IAgentToolRegistry, AgentToolRegistry>();
     }

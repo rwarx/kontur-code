@@ -33,6 +33,7 @@ namespace AIClient.Tests;
 public sealed class AgentToolTests : IAsyncLifetime
 {
     private readonly StubSettingsService _settings = new();
+    private readonly StubProcessRunner _runner = new();
     private readonly RecordingLogger<WorkspaceService> _logger = new();
 
     private string _scratch = null!;
@@ -419,10 +420,14 @@ public sealed class AgentToolTests : IAsyncLifetime
     private IAgentTool Activate(Type type)
     {
         var arguments = type.GetConstructors().Single().GetParameters().Select(
-            parameter => parameter.ParameterType == typeof(IWorkspaceService)
-                ? (object)_workspace
-                : throw new InvalidOperationException(
-                    $"{type.Name} takes a {parameter.ParameterType.Name}, which this test cannot supply."));
+            object (parameter) => parameter.ParameterType switch
+            {
+                var wanted when wanted == typeof(IWorkspaceService) => _workspace,
+                var wanted when wanted == typeof(ISettingsService) => _settings,
+                var wanted when wanted == typeof(IProcessRunner) => _runner,
+                _ => throw new InvalidOperationException(
+                    $"{type.Name} takes a {parameter.ParameterType.Name}, which this test cannot supply."),
+            });
 
         return (IAgentTool)Activator.CreateInstance(type, [.. arguments])!;
     }
