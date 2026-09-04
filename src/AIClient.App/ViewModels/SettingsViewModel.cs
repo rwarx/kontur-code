@@ -129,6 +129,37 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private int _maxAgentFileKilobytes;
 
+    /// <summary>
+    /// Whether the agent may run programs at all.
+    /// </summary>
+    /// <remarks>
+    /// Sits among the three budgets above but is not one of them. Those bound how much of something the
+    /// agent may do; this one decides whether a whole class of thing is possible, and it is the only
+    /// setting on this screen whose consequence reaches outside the workspace folder. The view spells that
+    /// out beside the switch rather than in a tooltip.
+    /// </remarks>
+    [ObservableProperty]
+    private bool _allowCommands;
+
+    /// <summary>The allowlist as one line of text, which is how it is edited.</summary>
+    /// <remarks>
+    /// A text box rather than a list with add and remove buttons. The list is a dozen short names that a
+    /// user changes once and then leaves alone, so typing 'dotnet, git, npm' beats three dialogs - the
+    /// care belongs in the parse, not in the widget.
+    /// </remarks>
+    [ObservableProperty]
+    private string _allowedCommands = string.Empty;
+
+    /// <summary>What is wrong with the allowlist as typed, or null when nothing is.</summary>
+    [ObservableProperty]
+    private string? _allowedCommandsProblem;
+
+    [ObservableProperty]
+    private int _commandTimeoutSeconds;
+
+    [ObservableProperty]
+    private int _maxCommandOutputCharacters;
+
     public SettingsViewModel(
         ISettingsService settings,
         IProviderRegistry registry,
@@ -231,6 +262,13 @@ public sealed partial class SettingsViewModel : ObservableObject
             MaxAgentSteps = current.Agent.MaxSteps;
             MaxAgentSeconds = current.Agent.MaxDurationSeconds;
             MaxAgentFileKilobytes = (int)(current.Agent.MaxFileBytes / 1024);
+
+            // The switch first: the warning under the allowlist depends on it, and assigning the list
+            // recomputes that warning.
+            AllowCommands = current.Agent.AllowCommands;
+            AllowedCommands = string.Join(", ", current.Agent.AllowedCommands);
+            CommandTimeoutSeconds = current.Agent.CommandTimeoutSeconds;
+            MaxCommandOutputCharacters = current.Agent.MaxCommandOutputCharacters;
 
             // Asked of the workspace, which has already re-checked the stored folder against the
             // disk: it may have been deleted or moved since it was chosen.
@@ -440,6 +478,97 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     partial void OnMaxAgentFileKilobytesChanged(int value) =>
         Save<AgentSettings>(a => a.MaxFileBytes = Math.Clamp(value, 1, 8192) * 1024L);
+
+    partial void OnAllowCommandsChanged(bool value)
+    {
+        Save<AgentSettings>(a => a.AllowCommands = value);
+        AllowedCommandsProblem = CommandListProblem(AllowedCommands, value);
+    }
+
+    /// <remarks>
+    /// The typed text is parsed but never written back to the property. Reformatting the box while it has
+    /// focus would move the caret, and what matters is the list this saves rather than the punctuation it
+    /// was typed with; anything that could not name a program is reported above instead of stored.
+    /// </remarks>
+    partial void OnAllowedCommandsChanged(string value)
+    {
+        var names = ParseCommandNames(value);
+
+        Save<AgentSettings>(a => a.AllowedCommands = names);
+        AllowedCommandsProblem = CommandListProblem(value, AllowCommands);
+    }
+
+    partial void OnCommandTimeoutSecondsChanged(int value) =>
+        Save<AgentSettings>(a => a.CommandTimeoutSeconds = Math.Clamp(value, 5, 3600));
+
+    partial void OnMaxCommandOutputCharactersChanged(int value) =>
+        Save<AgentSettings>(a => a.MaxCommandOutputCharacters = Math.Clamp(value, 1_000, 200_000));
+
+    /// <summary>
+    /// What is wrong with the allowlist as typed, or null when nothing is.
+    /// </summary>
+    /// <remarks>
+    /// Both cases below fail silently otherwise. An entry that cannot be a program name is dropped by the
+    /// parse, so a user who typed a full path would never learn why their program is still refused; and an
+    /// empty list with the switch on leaves the model holding a tool that refuses every call, which costs a
+    /// step and an approval prompt to find out. Nothing is said while the switch is off, where neither
+    /// matters.
+    /// </remarks>
+    private static string? CommandListProblem(string text, bool allowed)
+    {
+        if (!allowed)
+        {
+            return null;
+        }
+
+        var dropped = Tokenize(text).Where(entry => !CouldNameAProgram(entry)).ToList();
+
+        if (dropped.Count > 0)
+        {
+            return "Left out, because a program is named without a path, a space or an argument: "
+                + $"{string.Join(", ", dropped)}.";
+        }
+
+        return ParseCommandNames(text).Count == 0
+            ? "Nothing is allowed, so every command will be refused. Add the programs this project is built "
+                + "and tested with."
+            : null;
+    }
+
+    /// <summary>Splits the allowlist box the way people type it: by commas, semicolons or spaces.</summary>
+    private static string[] Tokenize(string text) =>
+        text.Split(
+            [',', ';', ' ', '\t', '\r', '\n'],
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    /// <summary>
+    /// Reads the box into the list the tool compares against, in the order it was typed.
+    /// </summary>
+    /// <remarks>
+    /// The filter grants nothing and enforces nothing - the tool refuses a name carrying a path or a shell
+    /// operator whatever this list says. What it buys is that such a mistake is visible here, in the screen
+    /// where it was made, rather than as a refusal three steps into a run.
+    /// </remarks>
+    private static List<string> ParseCommandNames(string text)
+    {
+        var names = new List<string>();
+
+        foreach (var entry in Tokenize(text))
+        {
+            if (CouldNameAProgram(entry)
+                && !names.Any(existing => string.Equals(existing, entry, StringComparison.OrdinalIgnoreCase)))
+            {
+                names.Add(entry);
+            }
+        }
+
+        return names;
+    }
+
+    /// <summary>Whether a word could be the name of a program, as opposed to a path or a command line.</summary>
+    private static bool CouldNameAProgram(string entry) =>
+        entry.Length is > 0 and <= 128
+        && entry.All(character => char.IsLetterOrDigit(character) || character is '.' or '-' or '_' or '+');
 }
 
 /// <summary>One row in the keyboard shortcut reference.</summary>

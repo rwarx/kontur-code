@@ -447,7 +447,7 @@
                                    TextWrapping="Wrap"
                                    TextTrimming="None"
                                    Margin="0,0,0,14"
-                                   Text="With agent mode on in the chat box, the model can list, read, search, write, move and delete files under this folder. Anything that changes or removes a file is put to you for approval first, every time, and version-control internals and files that carry credentials are refused outright." />
+                                   Text="With agent mode on in the chat box, the model can list, read, search, write, move and delete files under this folder. Anything that changes or removes a file is put to you for approval first, every time, and version-control internals and files that carry credentials are refused outright. Running programs is a separate decision, below." />
 
                         <Grid Style="{StaticResource SettingRow}">
                             <TextBlock Style="{StaticResource SettingLabel}" Text="Max steps per message" />
@@ -474,6 +474,99 @@
                                           Minimum="1" Maximum="8192"
                                           ClearButtonEnabled="False"
                                           Value="{Binding MaxAgentFileKilobytes, Converter={StaticResource IntToDouble}}" />
+                        </Grid>
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- ============ Running programs ============ -->
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Running programs" />
+
+                <ui:Card Padding="16">
+                    <StackPanel>
+                        <!--
+                            The one switch in this application that changes what kind of thing the agent
+                            is, so the consequence is written next to it rather than in a tooltip. Off by
+                            default, and only a person can move it.
+                        -->
+                        <CheckBox Content="Let the agent run programs"
+                                  IsChecked="{Binding AllowCommands}"
+                                  Margin="0,0,0,4" />
+
+                        <TextBlock Style="{StaticResource SubtleText}"
+                                   TextWrapping="Wrap"
+                                   TextTrimming="None"
+                                   Margin="0,0,0,10"
+                                   Text="Off, the agent can only read and change files. On, it can also build the project, run its tests and ask version control what changed - which is what lets it find out whether an edit actually works." />
+
+                        <ui:InfoBar Severity="Warning"
+                                    IsOpen="True"
+                                    IsClosable="False"
+                                    Title="A program is not confined to the project folder"
+                                    Message="It runs as you, so it can reach the network, the rest of the disk and anything your account can open. Every single command is put to you for approval first, with the program and each argument shown in full, and that approval is never remembered - ten commands is ten questions. There is no shell, so nothing in a command can chain a second one."
+                                    Margin="0,0,0,14"
+                                    Visibility="{Binding AllowCommands, Converter={StaticResource BoolToVisibility}}" />
+
+                        <TextBlock Text="Programs the agent may run"
+                                   Margin="0,0,0,4"
+                                   IsEnabled="{Binding AllowCommands}" />
+
+                        <!--
+                            LostFocus rather than PropertyChanged: this box is saved as a parsed list, and
+                            saving after every keystroke would store 'gi' on the way to 'git'.
+                        -->
+                        <TextBox Text="{Binding AllowedCommands, UpdateSourceTrigger=LostFocus}"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MinHeight="56"
+                                 MaxHeight="140"
+                                 VerticalScrollBarVisibility="Auto"
+                                 FontFamily="{StaticResource CodeFont}"
+                                 IsEnabled="{Binding AllowCommands}"
+                                 Margin="0,0,0,4" />
+
+                        <TextBlock Style="{StaticResource SubtleText}"
+                                   TextWrapping="Wrap"
+                                   TextTrimming="None"
+                                   Margin="0,0,0,4"
+                                   IsEnabled="{Binding AllowCommands}"
+                                   Text="Separated by commas or spaces, and by name only - 'dotnet', never a path to it. Capitals and a trailing .exe are ignored. Anything not on this list is refused, and the agent is told to ask you rather than look for another way." />
+
+                        <!--
+                            cmd, powershell, pwsh, bash and wsl are not on the shipped list, and the reason
+                            is worth saying once where the list is edited: adding one makes the rest of it
+                            decorative, because every other program on the machine is reachable through it.
+                        -->
+                        <TextBlock Style="{StaticResource SubtleText}"
+                                   TextWrapping="Wrap"
+                                   TextTrimming="None"
+                                   Margin="0,0,0,10"
+                                   IsEnabled="{Binding AllowCommands}"
+                                   Text="Adding a shell - cmd, powershell, pwsh, bash, wsl - allows every program on the machine through it, and makes the rest of this list decorative." />
+
+                        <ui:InfoBar Severity="Warning"
+                                    IsOpen="True"
+                                    IsClosable="False"
+                                    Title="Check the list"
+                                    Message="{Binding AllowedCommandsProblem}"
+                                    Margin="0,0,0,10"
+                                    Visibility="{Binding AllowedCommandsProblem, Converter={StaticResource StringToVisibility}}" />
+
+                        <Grid Style="{StaticResource SettingRow}" IsEnabled="{Binding AllowCommands}">
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="Kill a program after (seconds)" />
+                            <ui:NumberBox HorizontalAlignment="Right"
+                                          Width="150"
+                                          Minimum="5" Maximum="3600"
+                                          ClearButtonEnabled="False"
+                                          Value="{Binding CommandTimeoutSeconds, Converter={StaticResource IntToDouble}}" />
+                        </Grid>
+
+                        <Grid Style="{StaticResource SettingRow}" IsEnabled="{Binding AllowCommands}">
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="Characters of output kept (the end, not the beginning)" />
+                            <ui:NumberBox HorizontalAlignment="Right"
+                                          Width="150"
+                                          Minimum="1000" Maximum="200000"
+                                          ClearButtonEnabled="False"
+                                          Value="{Binding MaxCommandOutputCharacters, Converter={StaticResource IntToDouble}}" />
                         </Grid>
                     </StackPanel>
                 </ui:Card>
