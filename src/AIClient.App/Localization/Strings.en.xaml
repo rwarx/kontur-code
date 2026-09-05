@@ -1,0 +1,407 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!--
+        Canonical string table. English is the language the application was written in, so this
+        file defines every key; Strings.ru.xaml and Strings.de.xaml mirror it key for key. The
+        LocalizationService checks parity at load time and logs a warning when a dictionary
+        drifts, so a missing key fails loudly in the log rather than silently showing a key name.
+    -->
+
+    <!-- ===== Common ===== -->
+    <sys:String x:Key="S.Common.Cancel">Cancel</sys:String>
+    <sys:String x:Key="S.Common.Save">Save</sys:String>
+    <sys:String x:Key="S.Common.Close">Close</sys:String>
+    <sys:String x:Key="S.Common.Delete">Delete</sys:String>
+    <sys:String x:Key="S.Common.Open">Open</sys:String>
+    <sys:String x:Key="S.Common.Edit">Edit</sys:String>
+    <sys:String x:Key="S.Common.Copy">Copy</sys:String>
+    <sys:String x:Key="S.Common.Retry">Retry</sys:String>
+    <sys:String x:Key="S.Common.Back">Back</sys:String>
+    <sys:String x:Key="S.Common.TechnicalDetails">Technical details</sys:String>
+
+    <!-- ===== Languages (always shown in their own name) ===== -->
+    <sys:String x:Key="S.Language.English">English</sys:String>
+    <sys:String x:Key="S.Language.Russian">Русский</sys:String>
+    <sys:String x:Key="S.Language.German">Deutsch</sys:String>
+
+    <!-- ===== Themes ===== -->
+    <sys:String x:Key="S.Theme.System">System</sys:String>
+    <sys:String x:Key="S.Theme.Light">Light</sys:String>
+    <sys:String x:Key="S.Theme.Dark">Dark</sys:String>
+
+    <!-- ===== Main window ===== -->
+    <sys:String x:Key="S.Main.Offline.Title">No internet connection</sys:String>
+    <sys:String x:Key="S.Main.Offline.Message">Saved conversations and settings are still available. New messages will fail until the connection is back.</sys:String>
+    <sys:String x:Key="S.Main.ToggleSidebar.ToolTip">Toggle sidebar (Ctrl+B)</sys:String>
+    <sys:String x:Key="S.Main.ChangeModel.ToolTip">Change model</sys:String>
+    <sys:String x:Key="S.Main.SelectModel">Select a model</sys:String>
+    <sys:String x:Key="S.Main.Export.ToolTip">Export conversation</sys:String>
+    <sys:String x:Key="S.Main.Export.Markdown">Export as Markdown</sys:String>
+    <sys:String x:Key="S.Main.Export.Json">Export as JSON</sys:String>
+    <sys:String x:Key="S.Main.Export.Text">Export as plain text</sys:String>
+    <sys:String x:Key="S.Main.Settings.ToolTip">Settings (Ctrl+,)</sys:String>
+
+    <!-- ===== Sidebar ===== -->
+    <sys:String x:Key="S.Sidebar.NewChat">New Chat</sys:String>
+    <sys:String x:Key="S.Sidebar.NewChat.ToolTip">New chat (Ctrl+N)</sys:String>
+    <sys:String x:Key="S.Sidebar.Search.Placeholder">Search chats…</sys:String>
+    <sys:String x:Key="S.Sidebar.Search.ToolTip">Search chats (Ctrl+K)</sys:String>
+    <sys:String x:Key="S.Sidebar.Menu.Open">Open</sys:String>
+    <sys:String x:Key="S.Sidebar.Menu.Rename">Rename…</sys:String>
+    <sys:String x:Key="S.Sidebar.Menu.Pin">Pin / Unpin</sys:String>
+    <sys:String x:Key="S.Sidebar.Menu.Delete">Delete</sys:String>
+    <sys:String x:Key="S.Sidebar.Empty.Search">No chats match “{0}”.</sys:String>
+    <sys:String x:Key="S.Sidebar.Empty.None">No chats yet.&#10;Start one with New Chat.</sys:String>
+    <sys:String x:Key="S.Sidebar.Canvas">Canvas</sys:String>
+    <sys:String x:Key="S.Sidebar.Canvas.ToolTip">Knowledge graph (Ctrl+G)</sys:String>
+    <sys:String x:Key="S.Sidebar.Settings">Settings</sys:String>
+    <sys:String x:Key="S.Sidebar.Settings.ToolTip">Settings (Ctrl+,)</sys:String>
+    <sys:String x:Key="S.Sidebar.ToggleTheme">Toggle theme</sys:String>
+    <sys:String x:Key="S.Sidebar.Palette">Command palette</sys:String>
+    <sys:String x:Key="S.Sidebar.Palette.ToolTip">Ctrl+Shift+P</sys:String>
+
+    <!-- ===== Chat: transcript ===== -->
+    <sys:String x:Key="S.Chat.Empty.Title">What can I help you with?</sys:String>
+    <sys:String x:Key="S.Chat.Empty.Subtitle">Ask a question, paste some code, or attach a file.</sys:String>
+    <sys:String x:Key="S.Chat.JumpToLatest">Jump to latest</sys:String>
+    <sys:String x:Key="S.Chat.SaveResend">Save &amp; resend</sys:String>
+    <sys:String x:Key="S.Chat.Thinking">Thinking…</sys:String>
+    <sys:String x:Key="S.Chat.Reasoning">Reasoning</sys:String>
+    <sys:String x:Key="S.Chat.Failed.Title">Request failed</sys:String>
+    <sys:String x:Key="S.Chat.Stopped">Generation stopped.</sys:String>
+    <sys:String x:Key="S.Chat.Copy.ToolTip">Copy message</sys:String>
+    <sys:String x:Key="S.Chat.Regenerate">Regenerate</sys:String>
+    <sys:String x:Key="S.Chat.Regenerate.ToolTip">Generate a new answer</sys:String>
+    <sys:String x:Key="S.Chat.Delete.ToolTip">Delete message</sys:String>
+    <sys:String x:Key="S.Chat.Truncated">truncated</sys:String>
+    <sys:String x:Key="S.Chat.RemoveAttachment.ToolTip">Remove attachment</sys:String>
+    <sys:String x:Key="S.Chat.Attach.ToolTip">Attach a file</sys:String>
+    <sys:String x:Key="S.Chat.Send.ToolTip">Send (Enter)</sys:String>
+    <sys:String x:Key="S.Chat.ShowResult.ToolTip">Show what this returned</sys:String>
+    <sys:String x:Key="S.Tool.Risk.Write">changed files</sys:String>
+    <sys:String x:Key="S.Tool.Risk.Execute">ran a program</sys:String>
+
+    <!-- ===== Tool call states ===== -->
+    <sys:String x:Key="S.Tool.Waiting">Waiting</sys:String>
+    <sys:String x:Key="S.Tool.Running">Running</sys:String>
+    <sys:String x:Key="S.Tool.Done">Done</sys:String>
+    <sys:String x:Key="S.Tool.Denied">Not allowed</sys:String>
+    <sys:String x:Key="S.Tool.Interrupted">Interrupted</sys:String>
+    <sys:String x:Key="S.Tool.Failed">Failed</sys:String>
+    <sys:String x:Key="S.Tool.Body.Truncated">... the rest of this result is not shown.</sys:String>
+
+    <!-- ===== Agent button and menu ===== -->
+    <sys:String x:Key="S.Agent.Label">Agent</sys:String>
+    <sys:String x:Key="S.Agent.ToolTip">Let the model work on the project. It plans by default, and asks before anything it cannot take back.</sys:String>
+    <sys:String x:Key="S.Agent.Mode.Plan">Plan</sys:String>
+    <sys:String x:Key="S.Agent.Mode.PlanCanvas">Plan + canvas</sys:String>
+    <sys:String x:Key="S.Agent.Mode.Build">Build</sys:String>
+    <sys:String x:Key="S.Agent.Mode.Off">Off</sys:String>
+    <sys:String x:Key="S.Agent.Menu.Plan.Hint">Reads and works out what to do. Changes nothing.</sys:String>
+    <sys:String x:Key="S.Agent.Menu.PlanCanvas.Hint">Plans, and draws the project it would build.</sys:String>
+    <sys:String x:Key="S.Agent.Menu.Build.Hint">Carries the work out, asking before each change.</sys:String>
+    <sys:String x:Key="S.Agent.Menu.Off.Hint">One answer from the model, no tools.</sys:String>
+    <sys:String x:Key="S.Agent.Hint.Build.NoFolder">Build · no folder open. Choose one under Settings.</sys:String>
+    <sys:String x:Key="S.Agent.Hint.Build.In">Build · working in {0}</sys:String>
+    <sys:String x:Key="S.Agent.Hint.Plan.New">{0} · planning something new. Nothing will be read or changed.</sys:String>
+    <sys:String x:Key="S.Agent.Hint.Plan.In">{0} · reading {1}. Nothing will be changed.</sys:String>
+
+    <!-- ===== Approval card ===== -->
+    <sys:String x:Key="S.Approval.Headline.Fallback">Run {0} with the arguments below</sys:String>
+    <sys:String x:Key="S.Approval.Consequence.Execute">Runs a program on this computer.</sys:String>
+    <sys:String x:Key="S.Approval.Consequence.Write">Changes files in the folder you opened.</sys:String>
+    <sys:String x:Key="S.Approval.Consequence.Read">Reads from the folder you opened.</sys:String>
+    <sys:String x:Key="S.Chat.Repeat">You already allowed this exact call in this run. It is being asked again because answers to this kind of call are deliberately not remembered.</sys:String>
+    <sys:String x:Key="S.Approval.DenyPlaceholder">Why not? Optional, and sent to the model.</sys:String>
+    <sys:String x:Key="S.Approval.Deny">Don't allow</sys:String>
+    <sys:String x:Key="S.Approval.AllowRun">Allow for this run</sys:String>
+    <sys:String x:Key="S.Approval.AllowOnce">Allow once</sys:String>
+    <sys:String x:Key="S.Approval.Arguments">Arguments</sys:String>
+
+    <!-- ===== Suggestions on the empty state ===== -->
+    <sys:String x:Key="S.Suggest.Explain.Title">Explain code</sys:String>
+    <sys:String x:Key="S.Suggest.Explain.Description">Walk me through what a snippet does</sys:String>
+    <sys:String x:Key="S.Suggest.Function.Title">Write a function</sys:String>
+    <sys:String x:Key="S.Suggest.Function.Description">Generate an implementation from a description</sys:String>
+    <sys:String x:Key="S.Suggest.Analyse.Title">Analyse a file</sys:String>
+    <sys:String x:Key="S.Suggest.Analyse.Description">Attach a file and ask about it</sys:String>
+    <sys:String x:Key="S.Suggest.Debug.Title">Help me debug</sys:String>
+    <sys:String x:Key="S.Suggest.Debug.Description">Work through an error message</sys:String>
+
+    <!-- ===== Composer hints and banners ===== -->
+    <sys:String x:Key="S.Hint.EnterSend">Enter to send · Shift+Enter for a new line</sys:String>
+    <sys:String x:Key="S.Hint.ShiftEnterSend">Shift+Enter to send · Enter for a new line</sys:String>
+    <sys:String x:Key="S.Banner.ChooseModel">Choose a model before sending a message.</sys:String>
+    <sys:String x:Key="S.Banner.ChooseModel.Regenerate">Choose a model before regenerating.</sys:String>
+    <sys:String x:Key="S.Banner.ChooseModel.Edit">Choose a model before editing.</sys:String>
+    <sys:String x:Key="S.Banner.BuildNeedsFolder">Build needs a folder to work in. Open one under Settings, switch to Plan, or turn agent mode off to just chat.</sys:String>
+    <sys:String x:Key="S.Banner.UnsupportedFile">'{0}' is not a supported file type.</sys:String>
+    <sys:String x:Key="S.Banner.Exported">Exported to {0}.</sys:String>
+    <sys:String x:Key="S.Banner.ExportFailed">Export failed</sys:String>
+    <sys:String x:Key="S.Stop.AfterStep">Stopped after 1 step. Nothing further was changed.</sys:String>
+    <sys:String x:Key="S.Stop.AfterSteps">Stopped after {0} step(s). Nothing further was changed.</sys:String>
+    <sys:String x:Key="S.Stop.Plain">Stopped. Nothing further was changed.</sys:String>
+    <sys:String x:Key="S.RunEnd.StepLimit">The agent stopped after {0} step(s), which is as many as one run gets. Send another message if there is more to do.</sys:String>
+    <sys:String x:Key="S.RunEnd.TimeLimit">The agent ran out of time after {0} step(s). Send another message if there is more to do.</sys:String>
+    <sys:String x:Key="S.Error.Unknown.Generation">Something went wrong while generating the response.</sys:String>
+    <sys:String x:Key="S.Error.Unknown.Agent">Something went wrong while the agent was working.</sys:String>
+
+    <!-- ===== Error kinds (shown as the failure message; detail stays technical) ===== -->
+    <sys:String x:Key="S.Error.InvalidApiKey">The key was rejected. Check it in Settings → Providers, and request a new one if it has been revoked.</sys:String>
+    <sys:String x:Key="S.Error.PermissionDenied">The key does not have access to this model, or billing is not enabled.</sys:String>
+    <sys:String x:Key="S.Error.NotFound">The model or endpoint was not found. Refresh the model list.</sys:String>
+    <sys:String x:Key="S.Error.RateLimited">You are rate-limited or out of credit. Wait a moment and try again.</sys:String>
+    <sys:String x:Key="S.Error.Timeout">The request took too long.</sys:String>
+    <sys:String x:Key="S.Error.ServerError">The provider reported an internal error.</sys:String>
+    <sys:String x:Key="S.Error.ServiceUnavailable">The provider is temporarily unavailable. This is usually brief.</sys:String>
+    <sys:String x:Key="S.Error.NetworkError">Could not reach the provider. Check your internet connection.</sys:String>
+    <sys:String x:Key="S.Error.ContextLengthExceeded">The conversation no longer fits in the model's context window. Start a new chat or pick a model with a larger window.</sys:String>
+    <sys:String x:Key="S.Error.ModelUnavailable">The model is not available at the moment.</sys:String>
+    <sys:String x:Key="S.Error.InvalidRequest">The request was rejected as invalid.</sys:String>
+    <sys:String x:Key="S.Error.ContentFiltered">The provider declined to answer this.</sys:String>
+    <sys:String x:Key="S.Error.NotConfigured">No API key is configured for this provider. Add one in Settings → Providers.</sys:String>
+
+    <!-- ===== Dialogs ===== -->
+    <sys:String x:Key="S.Dialog.DeleteMessage.Title">Delete message</sys:String>
+    <sys:String x:Key="S.Dialog.DeleteMessage.Message">This message will be removed from the conversation.</sys:String>
+    <sys:String x:Key="S.Dialog.DeleteChat.Title">Delete chat</sys:String>
+    <sys:String x:Key="S.Dialog.DeleteChat.Message">"{0}" and all of its messages will be permanently deleted.</sys:String>
+    <sys:String x:Key="S.Dialog.Rename.Title">Rename chat</sys:String>
+    <sys:String x:Key="S.Dialog.Rename.Label">Chat name</sys:String>
+    <sys:String x:Key="S.Dialog.ChooseWorkspace">Choose the folder the agent may work in</sys:String>
+    <sys:String x:Key="S.Chat.NotWorkspace">That folder cannot be used as a workspace.</sys:String>
+    <sys:String x:Key="S.Chat.NotOpened">That folder could not be opened. Choose another under Settings.</sys:String>
+
+    <!-- ===== Providers ===== -->
+    <sys:String x:Key="S.Provider.ApiKey">API key</sys:String>
+    <sys:String x:Key="S.Provider.Change">Change</sys:String>
+    <sys:String x:Key="S.Provider.AddKey">Add key</sys:String>
+    <sys:String x:Key="S.Provider.Remove">Remove</sys:String>
+    <sys:String x:Key="S.Provider.TestConnection">Test connection</sys:String>
+    <sys:String x:Key="S.Provider.RefreshModels">Refresh models</sys:String>
+    <sys:String x:Key="S.Provider.GetKey">Get an API key</sys:String>
+    <sys:String x:Key="S.Provider.Include.ToolTip">Include this provider's models in the picker</sys:String>
+    <sys:String x:Key="S.Provider.KeyNote">Encrypted with Windows DPAPI under your user account. It is never written to the database, the log files or an export.</sys:String>
+    <sys:String x:Key="S.Provider.NotConfigured">Not configured</sys:String>
+    <sys:String x:Key="S.Provider.NoKey">No API key</sys:String>
+    <sys:String x:Key="S.Provider.Testing">Testing…</sys:String>
+    <sys:String x:Key="S.Provider.Connected">Connected</sys:String>
+    <sys:String x:Key="S.Provider.Failed">Connection failed</sys:String>
+    <sys:String x:Key="S.Provider.NotTested">Not tested</sys:String>
+    <sys:String x:Key="S.Provider.Models.None">No models cached</sys:String>
+    <sys:String x:Key="S.Provider.Models.One">1 model cached</sys:String>
+    <sys:String x:Key="S.Provider.Models.Many">{0} models cached</sys:String>
+    <sys:String x:Key="S.Provider.ModelsAvailable">{0} models available.</sys:String>
+    <sys:String x:Key="S.Provider.TestIncomplete">The connection test could not be completed.</sys:String>
+    <sys:String x:Key="S.Provider.RefreshFailed">The model list could not be refreshed.</sys:String>
+    <sys:String x:Key="S.Provider.RemoveKey.Title">Remove {0} API key</sys:String>
+    <sys:String x:Key="S.Provider.RemoveKey.Message">The stored key for {0} will be deleted. Cached models are kept but cannot be used until a new key is added.</sys:String>
+
+    <!-- ===== Settings ===== -->
+    <sys:String x:Key="S.Settings.Title">Settings</sys:String>
+    <sys:String x:Key="S.Settings.Back.ToolTip">Back to chat</sys:String>
+    <sys:String x:Key="S.Settings.Providers">Providers</sys:String>
+    <sys:String x:Key="S.Settings.General">General</sys:String>
+    <sys:String x:Key="S.Settings.Appearance">Appearance</sys:String>
+    <sys:String x:Key="S.Settings.Chat">Chat</sys:String>
+    <sys:String x:Key="S.Settings.Agent">Agent</sys:String>
+    <sys:String x:Key="S.Settings.Programs">Running programs</sys:String>
+    <sys:String x:Key="S.Settings.Storage">Storage</sys:String>
+    <sys:String x:Key="S.Settings.Shortcuts">Keyboard shortcuts</sys:String>
+    <sys:String x:Key="S.Settings.About">About</sys:String>
+
+    <sys:String x:Key="S.Settings.General.Reopen">Reopen the last conversation on startup</sys:String>
+    <sys:String x:Key="S.Settings.General.ConfirmDelete">Ask before deleting a chat or a message</sys:String>
+    <sys:String x:Key="S.Settings.General.AutoTitles">Name new chats automatically from the first message</sys:String>
+    <sys:String x:Key="S.Settings.General.Language">Language</sys:String>
+
+    <sys:String x:Key="S.Settings.Appearance.Theme">Theme</sys:String>
+    <sys:String x:Key="S.Settings.Appearance.ChatFontSize">Chat font size</sys:String>
+    <sys:String x:Key="S.Settings.Appearance.CodeFontSize">Code font size</sys:String>
+    <sys:String x:Key="S.Settings.Appearance.Mica">Mica backdrop (takes effect on the next launch)</sys:String>
+
+    <sys:String x:Key="S.Settings.Chat.SystemPrompt">System prompt</sys:String>
+    <sys:String x:Key="S.Settings.Chat.SystemPrompt.Hint">Prepended to every new conversation. Leave it empty to send no system turn.</sys:String>
+    <sys:String x:Key="S.Settings.Chat.Temperature">Temperature</sys:String>
+    <sys:String x:Key="S.Settings.Chat.TopP">Top P</sys:String>
+    <sys:String x:Key="S.Settings.Chat.MaxTokens">Max tokens</sys:String>
+    <sys:String x:Key="S.Settings.Chat.SendWithEnter">Send with Enter (Shift+Enter inserts a new line)</sys:String>
+    <sys:String x:Key="S.Settings.Chat.RenderMarkdown">Render Markdown in answers</sys:String>
+    <sys:String x:Key="S.Settings.Chat.HighlightCode">Highlight syntax in code blocks</sys:String>
+    <sys:String x:Key="S.Settings.Chat.AutoScroll">Follow the answer as it streams</sys:String>
+    <sys:String x:Key="S.Settings.Chat.ShowUsage">Show token usage and generation time</sys:String>
+    <sys:String x:Key="S.Settings.Chat.History">History messages per request</sys:String>
+    <sys:String x:Key="S.Settings.Chat.Timeout">Request timeout (seconds)</sys:String>
+
+    <sys:String x:Key="S.Settings.Agent.Workspace">Workspace folder</sys:String>
+    <sys:String x:Key="S.Settings.Agent.Workspace.None">No folder open. The agent cannot read or change anything until one is.</sys:String>
+    <sys:String x:Key="S.Settings.Agent.Choose">Choose…</sys:String>
+    <sys:String x:Key="S.Settings.Agent.ShowInExplorer">Show in Explorer</sys:String>
+    <sys:String x:Key="S.Settings.Agent.Close">Close</sys:String>
+    <sys:String x:Key="S.Settings.Agent.Close.ToolTip">Leaves the agent with nothing it can read or change.</sys:String>
+    <sys:String x:Key="S.Settings.Agent.NotOpened">That folder was not opened</sys:String>
+    <sys:String x:Key="S.Settings.Agent.Hint">With agent mode on in the chat box, the model can list, read, search, write, move and delete files under this folder. Anything that changes or removes a file is put to you for approval first, every time, and version-control internals and files that carry credentials are refused outright. Running programs is a separate decision, below.</sys:String>
+    <sys:String x:Key="S.Settings.Agent.MaxSteps">Max steps per message</sys:String>
+    <sys:String x:Key="S.Settings.Agent.TimeLimit">Time limit per message (seconds, 0 for none)</sys:String>
+    <sys:String x:Key="S.Settings.Agent.MaxFile">Max file size the agent may open (KB)</sys:String>
+
+    <sys:String x:Key="S.Settings.Programs.Allow">Let the agent run programs</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Allow.Hint">Off, the agent can only read and change files. On, it can also build the project, run its tests and ask version control what changed - which is what lets it find out whether an edit actually works.</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Warning.Title">A program is not confined to the project folder</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Warning.Message">It runs as you, so it can reach the network, the rest of the disk and anything your account can open. Every single command is put to you for approval first, with the program and each argument shown in full, and that approval is never remembered - ten commands is ten questions. There is no shell, so nothing in a command can chain a second one.</sys:String>
+    <sys:String x:Key="S.Settings.Programs.List">Programs the agent may run</sys:String>
+    <sys:String x:Key="S.Settings.Programs.List.Hint">Separated by commas or spaces, and by name only - 'dotnet', never a path to it. Capitals and a trailing .exe are ignored. Anything not on this list is refused, and the agent is told to ask you rather than look for another way.</sys:String>
+    <sys:String x:Key="S.Settings.Programs.List.ShellWarning">Adding a shell - cmd, powershell, pwsh, bash, wsl - allows every program on the machine through it, and makes the rest of this list decorative.</sys:String>
+    <sys:String x:Key="S.Settings.Programs.CheckList">Check the list</sys:String>
+    <sys:String x:Key="S.Settings.Programs.KillAfter">Kill a program after (seconds)</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Output">Characters of output kept (the end, not the beginning)</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Dropped">Left out, because a program is named without a path, a space or an argument: {0}</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Empty">Nothing is allowed, so every command will be refused. Add the programs this project is built and tested with.</sys:String>
+
+    <sys:String x:Key="S.Settings.Storage.MaxAttachment">Max attachment size (KB)</sys:String>
+    <sys:String x:Key="S.Settings.Storage.LogLevel">Minimum log level</sys:String>
+    <sys:String x:Key="S.Settings.Storage.KeepLogs">Keep logs for (days)</sys:String>
+    <sys:String x:Key="S.Settings.Storage.Database">Database</sys:String>
+    <sys:String x:Key="S.Settings.Storage.OpenData">Open data folder</sys:String>
+    <sys:String x:Key="S.Settings.Storage.OpenLogs">Open logs folder</sys:String>
+
+    <sys:String x:Key="S.Settings.Shortcut.NewChat">New chat</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.Search">Search chats</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.OpenSettings">Open settings</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.Palette">Command palette</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.Send">Send message</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.NewLine">New line in the message</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.Stop">Stop generating</sys:String>
+
+    <sys:String x:Key="S.Settings.About.Version">Version {0}</sys:String>
+    <sys:String x:Key="S.Settings.About.Text">A desktop client for working with AI models across several providers. Conversations, settings and API keys stay on this machine.</sys:String>
+
+    <!-- ===== First run ===== -->
+    <sys:String x:Key="S.FirstRun.Step">Step {0} of 3</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Title">Welcome to AI Client</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Intro">A desktop client for working with AI models. Bring your own API key from a provider you already use — conversations and settings stay on this machine.</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Get.Title">What you get</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Get.1">• Streaming answers with Markdown and syntax highlighting</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Get.2">• Conversations saved locally and searchable</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Get.3">• Several providers side by side, behind one model picker</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Get.4">• API keys encrypted with Windows DPAPI, never written to the database</sys:String>
+    <sys:String x:Key="S.FirstRun.Connect.Title">Connect a provider</sys:String>
+    <sys:String x:Key="S.FirstRun.Connect.Intro">Add a key for at least one provider. The others can wait — this is all repeated in Settings.</sys:String>
+    <sys:String x:Key="S.FirstRun.Model.Title">Choose a default model</sys:String>
+    <sys:String x:Key="S.FirstRun.Model.Intro">New chats start with this model. It can be changed per chat from the header.</sys:String>
+    <sys:String x:Key="S.FirstRun.Skip">Skip setup</sys:String>
+    <sys:String x:Key="S.FirstRun.StartChat">Start chatting</sys:String>
+    <sys:String x:Key="S.FirstRun.Continue">Continue</sys:String>
+
+    <!-- ===== Model picker ===== -->
+    <sys:String x:Key="S.Picker.Filter.Placeholder">Filter models…</sys:String>
+    <sys:String x:Key="S.Picker.Vision">vision</sys:String>
+    <sys:String x:Key="S.Picker.Tools">tools</sys:String>
+    <sys:String x:Key="S.Picker.None.Title">No models available</sys:String>
+    <sys:String x:Key="S.Picker.None.Hint">Add an API key in Settings → Providers, then refresh the model list.</sys:String>
+
+    <!-- ===== Command palette ===== -->
+    <sys:String x:Key="S.Palette.Placeholder">Type a command…</sys:String>
+    <sys:String x:Key="S.Palette.NoMatches">No matching commands.</sys:String>
+    <sys:String x:Key="S.Palette.Hints">↑↓ to navigate · Enter to run · Esc to close</sys:String>
+    <sys:String x:Key="S.Palette.NewChat">New Chat</sys:String>
+    <sys:String x:Key="S.Palette.SearchChats">Search Chats</sys:String>
+    <sys:String x:Key="S.Palette.ChangeModel">Change Model</sys:String>
+    <sys:String x:Key="S.Palette.OpenCanvas">Open Canvas</sys:String>
+    <sys:String x:Key="S.Palette.OpenSettings">Settings</sys:String>
+    <sys:String x:Key="S.Palette.ToggleTheme">Toggle Theme</sys:String>
+    <sys:String x:Key="S.Palette.ExportMarkdown">Export Chat as Markdown</sys:String>
+    <sys:String x:Key="S.Palette.ExportJson">Export Chat as JSON</sys:String>
+    <sys:String x:Key="S.Palette.ExportText">Export Chat as Text</sys:String>
+    <sys:String x:Key="S.Palette.Category.Chat">Chat</sys:String>
+    <sys:String x:Key="S.Palette.Category.Application">Application</sys:String>
+    <sys:String x:Key="S.Palette.Category.Export">Export</sys:String>
+
+    <!-- ===== Inspector ===== -->
+    <sys:String x:Key="S.Inspector.Source">Source</sys:String>
+    <sys:String x:Key="S.Inspector.Metadata">Metadata</sys:String>
+    <sys:String x:Key="S.Inspector.DependsOn">Depends on</sys:String>
+    <sys:String x:Key="S.Inspector.UsedBy">Used by</sys:String>
+    <sys:String x:Key="S.Inspector.History">History</sys:String>
+    <sys:String x:Key="S.Inspector.HistoryLoading">Reading the change log…</sys:String>
+    <sys:String x:Key="S.Inspector.Explain">Explain</sys:String>
+    <sys:String x:Key="S.Inspector.Analyze">Analyze</sys:String>
+    <sys:String x:Key="S.Inspector.Refactor">Refactor</sys:String>
+    <sys:String x:Key="S.Inspector.GenerateTests">Generate tests</sys:String>
+    <sys:String x:Key="S.Inspector.ViewCode">View code</sys:String>
+    <sys:String x:Key="S.Inspector.OpenSource">Open source</sys:String>
+    <sys:String x:Key="S.Inspector.ViewCode.ToolTip">Read the file next to the canvas</sys:String>
+    <sys:String x:Key="S.Inspector.OpenSource.ToolTip">Show the file in Explorer</sys:String>
+    <sys:String x:Key="S.Inspector.Status.Missing">The file behind this node is no longer on disk.</sys:String>
+    <sys:String x:Key="S.Inspector.Status.Archived">Archived.</sys:String>
+    <sys:String x:Key="S.Inspector.Origin.Indexer">From the project files</sys:String>
+    <sys:String x:Key="S.Inspector.Origin.User">Added by you</sys:String>
+    <sys:String x:Key="S.Inspector.Origin.Chat">From a conversation</sys:String>
+    <sys:String x:Key="S.Inspector.Origin.Agent">Added by an agent</sys:String>
+    <sys:String x:Key="S.Inspector.Origin.Import">Imported</sys:String>
+    <sys:String x:Key="S.Inspector.Group.Nodes">{0} nodes</sys:String>
+    <sys:String x:Key="S.Inspector.Group.NodesRelations">{0} nodes · {1} relations</sys:String>
+    <sys:String x:Key="S.Inspector.Group.Selection">Selection</sys:String>
+    <sys:String x:Key="S.Inspector.Selection.OneNode">1 node</sys:String>
+
+    <!-- ===== Canvas ===== -->
+    <sys:String x:Key="S.Canvas.Back">← Chat</sys:String>
+    <sys:String x:Key="S.Canvas.Back.ToolTip">Back to the conversation</sys:String>
+    <sys:String x:Key="S.Canvas.Reindex">Reindex</sys:String>
+    <sys:String x:Key="S.Canvas.Reindex.ToolTip">Walk the project folder again and update the graph</sys:String>
+    <sys:String x:Key="S.Canvas.Folder">Folder…</sys:String>
+    <sys:String x:Key="S.Canvas.Folder.ToolTip">Choose the project folder to project onto the canvas</sys:String>
+    <sys:String x:Key="S.Canvas.Ask">Ask Kontur AI…</sys:String>
+    <sys:String x:Key="S.Canvas.Action.Analyze">Analyze</sys:String>
+    <sys:String x:Key="S.Canvas.Action.Explain">Explain</sys:String>
+    <sys:String x:Key="S.Canvas.Action.Refactor">Refactor</sys:String>
+    <sys:String x:Key="S.Canvas.Action.FindProblems">Find problems</sys:String>
+    <sys:String x:Key="S.Canvas.Action.GenerateTests">Generate tests</sys:String>
+    <sys:String x:Key="S.Canvas.AutoLayout">Auto Layout</sys:String>
+    <sys:String x:Key="S.Canvas.AutoLayout.ToolTip">Tidy the cards nobody has arranged by hand</sys:String>
+    <sys:String x:Key="S.Canvas.Empty.Title">Kontur Code</sys:String>
+    <sys:String x:Key="S.Canvas.Empty.Graph">Your project has no knowledge graph yet.</sys:String>
+    <sys:String x:Key="S.Canvas.Empty.Index">Index Workspace</sys:String>
+    <sys:String x:Key="S.Canvas.Empty.Note">The graph will be generated from your project structure.</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.Select.ToolTip">Select — click picks a card, drag moves it, drag on empty space is a rubber band (V)</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.Pan.ToolTip">Pan — drag anywhere to move the canvas (H)</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.ZoomIn.ToolTip">Zoom in (Ctrl +)</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.ZoomOut.ToolTip">Zoom out (Ctrl −)</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.ZoomSelection.ToolTip">Zoom to selection (E)</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.Fit.ToolTip">Fit to content (F)</sys:String>
+    <sys:String x:Key="S.Canvas.Status.Indexing">Indexing project…</sys:String>
+    <sys:String x:Key="S.Canvas.Status.Indexing.Nodes">Indexing project…   {0} nodes</sys:String>
+    <sys:String x:Key="S.Canvas.Status.NoGraph">No graph yet</sys:String>
+    <sys:String x:Key="S.Canvas.Status.NodesRelations">{0} nodes · {1} relations</sys:String>
+    <sys:String x:Key="S.Canvas.Breadcrumb.Project">Project</sys:String>
+    <sys:String x:Key="S.Canvas.Workspace.None">No folder open</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.LoadFailed">The canvas could not be loaded. The graph is still intact - try reopening the page.</sys:String>
+    <sys:String x:Key="S.Canvas.ChooseFolder">Choose the project folder to index</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.NotProject">That folder cannot be used as a project folder.</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.IndexFailed">The project could not be indexed.</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.IndexTruncated">Indexed the first {0} nodes - the project is larger than the current limit.</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.IndexSkipped">Indexed {0} nodes. {1} path(s) were skipped.</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.NoCode">A folder has no code to show.</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.NoFile">This node has no file behind it.</sys:String>
+
+    <!-- ===== Canvas code panel ===== -->
+    <sys:String x:Key="S.Code.CouldNotRead">That file could not be read.</sys:String>
+    <sys:String x:Key="S.Code.OneLine">1 line</sys:String>
+    <sys:String x:Key="S.Code.Lines">{0} lines</sys:String>
+    <sys:String x:Key="S.Code.LinesRange">Lines {0}-{1} of {2}</sys:String>
+    <sys:String x:Key="S.Code.Reading">Reading…</sys:String>
+    <sys:String x:Key="S.Code.Close.ToolTip">Close (Esc)</sys:String>
+    <sys:String x:Key="S.Code.Automation.Close">Close code</sys:String>
+    <sys:String x:Key="S.Code.Automation.Gutter">Line numbers</sys:String>
+    <sys:String x:Key="S.Code.Automation.Contents">File contents</sys:String>
+
+    <!-- ===== Source launcher ===== -->
+    <sys:String x:Key="S.Source.NoFile">This node has no file behind it.</sys:String>
+    <sys:String x:Key="S.Source.NoFolder">No project folder is open.</sys:String>
+    <sys:String x:Key="S.Source.Outside">That path is outside the project folder.</sys:String>
+    <sys:String x:Key="S.Source.Missing">That file is no longer on disk.</sys:String>
+    <sys:String x:Key="S.Source.NotShown">That file could not be shown.</sys:String>
+
+</ResourceDictionary>

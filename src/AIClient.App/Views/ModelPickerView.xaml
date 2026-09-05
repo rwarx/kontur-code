@@ -19,7 +19,7 @@
         <ui:TextBox x:Name="FilterBox"
                     Grid.Row="0"
                     Margin="6,6,6,8"
-                    PlaceholderText="Filter models…"
+                    PlaceholderText="{DynamicResource S.Picker.Filter.Placeholder}"
                     Icon="{ui:SymbolIcon Search24}"
                     ClearButtonEnabled="True"
                     Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" />
@@ -80,12 +80,12 @@
 
                                 <Border Style="{StaticResource Badge}"
                                         Visibility="{Binding SupportsImages, Converter={StaticResource BoolToVisibility}}">
-                                    <TextBlock Style="{StaticResource BadgeText}" Text="vision" />
+                                    <TextBlock Style="{StaticResource BadgeText}" Text="{DynamicResource S.Picker.Vision}" />
                                 </Border>
 
                                 <Border Style="{StaticResource Badge}"
                                         Visibility="{Binding SupportsTools, Converter={StaticResource BoolToVisibility}}">
-                                    <TextBlock Style="{StaticResource BadgeText}" Text="tools" />
+                                    <TextBlock Style="{StaticResource BadgeText}" Text="{DynamicResource S.Picker.Tools}" />
                                 </Border>
 
                                 <TextBlock Style="{StaticResource SubtleText}"
@@ -101,7 +101,7 @@
             <!-- No models: say what to do about it rather than showing an empty box. -->
             <StackPanel Margin="20,30"
                         Visibility="{Binding HasNoModels, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Text="No models available"
+                <TextBlock Text="{DynamicResource S.Picker.None.Title}"
                            FontWeight="SemiBold"
                            TextAlignment="Center"
                            Margin="0,0,0,6" />
@@ -109,7 +109,7 @@
                            TextAlignment="Center"
                            TextWrapping="Wrap"
                            TextTrimming="None"
-                           Text="Add an API key in Settings → Providers, then refresh the model list." />
+                           Text="{DynamicResource S.Picker.None.Hint}" />
             </StackPanel>
 
             <ui:ProgressRing IsIndeterminate="True"

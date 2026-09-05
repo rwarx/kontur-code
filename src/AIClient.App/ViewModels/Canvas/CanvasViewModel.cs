@@ -6,6 +6,7 @@ using AIClient.Application.DTOs;
 using AIClient.Application.Interfaces;
 using AIClient.Application.Services;
 using AIClient.Domain.Graph;
+using AIClient.Domain.Workspace;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -247,7 +248,7 @@ public sealed partial class CanvasViewModel : ObservableObject
             var root = _workspace.Root;
             if (string.IsNullOrWhiteSpace(root))
             {
-                return "No folder open";
+                return Localization.T("S.Canvas.Workspace.None");
             }
 
             var name = Path.GetFileName(root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
@@ -299,7 +300,7 @@ public sealed partial class CanvasViewModel : ObservableObject
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "The canvas could not be loaded.");
-            Notice = "The canvas could not be loaded. The graph is still intact - try reopening the page.";
+            Notice = Localization.T("S.Canvas.Notice.LoadFailed");
         }
         finally
         {
@@ -632,7 +633,7 @@ public sealed partial class CanvasViewModel : ObservableObject
     [RelayCommand]
     private async Task OpenFolderAsync()
     {
-        var picked = _dialogs.OpenFolder("Choose the project folder to index");
+        var picked = _dialogs.OpenFolder(Localization.T("S.Canvas.ChooseFolder"));
         if (string.IsNullOrWhiteSpace(picked))
         {
             return;
@@ -643,7 +644,7 @@ public sealed partial class CanvasViewModel : ObservableObject
         {
             // The sandbox's own words: it refuses a folder for reasons worth reading, such as it
             // being the app's own data directory.
-            Notice = opened.Error ?? "That folder cannot be used as a project folder.";
+            Notice = opened.Error ?? Localization.T("S.Canvas.Notice.NotProject");
             return;
         }
 
@@ -691,21 +692,21 @@ public sealed partial class CanvasViewModel : ObservableObject
 
             if (!result.Success)
             {
-                Notice = result.Error ?? "The project could not be indexed.";
+                Notice = result.Error ?? Localization.T("S.Canvas.Notice.IndexFailed");
             }
             else if (result.Value is { } report)
             {
                 Notice = report.IsTruncated
-                    ? $"Indexed the first {report.Nodes} nodes - the project is larger than the current limit."
+                    ? Localization.T("S.Canvas.Notice.IndexTruncated", report.Nodes)
                     : report.Refused.Count > 0
-                        ? $"Indexed {report.Nodes} nodes. {report.Refused.Count} path(s) were skipped."
+                        ? Localization.T("S.Canvas.Notice.IndexSkipped", report.Nodes, report.Refused.Count)
                         : null;
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Indexing the workspace failed.");
-            Notice = "The project could not be indexed.";
+            Notice = Localization.T("S.Canvas.Notice.IndexFailed");
         }
         finally
         {
@@ -810,7 +811,9 @@ public sealed partial class CanvasViewModel : ObservableObject
     /// <remarks>
     /// The action is a string rather than an enum because it comes from a button in markup and
     /// adding a fifth question should not be a type change. Nothing here builds a prompt for a
-    /// provider: the graph block is assembled later, inside the ordinary context build.
+    /// provider: the graph block is assembled later, inside the ordinary context build. What is
+    /// decided here is only what the question is about - the phrase that names it, and the files
+    /// worth attaching to it - because the answer needs the graph and the chat does not have it.
     /// </remarks>
     [RelayCommand]
     private void AskAi(string? action)
@@ -821,8 +824,23 @@ public sealed partial class CanvasViewModel : ObservableObject
         }
 
         var selection = GraphSelection.Nodes([.. _selected], _settings.Current.Canvas.ContextDepth);
-        AiRequested?.Invoke(this, new CanvasAiRequest(selection, CanvasAiPrompts.For(action), SelectionLabel()));
+        var target = CanvasAiPrompts.Describe(SelectedNodes());
+
+        AiRequested?.Invoke(
+            this,
+            new CanvasAiRequest(
+                selection,
+                CanvasAiPrompts.For(action, target.Subject),
+                SelectionLabel(),
+                target.Files));
     }
+
+    /// <summary>The graph nodes behind the selected cards.</summary>
+    private IReadOnlyList<GraphNode> SelectedNodes() =>
+        [.. _selected
+            .Select(id => _cards.GetValueOrDefault(id))
+            .OfType<CanvasNodeViewModel>()
+            .Select(card => card.Node)];
 
     /// <summary>Shows the file behind the focused card in the OS file manager.</summary>
     /// <remarks>
@@ -868,13 +886,13 @@ public sealed partial class CanvasViewModel : ObservableObject
 
         if (node.Kind == GraphNodeKind.Folder || node.Kind == GraphNodeKind.Project)
         {
-            Notice = "A folder has no code to show.";
+            Notice = Localization.T("S.Canvas.Notice.NoCode");
             return;
         }
 
         if (node.Source is null)
         {
-            Notice = "This node has no file behind it.";
+            Notice = Localization.T("S.Canvas.Notice.NoFile");
             return;
         }
 
@@ -891,8 +909,8 @@ public sealed partial class CanvasViewModel : ObservableObject
 
         var relations = RelationCount();
         return relations > 0
-            ? $"{_selected.Count} nodes · {relations} relations"
-            : $"{_selected.Count} nodes";
+            ? Localization.T("S.Inspector.Group.NodesRelations", _selected.Count, relations)
+            : Localization.T("S.Inspector.Group.Nodes", _selected.Count);
     }
 
     /// <summary>
@@ -1185,8 +1203,8 @@ public sealed partial class CanvasViewModel : ObservableObject
         SelectionStatus = _selected.Count switch
         {
             0 => string.Empty,
-            1 => Focused?.KindLabel ?? "1 node",
-            _ => $"{_selected.Count} nodes · {relations} relations",
+            1 => Focused?.KindLabel ?? Localization.T("S.Inspector.Selection.OneNode"),
+            _ => Localization.T("S.Inspector.Group.NodesRelations", _selected.Count, relations),
         };
 
         OnPropertyChanged(nameof(HasSelection));
@@ -1242,8 +1260,8 @@ public sealed partial class CanvasViewModel : ObservableObject
         if (IsIndexing)
         {
             GraphStatus = _indexed.Nodes > 0
-                ? $"Indexing project…   {_indexed.Nodes} nodes"
-                : "Indexing project…";
+                ? Localization.T("S.Canvas.Status.Indexing.Nodes", _indexed.Nodes)
+                : Localization.T("S.Canvas.Status.Indexing");
             return;
         }
 
@@ -1251,8 +1269,8 @@ public sealed partial class CanvasViewModel : ObservableObject
         var relations = _links.Count;
 
         GraphStatus = nodes == 0
-            ? "No graph yet"
-            : $"{nodes} nodes · {relations} relations";
+            ? Localization.T("S.Canvas.Status.NoGraph")
+            : Localization.T("S.Canvas.Status.NodesRelations", nodes, relations);
     }
 
     /// <summary>
@@ -1265,7 +1283,7 @@ public sealed partial class CanvasViewModel : ObservableObject
     /// </remarks>
     private void UpdateBreadcrumb()
     {
-        var project = _workspace.IsOpen ? WorkspaceName : "Project";
+        var project = _workspace.IsOpen ? WorkspaceName : Localization.T("S.Canvas.Breadcrumb.Project");
 
         if (Focused is not { } card)
         {
@@ -1405,6 +1423,13 @@ public sealed partial class CanvasViewModel : ObservableObject
 
     partial void OnIsLoadedChanged(bool value) => OnPropertyChanged(nameof(IsEmpty));
 
+    public void OnLanguageChanged()
+    {
+        OnPropertyChanged(nameof(WorkspaceName));
+        UpdateGraphStatus();
+        UpdateBreadcrumb();
+    }
+
 }
 
 /// <summary>
@@ -1413,7 +1438,17 @@ public sealed partial class CanvasViewModel : ObservableObject
 /// <param name="Selection">Ids and a depth - never geometry, and never inlined file text.</param>
 /// <param name="Prompt">The question, or empty when the person is going to type their own.</param>
 /// <param name="Label">How to describe the selection in the chat's notice bar.</param>
-public sealed record CanvasAiRequest(GraphSelection Selection, string Prompt, string Label);
+/// <param name="Files">
+/// The selection's files, to be attached to the message the way a dragged file is. Resolved here
+/// rather than in the chat because resolving a node to a path needs the graph, and the composer has
+/// no business holding one; read from disk there, because the workspace sandbox is the only door to a
+/// file and the chat already goes through it.
+/// </param>
+public sealed record CanvasAiRequest(
+    GraphSelection Selection,
+    string Prompt,
+    string Label,
+    IReadOnlyList<WorkspacePath> Files);
 
 /// <summary>
 /// What is selected on the canvas, for the inspector at the other end of the event.

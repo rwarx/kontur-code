@@ -249,8 +249,8 @@
             <ui:Button Grid.Column="0"
                        Style="{StaticResource CanvasChromeButton}"
                        Margin="12,0,0,0"
-                       Content="← Chat"
-                       ToolTip="Back to the conversation"
+                       Content="{DynamicResource S.Canvas.Back}"
+                       ToolTip="{DynamicResource S.Canvas.Back.ToolTip}"
                        Command="{Binding DataContext.ShowChatCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
 
             <TextBlock Grid.Column="1"
@@ -263,12 +263,12 @@
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,12,0">
                 <ui:Button Style="{StaticResource CanvasChromeButton}"
-                           Content="Reindex"
-                           ToolTip="Walk the project folder again and update the graph"
+                           Content="{DynamicResource S.Canvas.Reindex}"
+                           ToolTip="{DynamicResource S.Canvas.Reindex.ToolTip}"
                            Command="{Binding IndexWorkspaceCommand}" />
                 <ui:Button Style="{StaticResource CanvasChromeButton}"
-                           Content="Folder…"
-                           ToolTip="Choose the project folder to project onto the canvas"
+                           Content="{DynamicResource S.Canvas.Folder}"
+                           ToolTip="{DynamicResource S.Canvas.Folder.ToolTip}"
                            Command="{Binding OpenFolderCommand}" />
             </StackPanel>
         </Grid>
@@ -412,7 +412,7 @@
                              inspector, which is already open on that node. -->
                         <ui:Button Style="{StaticResource CanvasActionButton}"
                                    HorizontalAlignment="Left"
-                                   Content="Ask Kontur AI…"
+                                   Content="{DynamicResource S.Canvas.Ask}"
                                    Command="{Binding AskAiCommand}"
                                    CommandParameter=""
                                    Visibility="{Binding IsSingleSelection, Converter={StaticResource BoolToVisibility}}" />
@@ -425,17 +425,17 @@
                                        TextTrimming="CharacterEllipsis"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             <WrapPanel>
-                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="Analyze"
+                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="{DynamicResource S.Canvas.Action.Analyze}"
                                            Command="{Binding AskAiCommand}" CommandParameter="analyze" />
-                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="Explain"
+                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="{DynamicResource S.Canvas.Action.Explain}"
                                            Command="{Binding AskAiCommand}" CommandParameter="explain" />
-                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="Refactor"
+                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="{DynamicResource S.Canvas.Action.Refactor}"
                                            Command="{Binding AskAiCommand}" CommandParameter="refactor" />
-                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="Find problems"
+                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="{DynamicResource S.Canvas.Action.FindProblems}"
                                            Command="{Binding AskAiCommand}" CommandParameter="problems" />
-                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="Generate tests"
+                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="{DynamicResource S.Canvas.Action.GenerateTests}"
                                            Command="{Binding AskAiCommand}" CommandParameter="tests" />
-                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="Ask Kontur AI…"
+                                <ui:Button Style="{StaticResource CanvasActionButton}" Content="{DynamicResource S.Canvas.Ask}"
                                            Command="{Binding AskAiCommand}" CommandParameter="" />
                             </WrapPanel>
                         </StackPanel>
@@ -470,7 +470,7 @@
                                 Visibility="{Binding IsSelectTool, Converter={StaticResource BoolToVisibility}}" />
                         <ui:Button Style="{StaticResource CanvasToolButton}"
                                    AutomationProperties.Name="Select"
-                                   ToolTip="Select — click picks a card, drag moves it, drag on empty space is a rubber band (V)"
+                                   ToolTip="{DynamicResource S.Canvas.Tool.Select.ToolTip}"
                                    Command="{Binding UseSelectToolCommand}">
                             <ui:SymbolIcon Symbol="Cursor24" FontSize="16" />
                         </ui:Button>
@@ -483,7 +483,7 @@
                                 Visibility="{Binding IsPanTool, Converter={StaticResource BoolToVisibility}}" />
                         <ui:Button Style="{StaticResource CanvasToolButton}"
                                    AutomationProperties.Name="Pan"
-                                   ToolTip="Pan — drag anywhere to move the canvas (H)"
+                                   ToolTip="{DynamicResource S.Canvas.Tool.Pan.ToolTip}"
                                    Command="{Binding UsePanToolCommand}">
                             <ui:SymbolIcon Symbol="HandRight24" FontSize="16" />
                         </ui:Button>
@@ -493,23 +493,23 @@
 
                     <ui:Button Style="{StaticResource CanvasToolButton}" Content="+"
                                AutomationProperties.Name="Zoom in"
-                               ToolTip="Zoom in (Ctrl +)" Command="{Binding ZoomInCommand}" />
+                               ToolTip="{DynamicResource S.Canvas.Tool.ZoomIn.ToolTip}" Command="{Binding ZoomInCommand}" />
                     <ui:Button Style="{StaticResource CanvasToolButton}" Content="−"
                                AutomationProperties.Name="Zoom out"
-                               ToolTip="Zoom out (Ctrl −)" Command="{Binding ZoomOutCommand}" />
+                               ToolTip="{DynamicResource S.Canvas.Tool.ZoomOut.ToolTip}" Command="{Binding ZoomOutCommand}" />
                     <ui:Button Style="{StaticResource CanvasToolButton}" Content="⊙"
                                AutomationProperties.Name="Zoom to selection"
-                               ToolTip="Zoom to selection (E)" Command="{Binding ZoomToSelectionCommand}" />
+                               ToolTip="{DynamicResource S.Canvas.Tool.ZoomSelection.ToolTip}" Command="{Binding ZoomToSelectionCommand}" />
                     <ui:Button Style="{StaticResource CanvasToolButton}" Content="⛶"
                                AutomationProperties.Name="Fit to content"
-                               ToolTip="Fit to content (F)" Command="{Binding FitToContentCommand}" />
+                               ToolTip="{DynamicResource S.Canvas.Tool.Fit.ToolTip}" Command="{Binding FitToContentCommand}" />
 
                     <Border Width="1" Margin="6,6" Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
 
                     <ui:Button Style="{StaticResource CanvasActionButton}"
                                VerticalAlignment="Center"
-                               Content="Auto Layout"
-                               ToolTip="Tidy the cards nobody has arranged by hand"
+                               Content="{DynamicResource S.Canvas.AutoLayout}"
+                               ToolTip="{DynamicResource S.Canvas.AutoLayout.ToolTip}"
                                Command="{Binding AutoLayoutCommand}" />
                 </StackPanel>
             </Border>
@@ -536,21 +536,21 @@
             <StackPanel HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Text="Kontur Code"
+                <TextBlock Text="{DynamicResource S.Canvas.Empty.Title}"
                            FontSize="22"
                            HorizontalAlignment="Center" />
-                <TextBlock Text="Your project has no knowledge graph yet."
+                <TextBlock Text="{DynamicResource S.Canvas.Empty.Graph}"
                            FontSize="13"
                            Margin="0,10,0,0"
                            HorizontalAlignment="Center"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                <ui:Button Content="Index Workspace"
+                <ui:Button Content="{DynamicResource S.Canvas.Empty.Index}"
                            Appearance="Primary"
                            Margin="0,20,0,0"
                            Padding="18,7"
                            HorizontalAlignment="Center"
                            Command="{Binding IndexWorkspaceCommand}" />
-                <TextBlock Text="The graph will be generated from your project structure."
+                <TextBlock Text="{DynamicResource S.Canvas.Empty.Note}"
                            Style="{StaticResource SubtleText}"
                            Margin="0,14,0,0"
                            HorizontalAlignment="Center" />

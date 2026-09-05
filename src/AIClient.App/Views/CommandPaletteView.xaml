@@ -41,7 +41,7 @@
                             Grid.Row="0"
                             Margin="10"
                             FontSize="15"
-                            PlaceholderText="Type a command…"
+                            PlaceholderText="{DynamicResource S.Palette.Placeholder}"
                             Icon="{ui:SymbolIcon Search24}"
                             PreviewKeyDown="OnQueryKeyDown"
                             Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" />
@@ -101,7 +101,7 @@
                            Margin="0,30"
                            TextAlignment="Center"
                            Style="{StaticResource SubtleText}"
-                           Text="No matching commands."
+                           Text="{DynamicResource S.Palette.NoMatches}"
                            Visibility="{Binding HasNoMatches, Converter={StaticResource BoolToVisibility}}" />
 
                 <Border Grid.Row="2"
@@ -110,7 +110,7 @@
                         BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
                     <TextBlock Style="{StaticResource SubtleText}"
                                FontSize="11"
-                               Text="↑↓ to navigate · Enter to run · Esc to close" />
+                               Text="{DynamicResource S.Palette.Hints}" />
                 </Border>
             </Grid>
         </Border>

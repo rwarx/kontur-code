@@ -1,0 +1,403 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- Русская таблица строк. Ключи должны в точности повторять Strings.en.xaml;
+         служба локализации проверяет соответствие при загрузке и пишет предупреждение в журнал. -->
+
+    <!-- ===== Общие ===== -->
+    <sys:String x:Key="S.Common.Cancel">Отмена</sys:String>
+    <sys:String x:Key="S.Common.Save">Сохранить</sys:String>
+    <sys:String x:Key="S.Common.Close">Закрыть</sys:String>
+    <sys:String x:Key="S.Common.Delete">Удалить</sys:String>
+    <sys:String x:Key="S.Common.Open">Открыть</sys:String>
+    <sys:String x:Key="S.Common.Edit">Изменить</sys:String>
+    <sys:String x:Key="S.Common.Copy">Копировать</sys:String>
+    <sys:String x:Key="S.Common.Retry">Повторить</sys:String>
+    <sys:String x:Key="S.Common.Back">Назад</sys:String>
+    <sys:String x:Key="S.Common.TechnicalDetails">Технические подробности</sys:String>
+
+    <!-- ===== Языки (всегда показываются в собственном написании) ===== -->
+    <sys:String x:Key="S.Language.English">English</sys:String>
+    <sys:String x:Key="S.Language.Russian">Русский</sys:String>
+    <sys:String x:Key="S.Language.German">Deutsch</sys:String>
+
+    <!-- ===== Темы ===== -->
+    <sys:String x:Key="S.Theme.System">Системная</sys:String>
+    <sys:String x:Key="S.Theme.Light">Светлая</sys:String>
+    <sys:String x:Key="S.Theme.Dark">Тёмная</sys:String>
+
+    <!-- ===== Главное окно ===== -->
+    <sys:String x:Key="S.Main.Offline.Title">Нет подключения к интернету</sys:String>
+    <sys:String x:Key="S.Main.Offline.Message">Сохранённые разговоры и настройки доступны. Новые сообщения не будут отправляться, пока связь не восстановится.</sys:String>
+    <sys:String x:Key="S.Main.ToggleSidebar.ToolTip">Показать или скрыть боковую панель (Ctrl+B)</sys:String>
+    <sys:String x:Key="S.Main.ChangeModel.ToolTip">Сменить модель</sys:String>
+    <sys:String x:Key="S.Main.SelectModel">Выберите модель</sys:String>
+    <sys:String x:Key="S.Main.Export.ToolTip">Экспортировать разговор</sys:String>
+    <sys:String x:Key="S.Main.Export.Markdown">Экспорт в Markdown</sys:String>
+    <sys:String x:Key="S.Main.Export.Json">Экспорт в JSON</sys:String>
+    <sys:String x:Key="S.Main.Export.Text">Экспорт в обычный текст</sys:String>
+    <sys:String x:Key="S.Main.Settings.ToolTip">Настройки (Ctrl+,)</sys:String>
+
+    <!-- ===== Боковая панель ===== -->
+    <sys:String x:Key="S.Sidebar.NewChat">Новый чат</sys:String>
+    <sys:String x:Key="S.Sidebar.NewChat.ToolTip">Новый чат (Ctrl+N)</sys:String>
+    <sys:String x:Key="S.Sidebar.Search.Placeholder">Поиск по чатам…</sys:String>
+    <sys:String x:Key="S.Sidebar.Search.ToolTip">Поиск по чатам (Ctrl+K)</sys:String>
+    <sys:String x:Key="S.Sidebar.Menu.Open">Открыть</sys:String>
+    <sys:String x:Key="S.Sidebar.Menu.Rename">Переименовать…</sys:String>
+    <sys:String x:Key="S.Sidebar.Menu.Pin">Закрепить / Открепить</sys:String>
+    <sys:String x:Key="S.Sidebar.Menu.Delete">Удалить</sys:String>
+    <sys:String x:Key="S.Sidebar.Empty.Search">Нет чатов по запросу «{0}».</sys:String>
+    <sys:String x:Key="S.Sidebar.Empty.None">Пока нет чатов.&#10;Начните первый через «Новый чат».</sys:String>
+    <sys:String x:Key="S.Sidebar.Canvas">Канва</sys:String>
+    <sys:String x:Key="S.Sidebar.Canvas.ToolTip">Граф знаний (Ctrl+G)</sys:String>
+    <sys:String x:Key="S.Sidebar.Settings">Настройки</sys:String>
+    <sys:String x:Key="S.Sidebar.Settings.ToolTip">Настройки (Ctrl+,)</sys:String>
+    <sys:String x:Key="S.Sidebar.ToggleTheme">Сменить тему</sys:String>
+    <sys:String x:Key="S.Sidebar.Palette">Палитра команд</sys:String>
+    <sys:String x:Key="S.Sidebar.Palette.ToolTip">Ctrl+Shift+P</sys:String>
+
+    <!-- ===== Чат: переписка ===== -->
+    <sys:String x:Key="S.Chat.Empty.Title">Чем могу помочь?</sys:String>
+    <sys:String x:Key="S.Chat.Empty.Subtitle">Задайте вопрос, вставьте код или приложите файл.</sys:String>
+    <sys:String x:Key="S.Chat.JumpToLatest">К последнему сообщению</sys:String>
+    <sys:String x:Key="S.Chat.SaveResend">Сохранить и отправить</sys:String>
+    <sys:String x:Key="S.Chat.Thinking">Думаю…</sys:String>
+    <sys:String x:Key="S.Chat.Reasoning">Размышления</sys:String>
+    <sys:String x:Key="S.Chat.Failed.Title">Запрос не выполнен</sys:String>
+    <sys:String x:Key="S.Chat.Stopped">Генерация остановлена.</sys:String>
+    <sys:String x:Key="S.Chat.Copy.ToolTip">Копировать сообщение</sys:String>
+    <sys:String x:Key="S.Chat.Regenerate">Сгенерировать заново</sys:String>
+    <sys:String x:Key="S.Chat.Regenerate.ToolTip">Получить новый ответ</sys:String>
+    <sys:String x:Key="S.Chat.Delete.ToolTip">Удалить сообщение</sys:String>
+    <sys:String x:Key="S.Chat.Truncated">сокращено</sys:String>
+    <sys:String x:Key="S.Chat.RemoveAttachment.ToolTip">Убрать вложение</sys:String>
+    <sys:String x:Key="S.Chat.Attach.ToolTip">Прикрепить файл</sys:String>
+    <sys:String x:Key="S.Chat.Send.ToolTip">Отправить (Enter)</sys:String>
+    <sys:String x:Key="S.Chat.ShowResult.ToolTip">Показать, что вернул вызов</sys:String>
+    <sys:String x:Key="S.Tool.Risk.Write">меняет файлы</sys:String>
+    <sys:String x:Key="S.Tool.Risk.Execute">запускает программу</sys:String>
+
+    <!-- ===== Состояния вызовов инструментов ===== -->
+    <sys:String x:Key="S.Tool.Waiting">Ожидание</sys:String>
+    <sys:String x:Key="S.Tool.Running">Выполняется</sys:String>
+    <sys:String x:Key="S.Tool.Done">Готово</sys:String>
+    <sys:String x:Key="S.Tool.Denied">Не разрешено</sys:String>
+    <sys:String x:Key="S.Tool.Interrupted">Прервано</sys:String>
+    <sys:String x:Key="S.Tool.Failed">Ошибка</sys:String>
+    <sys:String x:Key="S.Tool.Body.Truncated">... остаток результата не показан.</sys:String>
+
+    <!-- ===== Кнопка и меню агента ===== -->
+    <sys:String x:Key="S.Agent.Label">Агент</sys:String>
+    <sys:String x:Key="S.Agent.ToolTip">Позвольте модели работать с проектом. По умолчанию она планирует и спрашивает перед любым необратимым действием.</sys:String>
+    <sys:String x:Key="S.Agent.Mode.Plan">План</sys:String>
+    <sys:String x:Key="S.Agent.Mode.PlanCanvas">План + канва</sys:String>
+    <sys:String x:Key="S.Agent.Mode.Build">Сборка</sys:String>
+    <sys:String x:Key="S.Agent.Mode.Off">Выкл</sys:String>
+    <sys:String x:Key="S.Agent.Menu.Plan.Hint">Читает и решает, что делать. Ничего не меняет.</sys:String>
+    <sys:String x:Key="S.Agent.Menu.PlanCanvas.Hint">Составляет план и рисует проект, который построил бы.</sys:String>
+    <sys:String x:Key="S.Agent.Menu.Build.Hint">Выполняет работу, спрашивая перед каждым изменением.</sys:String>
+    <sys:String x:Key="S.Agent.Menu.Off.Hint">Один ответ модели, без инструментов.</sys:String>
+    <sys:String x:Key="S.Agent.Hint.Build.NoFolder">Сборка · папка не открыта. Выберите её в настройках.</sys:String>
+    <sys:String x:Key="S.Agent.Hint.Build.In">Сборка · работает в {0}</sys:String>
+    <sys:String x:Key="S.Agent.Hint.Plan.New">{0} · планирует что-то новое. Ничего не будет прочитано или изменено.</sys:String>
+    <sys:String x:Key="S.Agent.Hint.Plan.In">{0} · читает {1}. Ничего не будет изменено.</sys:String>
+
+    <!-- ===== Карточка подтверждения ===== -->
+    <sys:String x:Key="S.Approval.Headline.Fallback">Запустить {0} с аргументами ниже</sys:String>
+    <sys:String x:Key="S.Approval.Consequence.Execute">Запускает программу на этом компьютере.</sys:String>
+    <sys:String x:Key="S.Approval.Consequence.Write">Изменяет файлы в открытой вами папке.</sys:String>
+    <sys:String x:Key="S.Approval.Consequence.Read">Читает файлы из открытой вами папки.</sys:String>
+    <sys:String x:Key="S.Chat.Repeat">Вы уже разрешили этот вызов в текущем запуске. Он задан снова, потому что ответы на такие вызовы намеренно не запоминаются.</sys:String>
+    <sys:String x:Key="S.Approval.DenyPlaceholder">Почему нет? Необязательно и будет передано модели.</sys:String>
+    <sys:String x:Key="S.Approval.Deny">Не разрешать</sys:String>
+    <sys:String x:Key="S.Approval.AllowRun">Разрешить до конца запуска</sys:String>
+    <sys:String x:Key="S.Approval.AllowOnce">Разрешить один раз</sys:String>
+    <sys:String x:Key="S.Approval.Arguments">Аргументы</sys:String>
+
+    <!-- ===== Подсказки на пустом экране ===== -->
+    <sys:String x:Key="S.Suggest.Explain.Title">Объяснить код</sys:String>
+    <sys:String x:Key="S.Suggest.Explain.Description">Разберу, что делает фрагмент</sys:String>
+    <sys:String x:Key="S.Suggest.Function.Title">Написать функцию</sys:String>
+    <sys:String x:Key="S.Suggest.Function.Description">Сделаю реализацию по описанию</sys:String>
+    <sys:String x:Key="S.Suggest.Analyse.Title">Разобрать файл</sys:String>
+    <sys:String x:Key="S.Suggest.Analyse.Description">Приложите файл и спросите о нём</sys:String>
+    <sys:String x:Key="S.Suggest.Debug.Title">Помочь с ошибкой</sys:String>
+    <sys:String x:Key="S.Suggest.Debug.Description">Разберёмся с сообщением об ошибке</sys:String>
+
+    <!-- ===== Подсказки ввода и баннеры ===== -->
+    <sys:String x:Key="S.Hint.EnterSend">Enter — отправить · Shift+Enter — новая строка</sys:String>
+    <sys:String x:Key="S.Hint.ShiftEnterSend">Shift+Enter — отправить · Enter — новая строка</sys:String>
+    <sys:String x:Key="S.Banner.ChooseModel">Выберите модель перед отправкой сообщения.</sys:String>
+    <sys:String x:Key="S.Banner.ChooseModel.Regenerate">Выберите модель перед повторной генерацией.</sys:String>
+    <sys:String x:Key="S.Banner.ChooseModel.Edit">Выберите модель перед изменением.</sys:String>
+    <sys:String x:Key="S.Banner.BuildNeedsFolder">Для сборки нужна рабочая папка. Откройте её в настройках, переключитесь на «План» или выключите режим агента, чтобы просто общаться.</sys:String>
+    <sys:String x:Key="S.Banner.UnsupportedFile">«{0}» — неподдерживаемый тип файла.</sys:String>
+    <sys:String x:Key="S.Banner.Exported">Экспортировано в {0}.</sys:String>
+    <sys:String x:Key="S.Banner.ExportFailed">Не удалось экспортировать</sys:String>
+    <sys:String x:Key="S.Stop.AfterStep">Остановлено после 1 шага. Дальше ничего не изменено.</sys:String>
+    <sys:String x:Key="S.Stop.AfterSteps">Остановлено. Выполнено шагов: {0}. Дальше ничего не изменено.</sys:String>
+    <sys:String x:Key="S.Stop.Plain">Остановлено. Дальше ничего не изменено.</sys:String>
+    <sys:String x:Key="S.RunEnd.StepLimit">Агент остановился — выполнено шагов: {0}, столько отпущено на один запуск. Если работа не закончена, отправьте ещё одно сообщение.</sys:String>
+    <sys:String x:Key="S.RunEnd.TimeLimit">У агента кончилось время — выполнено шагов: {0}. Если работа не закончена, отправьте ещё одно сообщение.</sys:String>
+    <sys:String x:Key="S.Error.Unknown.Generation">Что-то пошло не так при генерации ответа.</sys:String>
+    <sys:String x:Key="S.Error.Unknown.Agent">Что-то пошло не так во время работы агента.</sys:String>
+
+    <!-- ===== Типы ошибок (показываются как сообщение о сбое; подробности остаются техническими) ===== -->
+    <sys:String x:Key="S.Error.InvalidApiKey">Ключ отклонён. Проверьте его в «Настройки → Провайдеры»; если он отозван, выпустите новый.</sys:String>
+    <sys:String x:Key="S.Error.PermissionDenied">У ключа нет доступа к этой модели, либо не подключена оплата.</sys:String>
+    <sys:String x:Key="S.Error.NotFound">Модель или адрес не найдены. Обновите список моделей.</sys:String>
+    <sys:String x:Key="S.Error.RateLimited">Сработало ограничение частоты запросов или закончился кредит. Подождите немного и попробуйте снова.</sys:String>
+    <sys:String x:Key="S.Error.Timeout">Запрос выполнялся слишком долго.</sys:String>
+    <sys:String x:Key="S.Error.ServerError">У провайдера внутренняя ошибка.</sys:String>
+    <sys:String x:Key="S.Error.ServiceUnavailable">Провайдер временно недоступен. Обычно это быстро проходит.</sys:String>
+    <sys:String x:Key="S.Error.NetworkError">Не удалось связаться с провайдером. Проверьте подключение к интернету.</sys:String>
+    <sys:String x:Key="S.Error.ContextLengthExceeded">Разговор больше не помещается в контекстное окно модели. Начните новый чат или выберите модель с большим окном.</sys:String>
+    <sys:String x:Key="S.Error.ModelUnavailable">Модель сейчас недоступна.</sys:String>
+    <sys:String x:Key="S.Error.InvalidRequest">Запрос отклонён как некорректный.</sys:String>
+    <sys:String x:Key="S.Error.ContentFiltered">Провайдер отказался отвечать на это.</sys:String>
+    <sys:String x:Key="S.Error.NotConfigured">Для этого провайдера не задан ключ API. Добавьте его в «Настройки → Провайдеры».</sys:String>
+
+    <!-- ===== Диалоги ===== -->
+    <sys:String x:Key="S.Dialog.DeleteMessage.Title">Удалить сообщение</sys:String>
+    <sys:String x:Key="S.Dialog.DeleteMessage.Message">Сообщение будет удалено из разговора.</sys:String>
+    <sys:String x:Key="S.Dialog.DeleteChat.Title">Удалить чат</sys:String>
+    <sys:String x:Key="S.Dialog.DeleteChat.Message">Разговор «{0}» и все его сообщения будут удалены безвозвратно.</sys:String>
+    <sys:String x:Key="S.Dialog.Rename.Title">Переименовать чат</sys:String>
+    <sys:String x:Key="S.Dialog.Rename.Label">Название чата</sys:String>
+    <sys:String x:Key="S.Dialog.ChooseWorkspace">Выберите папку, с которой агенту можно работать</sys:String>
+    <sys:String x:Key="S.Chat.NotWorkspace">Эту папку нельзя использовать как рабочую.</sys:String>
+    <sys:String x:Key="S.Chat.NotOpened">Эту папку не удалось открыть. Выберите другую в настройках.</sys:String>
+
+    <!-- ===== Провайдеры ===== -->
+    <sys:String x:Key="S.Provider.ApiKey">Ключ API</sys:String>
+    <sys:String x:Key="S.Provider.Change">Изменить</sys:String>
+    <sys:String x:Key="S.Provider.AddKey">Добавить ключ</sys:String>
+    <sys:String x:Key="S.Provider.Remove">Убрать</sys:String>
+    <sys:String x:Key="S.Provider.TestConnection">Проверить соединение</sys:String>
+    <sys:String x:Key="S.Provider.RefreshModels">Обновить модели</sys:String>
+    <sys:String x:Key="S.Provider.GetKey">Получить ключ API</sys:String>
+    <sys:String x:Key="S.Provider.Include.ToolTip">Включить модели провайдера в выбор модели</sys:String>
+    <sys:String x:Key="S.Provider.KeyNote">Шифруется Windows DPAPI в рамках вашей учётной записи. Ключ никогда не попадает в базу, журналы или экспорт.</sys:String>
+    <sys:String x:Key="S.Provider.NotConfigured">Не настроен</sys:String>
+    <sys:String x:Key="S.Provider.NoKey">Нет ключа API</sys:String>
+    <sys:String x:Key="S.Provider.Testing">Проверяем…</sys:String>
+    <sys:String x:Key="S.Provider.Connected">Соединение установлено</sys:String>
+    <sys:String x:Key="S.Provider.Failed">Не удалось соединиться</sys:String>
+    <sys:String x:Key="S.Provider.NotTested">Не проверялся</sys:String>
+    <sys:String x:Key="S.Provider.Models.None">Модели не загружены</sys:String>
+    <sys:String x:Key="S.Provider.Models.One">1 модель загружена</sys:String>
+    <sys:String x:Key="S.Provider.Models.Many">{0} моделей загружено</sys:String>
+    <sys:String x:Key="S.Provider.ModelsAvailable">Доступно моделей: {0}.</sys:String>
+    <sys:String x:Key="S.Provider.TestIncomplete">Проверку соединения не удалось завершить.</sys:String>
+    <sys:String x:Key="S.Provider.RefreshFailed">Не удалось обновить список моделей.</sys:String>
+    <sys:String x:Key="S.Provider.RemoveKey.Title">Убрать ключ API — {0}</sys:String>
+    <sys:String x:Key="S.Provider.RemoveKey.Message">Сохранённый ключ для {0} будет удалён. Загруженные модели останутся, но их нельзя использовать, пока не будет добавлен новый ключ.</sys:String>
+
+    <!-- ===== Настройки ===== -->
+    <sys:String x:Key="S.Settings.Title">Настройки</sys:String>
+    <sys:String x:Key="S.Settings.Back.ToolTip">Вернуться к чату</sys:String>
+    <sys:String x:Key="S.Settings.Providers">Провайдеры</sys:String>
+    <sys:String x:Key="S.Settings.General">Общие</sys:String>
+    <sys:String x:Key="S.Settings.Appearance">Оформление</sys:String>
+    <sys:String x:Key="S.Settings.Chat">Чат</sys:String>
+    <sys:String x:Key="S.Settings.Agent">Агент</sys:String>
+    <sys:String x:Key="S.Settings.Programs">Запуск программ</sys:String>
+    <sys:String x:Key="S.Settings.Storage">Хранилище</sys:String>
+    <sys:String x:Key="S.Settings.Shortcuts">Сочетания клавиш</sys:String>
+    <sys:String x:Key="S.Settings.About">О программе</sys:String>
+
+    <sys:String x:Key="S.Settings.General.Reopen">Открывать последний разговор при запуске</sys:String>
+    <sys:String x:Key="S.Settings.General.ConfirmDelete">Спрашивать подтверждение при удалении чата или сообщения</sys:String>
+    <sys:String x:Key="S.Settings.General.AutoTitles">Называть новые чаты по первому сообщению</sys:String>
+    <sys:String x:Key="S.Settings.General.Language">Язык</sys:String>
+
+    <sys:String x:Key="S.Settings.Appearance.Theme">Тема</sys:String>
+    <sys:String x:Key="S.Settings.Appearance.ChatFontSize">Размер шрифта чата</sys:String>
+    <sys:String x:Key="S.Settings.Appearance.CodeFontSize">Размер шрифта кода</sys:String>
+    <sys:String x:Key="S.Settings.Appearance.Mica">Фон Mica (вступит в силу после перезапуска)</sys:String>
+
+    <sys:String x:Key="S.Settings.Chat.SystemPrompt">Системный промпт</sys:String>
+    <sys:String x:Key="S.Settings.Chat.SystemPrompt.Hint">Добавляется в начало каждого нового разговора. Оставьте пустым, чтобы не отправлять системное сообщение.</sys:String>
+    <sys:String x:Key="S.Settings.Chat.Temperature">Температура</sys:String>
+    <sys:String x:Key="S.Settings.Chat.TopP">Top P</sys:String>
+    <sys:String x:Key="S.Settings.Chat.MaxTokens">Максимум токенов</sys:String>
+    <sys:String x:Key="S.Settings.Chat.SendWithEnter">Отправлять по Enter (Shift+Enter вставляет новую строку)</sys:String>
+    <sys:String x:Key="S.Settings.Chat.RenderMarkdown">Отображать Markdown в ответах</sys:String>
+    <sys:String x:Key="S.Settings.Chat.HighlightCode">Подсвечивать синтаксис в блоках кода</sys:String>
+    <sys:String x:Key="S.Settings.Chat.AutoScroll">Следить за ответом во время генерации</sys:String>
+    <sys:String x:Key="S.Settings.Chat.ShowUsage">Показывать расход токенов и время генерации</sys:String>
+    <sys:String x:Key="S.Settings.Chat.History">Сообщений истории на запрос</sys:String>
+    <sys:String x:Key="S.Settings.Chat.Timeout">Тайм-аут запроса (секунды)</sys:String>
+
+    <sys:String x:Key="S.Settings.Agent.Workspace">Рабочая папка</sys:String>
+    <sys:String x:Key="S.Settings.Agent.Workspace.None">Папка не открыта. Агент не может ничего читать или менять, пока она не выбрана.</sys:String>
+    <sys:String x:Key="S.Settings.Agent.Choose">Выбрать…</sys:String>
+    <sys:String x:Key="S.Settings.Agent.ShowInExplorer">Показать в Проводнике</sys:String>
+    <sys:String x:Key="S.Settings.Agent.Close">Закрыть</sys:String>
+    <sys:String x:Key="S.Settings.Agent.Close.ToolTip">Лишает агента всего, что он мог бы читать или менять.</sys:String>
+    <sys:String x:Key="S.Settings.Agent.NotOpened">Папка не была открыта</sys:String>
+    <sys:String x:Key="S.Settings.Agent.Hint">В режиме агента модель может просматривать, читать, искать, записывать, перемещать и удалять файлы в этой папке. Любое изменение или удаление файла сначала предлагается вам на подтверждение, каждый раз; внутренности системы контроля версий и файлы с учётными данными отклоняются сразу. Запуск программ — отдельное решение, см. ниже.</sys:String>
+    <sys:String x:Key="S.Settings.Agent.MaxSteps">Максимум шагов на сообщение</sys:String>
+    <sys:String x:Key="S.Settings.Agent.TimeLimit">Предел времени на сообщение (секунды, 0 — без предела)</sys:String>
+    <sys:String x:Key="S.Settings.Agent.MaxFile">Максимальный размер файла, который агент может открыть (КБ)</sys:String>
+
+    <sys:String x:Key="S.Settings.Programs.Allow">Разрешить агенту запускать программы</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Allow.Hint">Выключено — агент может только читать и менять файлы. Включено — он также может собирать проект, запускать его тесты и спрашивать систему контроля версий, что изменилось. Именно это позволяет ему понять, работает ли правка на самом деле.</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Warning.Title">Программа не ограничена рабочей папкой</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Warning.Message">Она выполняется от вашего имени и может обращаться к сети, ко всему диску и ко всему, что доступно вашей учётной записи. Каждая команда сначала предлагается вам на подтверждение с полным перечнем программы и аргументов, и это подтверждение никогда не запоминается — десять команд, десять вопросов. Оболочки нет, поэтому внутри команды нельзя запустить вторую.</sys:String>
+    <sys:String x:Key="S.Settings.Programs.List">Программы, которые агент может запускать</sys:String>
+    <sys:String x:Key="S.Settings.Programs.List.Hint">Разделяются запятыми или пробелами и указываются только по имени — «dotnet», но не путь к нему. Регистр и окончание .exe игнорируются. Всё, чего нет в списке, отклоняется, а агенту предписано спросить вас, а не искать обходной путь.</sys:String>
+    <sys:String x:Key="S.Settings.Programs.List.ShellWarning">Добавление оболочки — cmd, powershell, pwsh, bash, wsl — открывает через неё любую программу на компьютере и превращает остальной список в украшение.</sys:String>
+    <sys:String x:Key="S.Settings.Programs.CheckList">Проверить список</sys:String>
+    <sys:String x:Key="S.Settings.Programs.KillAfter">Снимать программу через (секунды)</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Output">Сколько символов вывода сохранять (конец, а не начало)</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Dropped">Пропущено, потому что программа указана без пути, пробела или аргумента: {0}</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Empty">Не разрешено ничего, поэтому все команды будут отклоняться. Добавьте программы, которыми проект собирается и тестируется.</sys:String>
+
+    <sys:String x:Key="S.Settings.Storage.MaxAttachment">Максимальный размер вложения (КБ)</sys:String>
+    <sys:String x:Key="S.Settings.Storage.LogLevel">Минимальный уровень журнала</sys:String>
+    <sys:String x:Key="S.Settings.Storage.KeepLogs">Хранить журналы (дней)</sys:String>
+    <sys:String x:Key="S.Settings.Storage.Database">База данных</sys:String>
+    <sys:String x:Key="S.Settings.Storage.OpenData">Открыть папку данных</sys:String>
+    <sys:String x:Key="S.Settings.Storage.OpenLogs">Открыть папку журналов</sys:String>
+
+    <sys:String x:Key="S.Settings.Shortcut.NewChat">Новый чат</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.Search">Поиск по чатам</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.OpenSettings">Открыть настройки</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.Palette">Палитра команд</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.Send">Отправить сообщение</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.NewLine">Новая строка в сообщении</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.Stop">Остановить генерацию</sys:String>
+
+    <sys:String x:Key="S.Settings.About.Version">Версия {0}</sys:String>
+    <sys:String x:Key="S.Settings.About.Text">Настольный клиент для работы с моделями разных провайдеров. Разговоры, настройки и ключи API остаются на этом компьютере.</sys:String>
+
+    <!-- ===== Первый запуск ===== -->
+    <sys:String x:Key="S.FirstRun.Step">Шаг {0} из 3</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Title">Добро пожаловать в AI Client</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Intro">Настольный клиент для работы с моделями. Используйте свой ключ API от провайдера, которым вы уже пользуетесь — разговоры и настройки остаются на этом компьютере.</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Get.Title">Что вы получаете</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Get.1">• Ответы с потоком, Markdown и подсветкой синтаксиса</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Get.2">• Разговоры сохраняются локально и ищутся</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Get.3">• Несколько провайдеров рядом, за одним выбором модели</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Get.4">• Ключи API шифруются Windows DPAPI и не попадают в базу</sys:String>
+    <sys:String x:Key="S.FirstRun.Connect.Title">Подключите провайдера</sys:String>
+    <sys:String x:Key="S.FirstRun.Connect.Intro">Добавьте ключ хотя бы одного провайдера. Остальные подождут — всё это есть и в настройках.</sys:String>
+    <sys:String x:Key="S.FirstRun.Model.Title">Выберите модель по умолчанию</sys:String>
+    <sys:String x:Key="S.FirstRun.Model.Intro">Новые чаты начинаются с этой модели. Её можно сменить для каждого чата в заголовке.</sys:String>
+    <sys:String x:Key="S.FirstRun.Skip">Пропустить настройку</sys:String>
+    <sys:String x:Key="S.FirstRun.StartChat">Начать общение</sys:String>
+    <sys:String x:Key="S.FirstRun.Continue">Продолжить</sys:String>
+
+    <!-- ===== Выбор модели ===== -->
+    <sys:String x:Key="S.Picker.Filter.Placeholder">Фильтр моделей…</sys:String>
+    <sys:String x:Key="S.Picker.Vision">зрение</sys:String>
+    <sys:String x:Key="S.Picker.Tools">инструменты</sys:String>
+    <sys:String x:Key="S.Picker.None.Title">Нет доступных моделей</sys:String>
+    <sys:String x:Key="S.Picker.None.Hint">Добавьте ключ API в «Настройки → Провайдеры», затем обновите список моделей.</sys:String>
+
+    <!-- ===== Палитра команд ===== -->
+    <sys:String x:Key="S.Palette.Placeholder">Введите команду…</sys:String>
+    <sys:String x:Key="S.Palette.NoMatches">Подходящих команд нет.</sys:String>
+    <sys:String x:Key="S.Palette.Hints">↑↓ — выбор · Enter — выполнить · Esc — закрыть</sys:String>
+    <sys:String x:Key="S.Palette.NewChat">Новый чат</sys:String>
+    <sys:String x:Key="S.Palette.SearchChats">Поиск по чатам</sys:String>
+    <sys:String x:Key="S.Palette.ChangeModel">Сменить модель</sys:String>
+    <sys:String x:Key="S.Palette.OpenCanvas">Открыть канву</sys:String>
+    <sys:String x:Key="S.Palette.OpenSettings">Настройки</sys:String>
+    <sys:String x:Key="S.Palette.ToggleTheme">Сменить тему</sys:String>
+    <sys:String x:Key="S.Palette.ExportMarkdown">Экспорт разговора в Markdown</sys:String>
+    <sys:String x:Key="S.Palette.ExportJson">Экспорт разговора в JSON</sys:String>
+    <sys:String x:Key="S.Palette.ExportText">Экспорт разговора в текст</sys:String>
+    <sys:String x:Key="S.Palette.Category.Chat">Чат</sys:String>
+    <sys:String x:Key="S.Palette.Category.Application">Приложение</sys:String>
+    <sys:String x:Key="S.Palette.Category.Export">Экспорт</sys:String>
+
+    <!-- ===== Инспектор ===== -->
+    <sys:String x:Key="S.Inspector.Source">Источник</sys:String>
+    <sys:String x:Key="S.Inspector.Metadata">Свойства</sys:String>
+    <sys:String x:Key="S.Inspector.DependsOn">Зависит от</sys:String>
+    <sys:String x:Key="S.Inspector.UsedBy">Используется в</sys:String>
+    <sys:String x:Key="S.Inspector.History">История</sys:String>
+    <sys:String x:Key="S.Inspector.HistoryLoading">Читаем журнал изменений…</sys:String>
+    <sys:String x:Key="S.Inspector.Explain">Объяснить</sys:String>
+    <sys:String x:Key="S.Inspector.Analyze">Проанализировать</sys:String>
+    <sys:String x:Key="S.Inspector.Refactor">Отрефакторить</sys:String>
+    <sys:String x:Key="S.Inspector.GenerateTests">Сгенерировать тесты</sys:String>
+    <sys:String x:Key="S.Inspector.ViewCode">Показать код</sys:String>
+    <sys:String x:Key="S.Inspector.OpenSource">Открыть файл</sys:String>
+    <sys:String x:Key="S.Inspector.ViewCode.ToolTip">Прочитать файл рядом с канвой</sys:String>
+    <sys:String x:Key="S.Inspector.OpenSource.ToolTip">Показать файл в Проводнике</sys:String>
+    <sys:String x:Key="S.Inspector.Status.Missing">Файла за этим узлом больше нет на диске.</sys:String>
+    <sys:String x:Key="S.Inspector.Status.Archived">Помечен как архивный.</sys:String>
+    <sys:String x:Key="S.Inspector.Origin.Indexer">Из файлов проекта</sys:String>
+    <sys:String x:Key="S.Inspector.Origin.User">Добавлено вами</sys:String>
+    <sys:String x:Key="S.Inspector.Origin.Chat">Из разговора</sys:String>
+    <sys:String x:Key="S.Inspector.Origin.Agent">Добавлено агентом</sys:String>
+    <sys:String x:Key="S.Inspector.Origin.Import">Импортировано</sys:String>
+    <sys:String x:Key="S.Inspector.Group.Nodes">{0} узлов</sys:String>
+    <sys:String x:Key="S.Inspector.Group.NodesRelations">{0} узлов · {1} связей</sys:String>
+    <sys:String x:Key="S.Inspector.Group.Selection">Выделение</sys:String>
+    <sys:String x:Key="S.Inspector.Selection.OneNode">1 узел</sys:String>
+
+    <!-- ===== Канва ===== -->
+    <sys:String x:Key="S.Canvas.Back">← Чат</sys:String>
+    <sys:String x:Key="S.Canvas.Back.ToolTip">Вернуться к разговору</sys:String>
+    <sys:String x:Key="S.Canvas.Reindex">Переиндексировать</sys:String>
+    <sys:String x:Key="S.Canvas.Reindex.ToolTip">Заново обойти папку проекта и обновить граф</sys:String>
+    <sys:String x:Key="S.Canvas.Folder">Папка…</sys:String>
+    <sys:String x:Key="S.Canvas.Folder.ToolTip">Выбрать папку проекта для показа на канве</sys:String>
+    <sys:String x:Key="S.Canvas.Ask">Спросить Kontur AI…</sys:String>
+    <sys:String x:Key="S.Canvas.Action.Analyze">Проанализировать</sys:String>
+    <sys:String x:Key="S.Canvas.Action.Explain">Объяснить</sys:String>
+    <sys:String x:Key="S.Canvas.Action.Refactor">Отрефакторить</sys:String>
+    <sys:String x:Key="S.Canvas.Action.FindProblems">Найти проблемы</sys:String>
+    <sys:String x:Key="S.Canvas.Action.GenerateTests">Сгенерировать тесты</sys:String>
+    <sys:String x:Key="S.Canvas.AutoLayout">Автоформат</sys:String>
+    <sys:String x:Key="S.Canvas.AutoLayout.ToolTip">Привести в порядок карточки, которые никто не расставлял вручную</sys:String>
+    <sys:String x:Key="S.Canvas.Empty.Title">Kontur Code</sys:String>
+    <sys:String x:Key="S.Canvas.Empty.Graph">В вашем проекте пока нет графа знаний.</sys:String>
+    <sys:String x:Key="S.Canvas.Empty.Index">Индексировать папку</sys:String>
+    <sys:String x:Key="S.Canvas.Empty.Note">Граф будет построен по структуре вашего проекта.</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.Select.ToolTip">Выбор — щелчок выделяет карточку, перетаскивание двигает её, рамкой на пустом месте выделяется группа (V)</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.Pan.ToolTip">Перемещение — тяните в любом месте, чтобы сдвинуть канву (H)</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.ZoomIn.ToolTip">Приблизить (Ctrl +)</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.ZoomOut.ToolTip">Отдалить (Ctrl −)</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.ZoomSelection.ToolTip">Масштаб по выделению (E)</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.Fit.ToolTip">Вписать содержимое (F)</sys:String>
+    <sys:String x:Key="S.Canvas.Status.Indexing">Индексация проекта…</sys:String>
+    <sys:String x:Key="S.Canvas.Status.Indexing.Nodes">Индексация проекта…   {0} узлов</sys:String>
+    <sys:String x:Key="S.Canvas.Status.NoGraph">Графа пока нет</sys:String>
+    <sys:String x:Key="S.Canvas.Status.NodesRelations">{0} узлов · {1} связей</sys:String>
+    <sys:String x:Key="S.Canvas.Breadcrumb.Project">Проект</sys:String>
+    <sys:String x:Key="S.Canvas.Workspace.None">Папка не открыта</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.LoadFailed">Канву не удалось загрузить. Граф цел — попробуйте открыть страницу заново.</sys:String>
+    <sys:String x:Key="S.Canvas.ChooseFolder">Выберите папку проекта для индексации</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.NotProject">Эту папку нельзя использовать как папку проекта.</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.IndexFailed">Проект не удалось проиндексировать.</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.IndexTruncated">Проиндексированы первые {0} узлов — проект больше текущего предела.</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.IndexSkipped">Проиндексировано {0} узлов. {1} путь(ей) пропущено.</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.NoCode">В папке нет кода для показа.</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.NoFile">За этим узлом не стоит файл.</sys:String>
+
+    <!-- ===== Панель кода канвы ===== -->
+    <sys:String x:Key="S.Code.CouldNotRead">Этот файл не удалось прочитать.</sys:String>
+    <sys:String x:Key="S.Code.OneLine">1 строка</sys:String>
+    <sys:String x:Key="S.Code.Lines">{0} строк</sys:String>
+    <sys:String x:Key="S.Code.LinesRange">Строки {0}-{1} из {2}</sys:String>
+    <sys:String x:Key="S.Code.Reading">Читаем…</sys:String>
+    <sys:String x:Key="S.Code.Close.ToolTip">Закрыть (Esc)</sys:String>
+    <sys:String x:Key="S.Code.Automation.Close">Закрыть код</sys:String>
+    <sys:String x:Key="S.Code.Automation.Gutter">Номера строк</sys:String>
+    <sys:String x:Key="S.Code.Automation.Contents">Содержимое файла</sys:String>
+
+    <!-- ===== Переход к файлу ===== -->
+    <sys:String x:Key="S.Source.NoFile">За этим узлом не стоит файл.</sys:String>
+    <sys:String x:Key="S.Source.NoFolder">Папка проекта не открыта.</sys:String>
+    <sys:String x:Key="S.Source.Outside">Этот путь вне папки проекта.</sys:String>
+    <sys:String x:Key="S.Source.Missing">Этого файла больше нет на диске.</sys:String>
+    <sys:String x:Key="S.Source.NotShown">Этот файл не удалось показать.</sys:String>
+
+</ResourceDictionary>

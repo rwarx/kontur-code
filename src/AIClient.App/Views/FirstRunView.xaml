@@ -29,11 +29,11 @@
             <TextBlock Grid.Row="0"
                        Style="{StaticResource SubtleText}"
                        Margin="0,0,0,10"
-                       Text="{Binding StepNumber, StringFormat=Step {0} of 3}" />
+                       Text="{Binding StepText}" />
 
             <!-- ===== Welcome ===== -->
             <StackPanel Grid.Row="1" Visibility="{Binding IsWelcome, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Text="Welcome to AI Client"
+                <TextBlock Text="{DynamicResource S.FirstRun.Welcome.Title}"
                            FontSize="30"
                            FontWeight="SemiBold"
                            Margin="0,0,0,10" />
@@ -41,33 +41,33 @@
                            FontSize="15"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            Margin="0,0,0,22"
-                           Text="A desktop client for working with AI models. Bring your own API key from a provider you already use — conversations and settings stay on this machine." />
+                           Text="{DynamicResource S.FirstRun.Welcome.Intro}" />
 
                 <ui:Card Padding="16">
                     <StackPanel>
-                        <TextBlock Text="What you get" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <TextBlock Text="{DynamicResource S.FirstRun.Welcome.Get.Title}" FontWeight="SemiBold" Margin="0,0,0,8" />
                         <TextBlock TextWrapping="Wrap" Margin="0,0,0,4"
-                                   Text="• Streaming answers with Markdown and syntax highlighting" />
+                                   Text="{DynamicResource S.FirstRun.Welcome.Get.1}" />
                         <TextBlock TextWrapping="Wrap" Margin="0,0,0,4"
-                                   Text="• Conversations saved locally and searchable" />
+                                   Text="{DynamicResource S.FirstRun.Welcome.Get.2}" />
                         <TextBlock TextWrapping="Wrap" Margin="0,0,0,4"
-                                   Text="• Several providers side by side, behind one model picker" />
+                                   Text="{DynamicResource S.FirstRun.Welcome.Get.3}" />
                         <TextBlock TextWrapping="Wrap"
-                                   Text="• API keys encrypted with Windows DPAPI, never written to the database" />
+                                   Text="{DynamicResource S.FirstRun.Welcome.Get.4}" />
                     </StackPanel>
                 </ui:Card>
             </StackPanel>
 
             <!-- ===== Connect a provider ===== -->
             <StackPanel Grid.Row="1" Visibility="{Binding IsConnect, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Text="Connect a provider"
+                <TextBlock Text="{DynamicResource S.FirstRun.Connect.Title}"
                            FontSize="26"
                            FontWeight="SemiBold"
                            Margin="0,0,0,8" />
                 <TextBlock TextWrapping="Wrap"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            Margin="0,0,0,18"
-                           Text="Add a key for at least one provider. The others can wait — this is all repeated in Settings." />
+                           Text="{DynamicResource S.FirstRun.Connect.Intro}" />
 
                 <ItemsControl ItemsSource="{Binding Providers}">
                     <ItemsControl.ItemTemplate>
@@ -100,7 +100,7 @@
                                                            VerticalAlignment="Center"
                                                            Visibility="{Binding HasApiKey, Converter={StaticResource BoolToVisibility}}" />
 
-                                            <ui:Button Content="Add key"
+                                            <ui:Button Content="{DynamicResource S.Provider.AddKey}"
                                                        Appearance="Primary"
                                                        Command="{Binding BeginEditApiKeyCommand}"
                                                        Visibility="{Binding IsEditingApiKey, Converter={StaticResource InverseBoolToVisibility}}" />
@@ -122,16 +122,16 @@
                                                          Padding="8,7" />
 
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="6,0,0,0">
-                                                <ui:Button Content="Save"
+                                                <ui:Button Content="{DynamicResource S.Common.Save}"
                                                            Appearance="Primary"
                                                            Margin="0,0,6,0"
                                                            Command="{Binding SaveApiKeyCommand}" />
-                                                <ui:Button Content="Cancel"
+                                                <ui:Button Content="{DynamicResource S.Common.Cancel}"
                                                            Command="{Binding CancelEditApiKeyCommand}" />
                                             </StackPanel>
                                         </Grid>
 
-                                        <ui:Button Content="Get an API key"
+                                        <ui:Button Content="{DynamicResource S.Provider.GetKey}"
                                                    Appearance="Transparent"
                                                    Margin="0,6,0,0"
                                                    Padding="0,4"
@@ -147,14 +147,14 @@
 
             <!-- ===== Choose a model ===== -->
             <StackPanel Grid.Row="1" Visibility="{Binding IsChooseModel, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Text="Choose a default model"
+                <TextBlock Text="{DynamicResource S.FirstRun.Model.Title}"
                            FontSize="26"
                            FontWeight="SemiBold"
                            Margin="0,0,0,8" />
                 <TextBlock TextWrapping="Wrap"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            Margin="0,0,0,18"
-                           Text="New chats start with this model. It can be changed per chat from the header." />
+                           Text="{DynamicResource S.FirstRun.Model.Intro}" />
 
                 <Border BorderThickness="1"
                         CornerRadius="8"
@@ -169,13 +169,13 @@
 
             <!-- Footer -->
             <Grid Grid.Row="2" Margin="0,22,0,0">
-                <ui:Button Content="Skip setup"
+                <ui:Button Content="{DynamicResource S.FirstRun.Skip}"
                            Appearance="Transparent"
                            HorizontalAlignment="Left"
                            Command="{Binding SkipCommand}" />
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <ui:Button Content="Back"
+                    <ui:Button Content="{DynamicResource S.Common.Back}"
                                MinWidth="90"
                                Margin="0,0,8,0"
                                Command="{Binding BackCommand}"

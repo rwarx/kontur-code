@@ -230,8 +230,8 @@ public sealed partial class InspectorViewModel : ObservableObject
     /// </remarks>
     private void ShowGroup()
     {
-        Title = $"{_nodeIds.Count} nodes";
-        KindLabel = "Selection";
+        Title = Localization.T("S.Inspector.Group.Nodes", _nodeIds.Count);
+        KindLabel = Localization.T("S.Inspector.Group.Selection");
         Glyph = "◫";
         KindBrush = Brushes.Gray;
         Summary = null;
@@ -240,8 +240,8 @@ public sealed partial class InspectorViewModel : ObservableObject
         OriginText = string.Empty;
 
         Headline = _relationCount > 0
-            ? $"{_nodeIds.Count} nodes · {_relationCount} relations"
-            : $"{_nodeIds.Count} nodes";
+            ? Localization.T("S.Inspector.Group.NodesRelations", _nodeIds.Count, _relationCount)
+            : Localization.T("S.Inspector.Group.Nodes", _nodeIds.Count);
 
         var snapshot = _graph.Current;
         var counts = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -341,8 +341,8 @@ public sealed partial class InspectorViewModel : ObservableObject
 
     private static string? StatusLine(GraphNodeStatus status) => status switch
     {
-        GraphNodeStatus.Missing => "The file behind this node is no longer on disk.",
-        GraphNodeStatus.Archived => "Archived.",
+        GraphNodeStatus.Missing => Localization.T("S.Inspector.Status.Missing"),
+        GraphNodeStatus.Archived => Localization.T("S.Inspector.Status.Archived"),
         _ => null,
     };
 
@@ -352,11 +352,11 @@ public sealed partial class InspectorViewModel : ObservableObject
     /// </summary>
     private static string OriginLine(GraphOrigin origin) => origin switch
     {
-        GraphOrigin.Indexer => "From the project files",
-        GraphOrigin.User => "Added by you",
-        GraphOrigin.Chat => "From a conversation",
-        GraphOrigin.Agent => "Added by an agent",
-        GraphOrigin.Import => "Imported",
+        GraphOrigin.Indexer => Localization.T("S.Inspector.Origin.Indexer"),
+        GraphOrigin.User => Localization.T("S.Inspector.Origin.User"),
+        GraphOrigin.Chat => Localization.T("S.Inspector.Origin.Chat"),
+        GraphOrigin.Agent => Localization.T("S.Inspector.Origin.Agent"),
+        GraphOrigin.Import => Localization.T("S.Inspector.Origin.Import"),
         _ => string.Empty,
     };
 
@@ -453,11 +453,17 @@ public sealed partial class InspectorViewModel : ObservableObject
         IsHistoryLoading = false;
     }
 
+    public void OnLanguageChanged()
+    {
+    }
+
     /// <summary>
     /// Hands the selection and a question to the chat.
     /// </summary>
     /// <remarks>
     /// Identical in effect to the same action on the canvas: one event, one chat, one context build.
+    /// The nodes are re-read from the snapshot rather than kept alongside the ids, because between
+    /// selecting something and asking about it an indexing pass may have changed what it is.
     /// </remarks>
     [RelayCommand]
     private void AskAi(string? action)
@@ -467,10 +473,18 @@ public sealed partial class InspectorViewModel : ObservableObject
             return;
         }
 
+        var graph = _graph.Current;
         var selection = GraphSelection.Nodes([.. _nodeIds], _settings.Current.Canvas.ContextDepth);
+        var target = CanvasAiPrompts.Describe([.. _nodeIds.Select(graph.Node).OfType<GraphNode>()]);
         var label = IsSingle ? Title : Headline;
 
-        AiRequested?.Invoke(this, new CanvasAiRequest(selection, CanvasAiPrompts.For(action), label));
+        AiRequested?.Invoke(
+            this,
+            new CanvasAiRequest(
+                selection,
+                CanvasAiPrompts.For(action, target.Subject),
+                label,
+                target.Files));
     }
 
     /// <summary>Reveals the file behind the inspected node.</summary>

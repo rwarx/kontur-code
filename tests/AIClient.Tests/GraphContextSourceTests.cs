@@ -122,6 +122,64 @@ public sealed class GraphContextSourceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_file_the_question_already_carries_is_not_quoted_a_second_time()
+    {
+        // Asking from the canvas attaches the selection's files to the message, and an attachment is
+        // inlined whole. Quoting the head of the same file inside the block spends the budget twice on
+        // one file and leaves the model to work out whether the two copies differ. The node stays in
+        // the block - its relations are the reason it was selected - only its text goes.
+        await OpenAsync();
+        await File.WriteAllTextAsync(Path.Combine(_root, "Attached.cs"), "class Attached { }", Token);
+        await File.WriteAllTextAsync(Path.Combine(_root, "Other.cs"), "class Other { }", Token);
+
+        var attached = FileNode("Attached.cs");
+        var other = FileNode("Other.cs");
+
+        await AddAsync(attached, other);
+
+        var block = await Source().BuildAsync(
+            GraphSelection.Nodes([attached.Id, other.Id]),
+            8_000,
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Attached.cs" },
+            Token);
+
+        Assert.NotNull(block);
+        Assert.Contains("<file name=\"Other.cs\"", block, StringComparison.Ordinal);
+        Assert.Contains("class Other { }", block, StringComparison.Ordinal);
+        Assert.DoesNotContain("<file name=\"Attached.cs\"", block, StringComparison.Ordinal);
+        Assert.DoesNotContain("class Attached { }", block, StringComparison.Ordinal);
+
+        // Named, and by the same string the attachment is named by, so the two agree.
+        Assert.Contains("Attached.cs", block, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_selection_of_one_attached_file_falls_back_to_describing_it()
+    {
+        // The single-file case, which is the common one: one click on "Explain" over one card. With its
+        // only excerpt suppressed there is nothing left to quote, so the block drops a rung and says
+        // where the file is and what it relates to - the half the attachment does not carry.
+        await OpenAsync();
+        await File.WriteAllTextAsync(Path.Combine(_root, "Program.cs"), "class Program { }", Token);
+
+        var node = FileNode("Program.cs") with { Summary = "The entry point." };
+
+        await AddAsync(node);
+
+        var block = await Source().BuildAsync(
+            GraphSelection.Of(node.Id),
+            8_000,
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "program.cs" },
+            Token);
+
+        Assert.NotNull(block);
+        Assert.DoesNotContain("<file", block, StringComparison.Ordinal);
+        Assert.DoesNotContain("class Program { }", block, StringComparison.Ordinal);
+        Assert.Contains("Program.cs", block, StringComparison.Ordinal);
+        Assert.Contains("The entry point.", block, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Nothing_is_read_from_disk_until_a_folder_is_open()
     {
         // The Canvas can hold a graph from a previous session with no workspace open behind it. The

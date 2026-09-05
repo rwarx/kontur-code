@@ -9,6 +9,7 @@ using AIClient.Application.Markdown;
 using AIClient.Domain.Enums;
 using AIClient.Domain.Graph;
 using AIClient.Domain.Models;
+using AIClient.Domain.Workspace;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -44,6 +45,17 @@ public sealed partial class ChatViewModel : ObservableObject
     /// 100-tokens-per-second stream costs about 16 parses a second rather than 100.
     /// </summary>
     private static readonly TimeSpan RenderInterval = TimeSpan.FromMilliseconds(60);
+
+    /// <summary>
+    /// Characters a question asked from the canvas may bring with it, across all of its files.
+    /// </summary>
+    /// <remarks>
+    /// About sixteen thousand tokens, and a ceiling rather than a target: one file rarely comes near
+    /// it. The number exists because these attachments are not dragged in one at a time by someone
+    /// watching the composer fill up - four files arrive from a single click on "Explain", they are
+    /// stored with the message, and they are re-sent with every turn after it.
+    /// </remarks>
+    private const int MaxGraphAttachmentCharacters = 48_000;
 
     private readonly IChatService _chatService;
     private readonly IAgentService _agent;
@@ -86,7 +98,7 @@ public sealed partial class ChatViewModel : ObservableObject
     private Guid? _conversationId;
 
     [ObservableProperty]
-    private string _title = "New Chat";
+    private string _title = Services.Localization.T("S.Sidebar.NewChat");
 
     [ObservableProperty]
     private string _draft = string.Empty;
@@ -190,7 +202,16 @@ public sealed partial class ChatViewModel : ObservableObject
     /// pressing Send.
     /// </remarks>
     public string AgentButtonText =>
-        IsAgentMode ? $"Agent · {SelectedAgentMode.DisplayName()}" : "Agent";
+        IsAgentMode ? $"{Localization.T("S.Agent.Label")} · {ModeName(SelectedAgentMode)}" : Localization.T("S.Agent.Label");
+
+    /// <summary>A mode's name in the interface language; the Application layer's own names serve the model.</summary>
+    private string ModeName(AgentMode mode) => mode switch
+    {
+        AgentMode.Plan => Localization.T("S.Agent.Mode.Plan"),
+        AgentMode.PlanCanvas => Localization.T("S.Agent.Mode.PlanCanvas"),
+        AgentMode.Build => Localization.T("S.Agent.Mode.Build"),
+        _ => Localization.T("S.Agent.Mode.Off"),
+    };
 
     /// <summary>
     /// Which entry of the agent menu is ticked, as a string.
@@ -200,7 +221,7 @@ public sealed partial class ChatViewModel : ObservableObject
     /// that menu exactly as much as the three modes are - and a single value is the only way to be sure
     /// that precisely one entry is ever ticked.
     /// </remarks>
-    public string AgentModeSelection => IsAgentMode ? SelectedAgentMode.ToString() : "Off";
+    public string AgentModeSelection => IsAgentMode ? ModeName(SelectedAgentMode) : Localization.T("S.Agent.Mode.Off");
 
     /// <summary>
     /// What the agent would do with the next message, shown while agent mode is on.
@@ -219,15 +240,15 @@ public sealed partial class ChatViewModel : ObservableObject
             if (SelectedAgentMode.NeedsWorkspace())
             {
                 return root is null
-                    ? "Build · no folder open. Choose one under Settings."
-                    : $"Build · working in {root}";
+                    ? Localization.T("S.Agent.Hint.Build.NoFolder")
+                    : Localization.T("S.Agent.Hint.Build.In", root);
             }
 
-            var name = SelectedAgentMode.DisplayName();
+            var name = ModeName(SelectedAgentMode);
 
             return root is null
-                ? $"{name} · planning something new. Nothing will be read or changed."
-                : $"{name} · reading {root}. Nothing will be changed.";
+                ? Localization.T("S.Agent.Hint.Plan.New", name)
+                : Localization.T("S.Agent.Hint.Plan.In", name, root);
         }
     }
 
@@ -272,6 +293,28 @@ public sealed partial class ChatViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Rebuilds the words this pane computes in code, after a language switch.
+    /// </summary>
+    public void OnLanguageChanged()
+    {
+        Suggestions = BuildSuggestions();
+        OnPropertyChanged(nameof(Suggestions));
+        OnPropertyChanged(nameof(AgentHint));
+        OnPropertyChanged(nameof(AgentButtonText));
+        OnPropertyChanged(nameof(AgentModeSelection));
+
+        // The hint depends on the setting and the sentence; both parts are re-read.
+        ApplyRenderingSettings();
+
+        // An unsaved chat carries the default title; a saved one carries the user's or the
+        // generated one, which is translated for nobody.
+        if (ConversationId is null)
+        {
+            Title = Localization.T("S.Sidebar.NewChat");
+        }
+    }
+
+    /// <summary>
     /// The agent's approval gate, bound by the card above the composer.
     /// </summary>
     /// <remarks>
@@ -288,14 +331,17 @@ public sealed partial class ChatViewModel : ObservableObject
 
     /// <summary>
     /// Starter prompts for the empty state (section 33). Fixed rather than generated: four
-    /// predictable entries are more useful than a rotating set nobody can rely on.
+    /// predictable entries are more useful than a rotating set nobody can rely on. The titles and
+    /// descriptions follow the language; the prompts stay English so the model understands them.
     /// </summary>
-    public IReadOnlyList<ChatSuggestion> Suggestions { get; } =
+    public IReadOnlyList<ChatSuggestion> Suggestions { get; private set; } = BuildSuggestions();
+
+    private static IReadOnlyList<ChatSuggestion> BuildSuggestions() =>
     [
-        new("Explain code", "Walk me through what a snippet does", "Explain what this code does, step by step:\n\n"),
-        new("Write a function", "Generate an implementation from a description", "Write a function that "),
-        new("Analyse a file", "Attach a file and ask about it", "Review the attached file and summarise what it does."),
-        new("Help me debug", "Work through an error message", "I'm getting this error and I can't work out why:\n\n"),
+        new(Localization.T("S.Suggest.Explain.Title"), Localization.T("S.Suggest.Explain.Description"), "Explain what this code does, step by step:\n\n"),
+        new(Localization.T("S.Suggest.Function.Title"), Localization.T("S.Suggest.Function.Description"), "Write a function that "),
+        new(Localization.T("S.Suggest.Analyse.Title"), Localization.T("S.Suggest.Analyse.Description"), "Review the attached file and summarise what it does."),
+        new(Localization.T("S.Suggest.Debug.Title"), Localization.T("S.Suggest.Debug.Description"), "I'm getting this error and I can't work out why:\n\n"),
     ];
 
     /// <summary>Drives the "What can I help you with?" state instead of an empty grey panel.</summary>
@@ -369,7 +415,7 @@ public sealed partial class ChatViewModel : ObservableObject
         CancelTurn();
 
         ConversationId = null;
-        Title = "New Chat";
+        Title = Localization.T("S.Sidebar.NewChat");
         BannerMessage = null;
 
         Messages.Clear();
@@ -414,9 +460,21 @@ public sealed partial class ChatViewModel : ObservableObject
     /// it a selection is a change to the runner rather than to the composer.
     /// </para>
     /// </remarks>
-    public async Task AskAboutGraphAsync(GraphSelection selection, string prompt, string label)
+    /// <param name="files">
+    /// The selection's files, staged as ordinary attachments. This is the visible half of asking from
+    /// the canvas: the chip says which file the question is about, the file travels with the message
+    /// into the stored conversation, and a follow-up question therefore still has it - whereas the
+    /// graph block is rebuilt per request and describes only whatever is selected at that moment.
+    /// </param>
+    public async Task AskAboutGraphAsync(
+        GraphSelection selection,
+        string prompt,
+        string label,
+        IReadOnlyList<WorkspacePath> files)
     {
         _graphSelection = selection.IsEmpty ? null : selection;
+
+        await AttachFromWorkspaceAsync(files).ConfigureAwait(true);
 
         if (string.IsNullOrWhiteSpace(prompt))
         {
@@ -438,6 +496,99 @@ public sealed partial class ChatViewModel : ObservableObject
         await SendAsync().ConfigureAwait(true);
     }
 
+    /// <summary>
+    /// Stages files named by the graph, read through the workspace sandbox.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Not <see cref="IAttachmentService"/>, which takes an absolute path: these paths come from a
+    /// graph the user did not type, and the sandbox is what makes a path from a machine harmless -
+    /// containment, protected names, and the size cap are all on that side. The chip and the wire
+    /// format are the same either way, so a reader of the transcript cannot tell which door a file
+    /// came through.
+    /// </para>
+    /// <para>
+    /// A file that cannot be read is skipped in silence. The sandbox has already logged why, and a
+    /// banner about one file of four - after a click that was about a selection rather than about
+    /// that file - would be noise in front of the answer the person is waiting for.
+    /// </para>
+    /// </remarks>
+    private async Task AttachFromWorkspaceAsync(IReadOnlyList<WorkspacePath> files)
+    {
+        if (files.Count == 0 || !_workspace.IsOpen)
+        {
+            return;
+        }
+
+        var staged = 0;
+        var remaining = MaxGraphAttachmentCharacters;
+
+        foreach (var path in files)
+        {
+            if (remaining <= 0)
+            {
+                break;
+            }
+
+            // Asking twice about the same file should not send it twice.
+            if (PendingAttachments.Any(a => string.Equals(a.FileName, path.Value, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            var read = await _workspace.ReadAsync(path).ConfigureAwait(true);
+
+            if (read is not { Success: true, Value: { } file } || file.Content.Length == 0)
+            {
+                continue;
+            }
+
+            var content = Clip(file.Content, remaining);
+            remaining -= content.Length;
+            staged++;
+
+            PendingAttachments.Add(new PendingAttachment(new NewAttachment
+            {
+                // The workspace-relative path, not the bare file name: it is what the graph block and
+                // the question both say, and one project holds several Program.cs.
+                FileName = path.Value,
+                MimeType = "text/plain",
+                Size = file.Size,
+                TextContent = content,
+                IsTruncated = file.IsTruncated || content.Length < file.Content.Length,
+            }));
+        }
+
+        if (staged == 0)
+        {
+            return;
+        }
+
+        OnPropertyChanged(nameof(CanSend));
+        SendCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>
+    /// Cuts text to a length on a line boundary, so an excerpt never ends mid-token.
+    /// </summary>
+    /// <remarks>
+    /// Half of a line of code invites the model to guess how it finished. The whole-line version costs
+    /// a few characters and cannot be misread; <c>ContextBuilder</c> marks the result as truncated when
+    /// it inlines it, so nothing pretends the file ended there.
+    /// </remarks>
+    private static string Clip(string content, int limit)
+    {
+        if (content.Length <= limit)
+        {
+            return content;
+        }
+
+        var head = content[..limit];
+        var lastBreak = head.LastIndexOf('\n');
+
+        return lastBreak > 0 ? head[..lastBreak] : head;
+    }
+
     [RelayCommand(CanExecute = nameof(CanSend))]
     private async Task SendAsync()
     {
@@ -450,7 +601,7 @@ public sealed partial class ChatViewModel : ObservableObject
 
         if (SelectedModel is not { } model)
         {
-            BannerMessage = "Choose a model before sending a message.";
+            BannerMessage = Localization.T("S.Banner.ChooseModel");
             return;
         }
 
@@ -461,8 +612,7 @@ public sealed partial class ChatViewModel : ObservableObject
         // refusing it for want of a folder would refuse the case those modes were added for.
         if (IsAgentMode && SelectedAgentMode.NeedsWorkspace() && !_workspace.IsOpen)
         {
-            BannerMessage = "Build needs a folder to work in. Open one under Settings, switch to Plan, "
-                + "or turn agent mode off to just chat.";
+            BannerMessage = Localization.T("S.Banner.BuildNeedsFolder");
 
             return;
         }
@@ -531,7 +681,7 @@ public sealed partial class ChatViewModel : ObservableObject
 
         if (SelectedModel is not { } model)
         {
-            BannerMessage = "Choose a model before regenerating.";
+            BannerMessage = Localization.T("S.Banner.ChooseModel.Regenerate");
             return;
         }
 
@@ -625,7 +775,7 @@ public sealed partial class ChatViewModel : ObservableObject
 
         if (SelectedModel is not { } model)
         {
-            BannerMessage = "Choose a model before editing.";
+            BannerMessage = Localization.T("S.Banner.ChooseModel.Edit");
             return;
         }
 
@@ -673,8 +823,8 @@ public sealed partial class ChatViewModel : ObservableObject
         if (_settings.Current.General.ConfirmBeforeDelete)
         {
             var confirmed = await _dialogs.ConfirmAsync(
-                "Delete message",
-                "This message will be removed from the conversation.").ConfigureAwait(true);
+                Localization.T("S.Dialog.DeleteMessage.Title"),
+                Localization.T("S.Dialog.DeleteMessage.Message")).ConfigureAwait(true);
 
             if (!confirmed)
             {
@@ -715,7 +865,7 @@ public sealed partial class ChatViewModel : ObservableObject
         {
             if (!_attachments.IsSupported(path))
             {
-                BannerMessage = $"'{Path.GetFileName(path)}' is not a supported file type.";
+                BannerMessage = Localization.T("S.Banner.UnsupportedFile", Path.GetFileName(path));
                 continue;
             }
 
@@ -772,12 +922,12 @@ public sealed partial class ChatViewModel : ObservableObject
         try
         {
             await File.WriteAllTextAsync(path, _exportService.Export(detail, format)).ConfigureAwait(true);
-            BannerMessage = $"Exported to {Path.GetFileName(path)}.";
+            BannerMessage = Localization.T("S.Banner.Exported", Path.GetFileName(path));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             _logger.LogWarning(ex, "Export failed.");
-            await _dialogs.ShowErrorAsync("Export failed", ex.Message).ConfigureAwait(true);
+            await _dialogs.ShowErrorAsync(Localization.T("S.Banner.ExportFailed"), ex.Message).ConfigureAwait(true);
         }
     }
 
@@ -796,8 +946,8 @@ public sealed partial class ChatViewModel : ObservableObject
         SendWithEnter = chat.SendWithEnter;
 
         InputHint = chat.SendWithEnter
-            ? "Enter to send · Shift+Enter for a new line"
-            : "Shift+Enter to send · Enter for a new line";
+            ? Localization.T("S.Hint.EnterSend")
+            : Localization.T("S.Hint.ShiftEnterSend");
     }
 
     /// <summary>
@@ -841,8 +991,14 @@ public sealed partial class ChatViewModel : ObservableObject
                         _streamingMessage?.AppendDelta(text);
                         break;
 
-                    case ChatTurnEvent.Completed(_, var input, var output, var elapsed):
-                        _streamingMessage?.Complete(input, output, elapsed);
+                    // Named rather than deconstructed: the event carries reasoning and cache counts
+                    // this pane does not show yet, and a positional pattern would have to be widened
+                    // every time one is added.
+                    case ChatTurnEvent.Completed completed:
+                        _streamingMessage?.Complete(
+                            completed.InputTokens,
+                            completed.OutputTokens,
+                            completed.GenerationTimeMs);
 
                         // A finished answer is the strongest proof there is that the provider
                         // is reachable, which clears the offline strip on a network the OS
@@ -875,7 +1031,7 @@ public sealed partial class ChatViewModel : ObservableObject
         {
             // A bug rather than a provider failure - provider failures arrive as Failed events.
             _logger.LogError(ex, "Unexpected failure during a chat turn.");
-            HandleFailure(AIErrorKind.Unknown, "Something went wrong while generating the response.", ex.Message, true);
+            HandleFailure(AIErrorKind.Unknown, Localization.T("S.Error.Unknown.Generation"), ex.Message, true);
         }
         finally
         {
@@ -1003,7 +1159,7 @@ public sealed partial class ChatViewModel : ObservableObject
         {
             // A bug rather than a provider failure - provider failures arrive as Failed events.
             _logger.LogError(ex, "Unexpected failure during an agent run.");
-            HandleFailure(AIErrorKind.Unknown, "Something went wrong while the agent was working.", ex.Message, true);
+            HandleFailure(AIErrorKind.Unknown, Localization.T("S.Error.Unknown.Agent"), ex.Message, true);
         }
         finally
         {
@@ -1104,8 +1260,8 @@ public sealed partial class ChatViewModel : ObservableObject
         }
 
         BannerMessage = steps is { } count and > 0
-            ? $"Stopped after {count} step{(count == 1 ? string.Empty : "s")}. Nothing further was changed."
-            : "Stopped. Nothing further was changed.";
+            ? Localization.T("S.Stop.AfterSteps", count)
+            : Localization.T("S.Stop.Plain");
     }
 
     /// <summary>
@@ -1122,10 +1278,10 @@ public sealed partial class ChatViewModel : ObservableObject
         BannerMessage = reason switch
         {
             AgentStopReason.StepLimit =>
-                $"The agent stopped after {steps} steps, which is as many as one run gets. Send another message if there is more to do.",
+                Localization.T("S.RunEnd.StepLimit", steps),
 
             AgentStopReason.TimeLimit =>
-                $"The agent ran out of time after {steps} step{(steps == 1 ? string.Empty : "s")}. Send another message if there is more to do.",
+                Localization.T("S.RunEnd.TimeLimit", steps),
 
             _ => BannerMessage,
         };
@@ -1135,14 +1291,37 @@ public sealed partial class ChatViewModel : ObservableObject
 
     private void HandleFailure(AIErrorKind kind, string userMessage, string? details, bool isRetryable)
     {
+        // The mapper's sentence is written in English in the Application layer; the interface's own
+        // words for the kind take precedence, and the mapper's technical detail stays as the part
+        // that is folded away. A kind with no sentence of its own keeps the original message.
+        var sentence = kind switch
+        {
+            AIErrorKind.InvalidApiKey => "S.Error.InvalidApiKey",
+            AIErrorKind.PermissionDenied => "S.Error.PermissionDenied",
+            AIErrorKind.NotFound => "S.Error.NotFound",
+            AIErrorKind.RateLimited => "S.Error.RateLimited",
+            AIErrorKind.Timeout => "S.Error.Timeout",
+            AIErrorKind.ServerError => "S.Error.ServerError",
+            AIErrorKind.ServiceUnavailable => "S.Error.ServiceUnavailable",
+            AIErrorKind.NetworkError => "S.Error.NetworkError",
+            AIErrorKind.ContextLengthExceeded => "S.Error.ContextLengthExceeded",
+            AIErrorKind.ModelUnavailable => "S.Error.ModelUnavailable",
+            AIErrorKind.InvalidRequest => "S.Error.InvalidRequest",
+            AIErrorKind.ContentFiltered => "S.Error.ContentFiltered",
+            AIErrorKind.NotConfigured => "S.Error.NotConfigured",
+            _ => null,
+        };
+
+        var message = sentence is { } key ? Localization.T(key) : userMessage;
+
         if (_streamingMessage is not null)
         {
-            _streamingMessage.Fail(userMessage, details, isRetryable);
+            _streamingMessage.Fail(message, details, isRetryable);
         }
         else
         {
             // No message to attach the error to - a failure before the turn even started.
-            BannerMessage = userMessage;
+            BannerMessage = message;
         }
 
         switch (ReachabilityEvidence(kind))
@@ -1320,7 +1499,7 @@ public sealed partial class ChatViewModel : ObservableObject
     {
         try
         {
-            var chosen = _dialogs.OpenFolder("Choose the folder the agent may work in");
+            var chosen = _dialogs.OpenFolder(Localization.T("S.Dialog.ChooseWorkspace"));
 
             // Cancelling falls back to planning rather than turning the agent off. The user has said
             // they want the agent; only the part of it that needs a folder is unavailable, and Plan is
@@ -1343,14 +1522,14 @@ public sealed partial class ChatViewModel : ObservableObject
             // The workspace's own words: it refuses folders a picker allows - a drive root, a system
             // folder, this application's data - and only it knows which of those this was.
             SelectedAgentMode = AgentMode.Plan;
-            BannerMessage = result.Error ?? "That folder cannot be used as a workspace.";
+            BannerMessage = result.Error ?? Localization.T("S.Chat.NotWorkspace");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Could not open a workspace folder from the composer.");
 
             SelectedAgentMode = AgentMode.Plan;
-            BannerMessage = "That folder could not be opened. Choose another under Settings.";
+            BannerMessage = Localization.T("S.Chat.NotOpened");
         }
     }
 }

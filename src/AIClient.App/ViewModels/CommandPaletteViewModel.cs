@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Data;
+using AIClient.App.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -109,17 +110,17 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
             || (entry.Keywords?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false);
     }
 
-    private static IEnumerable<PaletteEntry> BuildEntries() =>
+    private IEnumerable<PaletteEntry> BuildEntries() =>
     [
-        new(PaletteCommand.NewChat, "New Chat", "Chat", "Ctrl+N", "create start"),
-        new(PaletteCommand.SearchChats, "Search Chats", "Chat", "Ctrl+K", "find filter"),
-        new(PaletteCommand.ChangeModel, "Change Model", "Chat", null, "provider switch llm"),
-        new(PaletteCommand.OpenCanvas, "Open Canvas", "Application", "Ctrl+G", "graph knowledge nodes map spatial"),
-        new(PaletteCommand.OpenSettings, "Settings", "Application", "Ctrl+,", "preferences options"),
-        new(PaletteCommand.ToggleTheme, "Toggle Theme", "Application", null, "dark light appearance"),
-        new(PaletteCommand.ExportMarkdown, "Export Chat as Markdown", "Export", null, "save md"),
-        new(PaletteCommand.ExportJson, "Export Chat as JSON", "Export", null, "save json"),
-        new(PaletteCommand.ExportText, "Export Chat as Text", "Export", null, "save txt plain"),
+        new(PaletteCommand.NewChat, Localization.T("S.Palette.NewChat"), Localization.T("S.Palette.Category.Chat"), "Ctrl+N", "create start"),
+        new(PaletteCommand.SearchChats, Localization.T("S.Palette.SearchChats"), Localization.T("S.Palette.Category.Chat"), "Ctrl+K", "find filter"),
+        new(PaletteCommand.ChangeModel, Localization.T("S.Palette.ChangeModel"), Localization.T("S.Palette.Category.Chat"), null, "provider switch llm"),
+        new(PaletteCommand.OpenCanvas, Localization.T("S.Palette.OpenCanvas"), Localization.T("S.Palette.Category.Application"), "Ctrl+G", "graph knowledge nodes map spatial"),
+        new(PaletteCommand.OpenSettings, Localization.T("S.Palette.OpenSettings"), Localization.T("S.Palette.Category.Application"), "Ctrl+,", "preferences options"),
+        new(PaletteCommand.ToggleTheme, Localization.T("S.Palette.ToggleTheme"), Localization.T("S.Palette.Category.Application"), null, "dark light appearance"),
+        new(PaletteCommand.ExportMarkdown, Localization.T("S.Palette.ExportMarkdown"), Localization.T("S.Palette.Category.Export"), null, "save md"),
+        new(PaletteCommand.ExportJson, Localization.T("S.Palette.ExportJson"), Localization.T("S.Palette.Category.Export"), null, "save json"),
+        new(PaletteCommand.ExportText, Localization.T("S.Palette.ExportText"), Localization.T("S.Palette.Category.Export"), null, "save txt plain"),
     ];
 
     partial void OnQueryChanged(string value)
@@ -133,6 +134,18 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         {
             SelectedEntry = Entries.Cast<PaletteEntry>().FirstOrDefault();
         }
+    }
+
+    public void OnLanguageChanged()
+    {
+        _entries.Clear();
+        foreach (var entry in BuildEntries())
+        {
+            _entries.Add(entry);
+        }
+
+        Entries.Refresh();
+        OnPropertyChanged(nameof(HasNoMatches));
     }
 }
 

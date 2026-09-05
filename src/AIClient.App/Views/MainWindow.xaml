@@ -75,8 +75,8 @@
                             Severity="Warning"
                             IsClosable="False"
                             Margin="16,0,16,10"
-                            Title="No internet connection"
-                            Message="Saved conversations and settings are still available. New messages will fail until the connection is back."
+                            Title="{DynamicResource S.Main.Offline.Title}"
+                            Message="{DynamicResource S.Main.Offline.Message}"
                             IsOpen="{Binding IsOffline}" />
 
                 <!-- Chat header: title, model selector, chat actions -->
@@ -96,7 +96,7 @@
                                    Icon="{ui:SymbolIcon PanelLeft24}"
                                    Appearance="Transparent"
                                    Margin="0,0,8,0"
-                                   ToolTip="Toggle sidebar (Ctrl+B)"
+                                   ToolTip="{DynamicResource S.Main.ToggleSidebar.ToolTip}"
                                    Command="{Binding ToggleSidebarCommand}" />
 
                         <TextBlock Grid.Column="1"
@@ -114,13 +114,25 @@
                             <ui:Button x:Name="ModelButton"
                                        Appearance="Secondary"
                                        Margin="0,0,6,0"
-                                       ToolTip="Change model"
+                                       ToolTip="{DynamicResource S.Main.ChangeModel.ToolTip}"
                                        Click="OnModelButtonClick">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding Chat.SelectedModel.Name, FallbackValue='Select a model', TargetNullValue='Select a model'}"
-                                               MaxWidth="230"
+                                    <!-- The no-model sentence lives in a style trigger rather than a
+                                         TargetNullValue, so it follows the active language. -->
+                                    <TextBlock MaxWidth="230"
                                                TextTrimming="CharacterEllipsis"
-                                               VerticalAlignment="Center" />
+                                               VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="{Binding Chat.SelectedModel.Name}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Chat.SelectedModel}" Value="{x:Null}">
+                                                        <Setter Property="Text" Value="{DynamicResource S.Main.SelectModel}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
                                     <ui:SymbolIcon Symbol="ChevronDown24"
                                                    FontSize="12"
                                                    Margin="8,0,0,0"
@@ -130,17 +142,17 @@
 
                             <ui:Button Icon="{ui:SymbolIcon ArrowExportLtr24}"
                                        Appearance="Transparent"
-                                       ToolTip="Export conversation"
+                                       ToolTip="{DynamicResource S.Main.Export.ToolTip}"
                                        Click="OnExportButtonClick">
                                 <ui:Button.ContextMenu>
                                     <ContextMenu>
-                                        <MenuItem Header="Export as Markdown"
+                                        <MenuItem Header="{DynamicResource S.Main.Export.Markdown}"
                                                   Command="{Binding ExportCommand}"
                                                   CommandParameter="{x:Static app:ExportFormat.Markdown}" />
-                                        <MenuItem Header="Export as JSON"
+                                        <MenuItem Header="{DynamicResource S.Main.Export.Json}"
                                                   Command="{Binding ExportCommand}"
                                                   CommandParameter="{x:Static app:ExportFormat.Json}" />
-                                        <MenuItem Header="Export as plain text"
+                                        <MenuItem Header="{DynamicResource S.Main.Export.Text}"
                                                   Command="{Binding ExportCommand}"
                                                   CommandParameter="{x:Static app:ExportFormat.PlainText}" />
                                     </ContextMenu>
@@ -149,7 +161,7 @@
 
                             <ui:Button Icon="{ui:SymbolIcon Settings24}"
                                        Appearance="Transparent"
-                                       ToolTip="Settings (Ctrl+,)"
+                                       ToolTip="{DynamicResource S.Main.Settings.ToolTip}"
                                        Command="{Binding ShowSettingsCommand}" />
                         </StackPanel>
                     </Grid>

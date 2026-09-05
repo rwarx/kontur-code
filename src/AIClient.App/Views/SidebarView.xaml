@@ -31,19 +31,19 @@
                    HorizontalContentAlignment="Left"
                    Appearance="Primary"
                    Icon="{ui:SymbolIcon Add24}"
-                   Content="New Chat"
-                   ToolTip="New chat (Ctrl+N)"
+                   Content="{DynamicResource S.Sidebar.NewChat}"
+                   ToolTip="{DynamicResource S.Sidebar.NewChat.ToolTip}"
                    Command="{Binding NewChatCommand}" />
 
         <!-- Search -->
         <ui:TextBox x:Name="SearchBox"
                     Grid.Row="1"
                     Margin="10,4,10,8"
-                    PlaceholderText="Search chats…"
+                    PlaceholderText="{DynamicResource S.Sidebar.Search.Placeholder}"
                     Icon="{ui:SymbolIcon Search24}"
                     ClearButtonEnabled="True"
                     Text="{Binding Sessions.SearchQuery, UpdateSourceTrigger=PropertyChanged}"
-                    ToolTip="Search chats (Ctrl+K)" />
+                    ToolTip="{DynamicResource S.Sidebar.Search.ToolTip}" />
 
         <!-- Session list -->
         <Grid Grid.Row="2">
@@ -106,17 +106,17 @@
                                  narrow and three icons per row would crowd out the title. -->
                             <Grid.ContextMenu>
                                 <ContextMenu>
-                                    <MenuItem Header="Open"
+                                    <MenuItem Header="{DynamicResource S.Sidebar.Menu.Open}"
                                               Command="{Binding Data.Sessions.OpenCommand, Source={StaticResource Root}}"
                                               CommandParameter="{Binding}" />
-                                    <MenuItem Header="Rename…"
+                                    <MenuItem Header="{DynamicResource S.Sidebar.Menu.Rename}"
                                               Command="{Binding Data.Sessions.RenameCommand, Source={StaticResource Root}}"
                                               CommandParameter="{Binding}" />
-                                    <MenuItem Header="Pin / Unpin"
+                                    <MenuItem Header="{DynamicResource S.Sidebar.Menu.Pin}"
                                               Command="{Binding Data.Sessions.TogglePinCommand, Source={StaticResource Root}}"
                                               CommandParameter="{Binding}" />
                                     <Separator />
-                                    <MenuItem Header="Delete"
+                                    <MenuItem Header="{DynamicResource S.Sidebar.Menu.Delete}"
                                               Command="{Binding Data.Sessions.DeleteCommand, Source={StaticResource Root}}"
                                               CommandParameter="{Binding}" />
                                 </ContextMenu>
@@ -154,25 +154,25 @@
                  other places you can go rather than with the chat's own buttons. -->
             <ui:Button Style="{StaticResource SidebarButton}"
                        Icon="{ui:SymbolIcon Flowchart24}"
-                       Content="Canvas"
-                       ToolTip="Knowledge graph (Ctrl+G)"
+                       Content="{DynamicResource S.Sidebar.Canvas}"
+                       ToolTip="{DynamicResource S.Sidebar.Canvas.ToolTip}"
                        Command="{Binding ShowCanvasCommand}" />
 
             <ui:Button Style="{StaticResource SidebarButton}"
                        Icon="{ui:SymbolIcon Settings24}"
-                       Content="Settings"
-                       ToolTip="Settings (Ctrl+,)"
+                       Content="{DynamicResource S.Sidebar.Settings}"
+                       ToolTip="{DynamicResource S.Sidebar.Settings.ToolTip}"
                        Command="{Binding ShowSettingsCommand}" />
 
             <ui:Button Style="{StaticResource SidebarButton}"
                        Icon="{ui:SymbolIcon WeatherMoon24}"
-                       Content="Toggle theme"
+                       Content="{DynamicResource S.Sidebar.ToggleTheme}"
                        Command="{Binding ToggleThemeCommand}" />
 
             <ui:Button Style="{StaticResource SidebarButton}"
                        Icon="{ui:SymbolIcon Keyboard24}"
-                       Content="Command palette"
-                       ToolTip="Ctrl+Shift+P"
+                       Content="{DynamicResource S.Sidebar.Palette}"
+                       ToolTip="{DynamicResource S.Sidebar.Palette.ToolTip}"
                        Command="{Binding ToggleCommandPaletteCommand}" />
         </StackPanel>
     </Grid>

@@ -17,5 +17,6 @@
     <conv:PriceConverter x:Key="Price" />
     <conv:IntToDoubleConverter x:Key="IntToDouble" />
     <conv:EqualityConverter x:Key="Equality" />
+    <conv:ThemeModeLabelConverter x:Key="ThemeModeLabel" />
 
 </ResourceDictionary>

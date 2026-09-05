@@ -119,10 +119,10 @@
                                         <Setter Property="Foreground" Value="{StaticResource ApprovalAccentBrush}" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding Risk}" Value="Write">
-                                                <Setter Property="Text" Value="changed files" />
+                                                <Setter Property="Text" Value="{DynamicResource S.Tool.Risk.Write}" />
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding Risk}" Value="Execute">
-                                                <Setter Property="Text" Value="ran a program" />
+                                                <Setter Property="Text" Value="{DynamicResource S.Tool.Risk.Execute}" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -176,7 +176,7 @@
                                       MinHeight="0"
                                       Margin="4,0,0,0"
                                       VerticalAlignment="Center"
-                                      ToolTip="Show what this returned">
+                                      ToolTip="{DynamicResource S.Chat.ShowResult.ToolTip}">
                             <ui:SymbolIcon FontSize="14">
                                 <ui:SymbolIcon.Style>
                                     <Style TargetType="ui:SymbolIcon">
@@ -298,11 +298,11 @@
                             <StackPanel Orientation="Horizontal"
                                         HorizontalAlignment="Right"
                                         Margin="0,8,0,0">
-                                <ui:Button Content="Cancel"
+                                <ui:Button Content="{DynamicResource S.Common.Cancel}"
                                            Margin="0,0,6,0"
                                            Command="{Binding DataContext.CancelEditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                            CommandParameter="{Binding}" />
-                                <ui:Button Content="Save &amp; resend"
+                                <ui:Button Content="{DynamicResource S.Chat.SaveResend}"
                                            Appearance="Primary"
                                            Command="{Binding DataContext.SaveEditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                            CommandParameter="{Binding}" />
@@ -325,7 +325,7 @@
                                 Margin="0,2,0,6"
                                 Visibility="{Binding IsAwaitingFirstToken, Converter={StaticResource BoolToVisibility}}">
                         <ui:ProgressRing IsIndeterminate="True" Width="16" Height="16" Margin="0,0,8,0" />
-                        <TextBlock Text="Thinking…" Style="{StaticResource SubtleText}" VerticalAlignment="Center" />
+                        <TextBlock Text="{DynamicResource S.Chat.Thinking}" Style="{StaticResource SubtleText}" VerticalAlignment="Center" />
                     </StackPanel>
 
                     <!--
@@ -338,7 +338,7 @@
                               IsExpanded="{Binding IsReasoningExpanded, Mode=TwoWay}"
                               Visibility="{Binding HasReasoning, Converter={StaticResource BoolToVisibility}}">
                         <Expander.Header>
-                            <TextBlock Text="Reasoning" FontSize="12" />
+                            <TextBlock Text="{DynamicResource S.Chat.Reasoning}" FontSize="12" />
                         </Expander.Header>
 
                         <TextBox Text="{Binding Reasoning, Mode=OneWay}"
@@ -383,12 +383,12 @@
                             Severity="Error"
                             IsOpen="{Binding HasFailed, Mode=OneWay}"
                             IsClosable="False"
-                            Title="Request failed"
+                            Title="{DynamicResource S.Chat.Failed.Title}"
                             Message="{Binding ErrorMessage}"
                             Margin="0,8,0,0"
                             Visibility="{Binding HasFailed, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel Margin="0,8,0,0">
-                        <Expander Header="Technical details"
+                        <Expander Header="{DynamicResource S.Common.TechnicalDetails}"
                                   Visibility="{Binding ErrorTechnicalDetails, Converter={StaticResource StringToVisibility}}">
                             <TextBox Text="{Binding ErrorTechnicalDetails, Mode=OneWay}"
                                      IsReadOnly="True"
@@ -401,7 +401,7 @@
                                      BorderThickness="0" />
                         </Expander>
 
-                        <ui:Button Content="Retry"
+                        <ui:Button Content="{DynamicResource S.Common.Retry}"
                                    Icon="{ui:SymbolIcon ArrowClockwise24}"
                                    HorizontalAlignment="Left"
                                    Margin="0,8,0,0"
@@ -413,7 +413,7 @@
 
                 <TextBlock Grid.Row="3"
                            Style="{StaticResource SubtleText}"
-                           Text="Generation stopped."
+                           Text="{DynamicResource S.Chat.Stopped}"
                            Margin="0,6,0,0"
                            Visibility="{Binding WasCancelled, Converter={StaticResource BoolToVisibility}}" />
 
@@ -441,20 +441,20 @@
                                 HorizontalAlignment="Left"
                                 Visibility="{Binding IsAssistant, Converter={StaticResource BoolToVisibility}}">
                         <ui:Button Style="{StaticResource MessageActionButton}"
-                                   Content="Copy"
+                                   Content="{DynamicResource S.Common.Copy}"
                                    Icon="{ui:SymbolIcon Copy24}"
-                                   ToolTip="Copy message"
+                                   ToolTip="{DynamicResource S.Chat.Copy.ToolTip}"
                                    Command="{Binding DataContext.CopyMessageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                    CommandParameter="{Binding}" />
                         <ui:Button Style="{StaticResource MessageActionButton}"
-                                   Content="Regenerate"
+                                   Content="{DynamicResource S.Chat.Regenerate}"
                                    Icon="{ui:SymbolIcon ArrowClockwise24}"
-                                   ToolTip="Generate a new answer"
+                                   ToolTip="{DynamicResource S.Chat.Regenerate.ToolTip}"
                                    Command="{Binding DataContext.RegenerateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                    CommandParameter="{Binding}" />
                         <ui:Button Style="{StaticResource MessageActionButton}"
                                    Icon="{ui:SymbolIcon Delete24}"
-                                   ToolTip="Delete message"
+                                   ToolTip="{DynamicResource S.Chat.Delete.ToolTip}"
                                    Command="{Binding DataContext.DeleteMessageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                    CommandParameter="{Binding}" />
 
@@ -477,18 +477,18 @@
                                 HorizontalAlignment="Right"
                                 Visibility="{Binding IsUser, Converter={StaticResource BoolToVisibility}}">
                         <ui:Button Style="{StaticResource MessageActionButton}"
-                                   Content="Edit"
+                                   Content="{DynamicResource S.Common.Edit}"
                                    Icon="{ui:SymbolIcon Edit24}"
                                    Command="{Binding DataContext.BeginEditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                    CommandParameter="{Binding}" />
                         <ui:Button Style="{StaticResource MessageActionButton}"
-                                   Content="Copy"
+                                   Content="{DynamicResource S.Common.Copy}"
                                    Icon="{ui:SymbolIcon Copy24}"
                                    Command="{Binding DataContext.CopyMessageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                    CommandParameter="{Binding}" />
                         <ui:Button Style="{StaticResource MessageActionButton}"
                                    Icon="{ui:SymbolIcon Delete24}"
-                                   ToolTip="Delete message"
+                                   ToolTip="{DynamicResource S.Chat.Delete.ToolTip}"
                                    Command="{Binding DataContext.DeleteMessageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                    CommandParameter="{Binding}" />
                     </StackPanel>
@@ -538,13 +538,13 @@
                             Margin="0,40"
                             Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
 
-                    <TextBlock Text="What can I help you with?"
+                    <TextBlock Text="{DynamicResource S.Chat.Empty.Title}"
                                FontSize="26"
                                FontWeight="SemiBold"
                                HorizontalAlignment="Center"
                                Margin="0,0,0,8" />
 
-                    <TextBlock Text="Ask a question, paste some code, or attach a file."
+                    <TextBlock Text="{DynamicResource S.Chat.Empty.Subtitle}"
                                Style="{StaticResource SubtleText}"
                                FontSize="13"
                                HorizontalAlignment="Center"
@@ -585,7 +585,7 @@
                    Margin="0,0,0,12"
                    Padding="10,6"
                    Icon="{ui:SymbolIcon ArrowDown24}"
-                   Content="Jump to latest"
+                   Content="{DynamicResource S.Chat.JumpToLatest}"
                    Click="OnJumpToLatest"
                    Visibility="{Binding IsScrolledAway, Converter={StaticResource BoolToVisibility}}" />
 
@@ -647,7 +647,7 @@
                             Shown when the same call is asked about twice in one run. Without it the
                             user is left wondering whether they misread the previous question.
                         -->
-                        <TextBlock Text="You already allowed this exact call in this run. It is being asked again because answers to this kind of call are deliberately not remembered."
+                        <TextBlock Text="{DynamicResource S.Chat.Repeat}"
                                    Style="{StaticResource SubtleText}"
                                    TextTrimming="None"
                                    TextWrapping="Wrap"
@@ -688,7 +688,7 @@
                           IsExpanded="{Binding IsArgumentsExpanded, Mode=TwoWay}"
                           Visibility="{Binding HasArguments, Converter={StaticResource BoolToVisibility}}">
                     <Expander.Header>
-                        <TextBlock Text="Arguments" FontSize="12" />
+                        <TextBlock Text="{DynamicResource S.Approval.Arguments}" FontSize="12" />
                     </Expander.Header>
 
                     <TextBox Text="{Binding ArgumentsJson, Mode=OneWay}"
@@ -715,25 +715,25 @@
 
                     <ui:TextBox Grid.Column="0"
                                 Text="{Binding DenyReason, UpdateSourceTrigger=PropertyChanged}"
-                                PlaceholderText="Why not? Optional, and sent to the model."
+                                PlaceholderText="{DynamicResource S.Approval.DenyPlaceholder}"
                                 Margin="0,0,10,0"
                                 VerticalAlignment="Center" />
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <ui:Button Content="Don't allow"
+                        <ui:Button Content="{DynamicResource S.Approval.Deny}"
                                    Appearance="Secondary"
                                    Padding="12,7"
                                    Margin="0,0,6,0"
                                    Command="{Binding DenyCommand}" />
 
-                        <ui:Button Content="Allow for this run"
+                        <ui:Button Content="{DynamicResource S.Approval.AllowRun}"
                                    Appearance="Secondary"
                                    Padding="12,7"
                                    Margin="0,0,6,0"
                                    Command="{Binding AllowForRunCommand}"
                                    Visibility="{Binding CanAllowForRun, Converter={StaticResource BoolToVisibility}}" />
 
-                        <ui:Button Content="Allow once"
+                        <ui:Button Content="{DynamicResource S.Approval.AllowOnce}"
                                    Appearance="Primary"
                                    Padding="12,7"
                                    Command="{Binding AllowCommand}" />
@@ -781,7 +781,7 @@
                                                Style="{StaticResource SubtleText}"
                                                Margin="6,0,0,0"
                                                VerticalAlignment="Center" />
-                                    <TextBlock Text="truncated"
+                                    <TextBlock Text="{DynamicResource S.Chat.Truncated}"
                                                Style="{StaticResource SubtleText}"
                                                Margin="6,0,0,0"
                                                VerticalAlignment="Center"
@@ -793,7 +793,7 @@
                                             FontSize="11"
                                             Background="Transparent"
                                             BorderThickness="0"
-                                            ToolTip="Remove attachment"
+                                            ToolTip="{DynamicResource S.Chat.RemoveAttachment.ToolTip}"
                                             Command="{Binding DataContext.RemoveAttachmentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding}" />
                                 </StackPanel>
@@ -822,7 +822,7 @@
 
                         <ui:Button Grid.Column="0"
                                    Icon="{ui:SymbolIcon Attach24}"
-                                   ToolTip="Attach a file"
+                                   ToolTip="{DynamicResource S.Chat.Attach.ToolTip}"
                                    Appearance="Secondary"
                                    Background="Transparent"
                                    BorderThickness="0"
@@ -849,7 +849,7 @@
                                    MinHeight="0"
                                    VerticalAlignment="Bottom"
                                    Margin="0,0,4,4"
-                                   ToolTip="Let the model work on the project. It plans by default, and asks before anything it cannot take back."
+                                   ToolTip="{DynamicResource S.Agent.ToolTip}"
                                    Click="OnAgentButtonClick">
                             <ui:Button.Style>
                                 <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
@@ -884,8 +884,8 @@
                                               IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=Plan}">
                                         <MenuItem.Header>
                                             <StackPanel>
-                                                <TextBlock Text="Plan" />
-                                                <TextBlock Text="Reads and works out what to do. Changes nothing."
+                                                <TextBlock Text="{DynamicResource S.Agent.Mode.Plan}" />
+                                                <TextBlock Text="{DynamicResource S.Agent.Menu.Plan.Hint}"
                                                            Style="{StaticResource SubtleText}" />
                                             </StackPanel>
                                         </MenuItem.Header>
@@ -896,8 +896,8 @@
                                               IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=PlanCanvas}">
                                         <MenuItem.Header>
                                             <StackPanel>
-                                                <TextBlock Text="Plan + canvas" />
-                                                <TextBlock Text="Plans, and draws the project it would build."
+                                                <TextBlock Text="{DynamicResource S.Agent.Mode.PlanCanvas}" />
+                                                <TextBlock Text="{DynamicResource S.Agent.Menu.PlanCanvas.Hint}"
                                                            Style="{StaticResource SubtleText}" />
                                             </StackPanel>
                                         </MenuItem.Header>
@@ -908,8 +908,8 @@
                                               IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=Build}">
                                         <MenuItem.Header>
                                             <StackPanel>
-                                                <TextBlock Text="Build" />
-                                                <TextBlock Text="Carries the work out, asking before each change."
+                                                <TextBlock Text="{DynamicResource S.Agent.Mode.Build}" />
+                                                <TextBlock Text="{DynamicResource S.Agent.Menu.Build.Hint}"
                                                            Style="{StaticResource SubtleText}" />
                                             </StackPanel>
                                         </MenuItem.Header>
@@ -921,8 +921,8 @@
                                               IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=Off}">
                                         <MenuItem.Header>
                                             <StackPanel>
-                                                <TextBlock Text="Off" />
-                                                <TextBlock Text="One answer from the model, no tools."
+                                                <TextBlock Text="{DynamicResource S.Agent.Mode.Off}" />
+                                                <TextBlock Text="{DynamicResource S.Agent.Menu.Off.Hint}"
                                                            Style="{StaticResource SubtleText}" />
                                             </StackPanel>
                                         </MenuItem.Header>
@@ -950,7 +950,7 @@
                         <ui:Button Grid.Column="3"
                                    Appearance="Primary"
                                    Icon="{ui:SymbolIcon Send24}"
-                                   ToolTip="Send (Enter)"
+                                   ToolTip="{DynamicResource S.Chat.Send.ToolTip}"
                                    VerticalAlignment="Bottom"
                                    Margin="4,0,0,0"
                                    Command="{Binding SendCommand}"
@@ -959,7 +959,7 @@
                         <ui:Button Grid.Column="3"
                                    Appearance="Danger"
                                    Icon="{ui:SymbolIcon Stop24}"
-                                   ToolTip="Stop generating (Esc)"
+                                   ToolTip="{DynamicResource S.Settings.Shortcut.Stop}"
                                    VerticalAlignment="Bottom"
                                    Margin="4,0,0,0"
                                    Command="{Binding StopCommand}"

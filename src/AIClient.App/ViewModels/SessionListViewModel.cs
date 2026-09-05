@@ -82,8 +82,8 @@ public sealed partial class SessionListViewModel : ObservableObject
     /// wording - the first means try another query, the second means start one.
     /// </summary>
     public string EmptyMessage => IsSearching
-        ? $"No chats match “{SearchQuery.Trim()}”."
-        : "No chats yet.\nStart one with New Chat.";
+        ? Localization.T("S.Sidebar.Empty.Search", SearchQuery.Trim())
+        : Localization.T("S.Sidebar.Empty.None");
 
     /// <summary>Raised when a row is chosen, so the shell can open it in the chat pane.</summary>
     public event EventHandler<Guid>? SessionOpened;
@@ -185,8 +185,8 @@ public sealed partial class SessionListViewModel : ObservableObject
         if (_settings.Current.General.ConfirmBeforeDelete)
         {
             var confirmed = await _dialogs.ConfirmAsync(
-                "Delete chat",
-                $"\"{session.Title}\" and all of its messages will be permanently deleted.").ConfigureAwait(true);
+                Localization.T("S.Dialog.DeleteChat.Title"),
+                Localization.T("S.Dialog.DeleteChat.Message", session.Title)).ConfigureAwait(true);
 
             if (!confirmed)
             {
@@ -323,5 +323,10 @@ public sealed partial class SessionListViewModel : ObservableObject
 
         _searchTimer.Stop();
         _searchTimer.Start();
+    }
+
+    public void OnLanguageChanged()
+    {
+        OnPropertyChanged(nameof(EmptyMessage));
     }
 }

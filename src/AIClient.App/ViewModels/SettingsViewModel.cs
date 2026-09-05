@@ -23,6 +23,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly ISettingsService _settings;
     private readonly IProviderRegistry _registry;
     private readonly IAppThemeService _themeService;
+    private readonly ILocalizationService _localization;
     private readonly IWorkspaceService _workspace;
     private readonly IDialogService _dialogs;
     private readonly IAppPaths _paths;
@@ -32,6 +33,10 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private ThemeMode _theme;
+
+    /// <summary>The language the interface is written in; switching applies immediately.</summary>
+    [ObservableProperty]
+    private LanguageOption _selectedLanguage;
 
     [ObservableProperty]
     private double _chatFontSize;
@@ -164,6 +169,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         ISettingsService settings,
         IProviderRegistry registry,
         IAppThemeService themeService,
+        ILocalizationService localization,
         IWorkspaceService workspace,
         IDialogService dialogs,
         IAppPaths paths,
@@ -172,10 +178,18 @@ public sealed partial class SettingsViewModel : ObservableObject
         _settings = settings;
         _registry = registry;
         _themeService = themeService;
+        _localization = localization;
         _workspace = workspace;
         _dialogs = dialogs;
         _paths = paths;
         _logger = logger;
+
+        // Rebuilt labels: the shortcut reference and the workspace sentence change with the
+        // language, so they are recomputed when the dictionary is swapped.
+        _localization.LanguageChanged += (_, _) => RefreshLocalized();
+
+        _selectedLanguage = Languages[0];
+        Shortcuts = BuildShortcuts();
     }
 
     public ObservableCollection<ProviderSettingsViewModel> Providers { get; } = [];
@@ -185,21 +199,21 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public IReadOnlyList<ThemeMode> ThemeModes { get; } = [ThemeMode.System, ThemeMode.Light, ThemeMode.Dark];
 
+    /// <summary>Languages offered, always shown in their own name so they are recognisable everywhere.</summary>
+    public IReadOnlyList<LanguageOption> Languages { get; } =
+    [
+        new(UiLanguage.English, "English"),
+        new(UiLanguage.Russian, "Русский"),
+        new(UiLanguage.German, "Deutsch"),
+    ];
+
     /// <summary>
     /// The shortcut reference (section 23). Declared here rather than scraped from the
     /// window's InputBindings: the gestures the shell registers and the list shown to the
     /// user are both short and both need a human description, which a KeyGesture has not got.
+    /// Rebuilt on a language change, since the descriptions are the localized part.
     /// </summary>
-    public IReadOnlyList<ShortcutInfo> Shortcuts { get; } =
-    [
-        new("New chat", "Ctrl+N"),
-        new("Search chats", "Ctrl+K"),
-        new("Open settings", "Ctrl+,"),
-        new("Command palette", "Ctrl+Shift+P"),
-        new("Send message", "Enter"),
-        new("New line in the message", "Shift+Enter"),
-        new("Stop generating", "Esc"),
-    ];
+    public IReadOnlyList<ShortcutInfo> Shortcuts { get; private set; } = [];
 
     public string DataDirectory => _paths.DataDirectory;
     public string DatabasePath => _paths.DatabasePath;
@@ -210,10 +224,13 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>The open folder, or a sentence saying there is none.</summary>
     public string WorkspaceLabel => WorkspaceRoot is { Length: > 0 } root
         ? root
-        : "No folder open. The agent cannot read or change anything until one is.";
+        : _localization.T("S.Settings.Agent.Workspace.None");
 
     public string AppVersion =>
         typeof(SettingsViewModel).Assembly.GetName().Version?.ToString(3) ?? "0.1.0";
+
+    /// <summary>The About line, which carries the version into a localized sentence.</summary>
+    public string VersionText => string.Format(_localization.T("S.Settings.About.Version"), AppVersion);
 
     /// <summary>Raised after a change that other panes need to react to.</summary>
     public event EventHandler? SettingsApplied;
@@ -236,6 +253,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             RestoreLastConversation = current.General.RestoreLastConversation;
             ConfirmBeforeDelete = current.General.ConfirmBeforeDelete;
             AutoGenerateTitles = current.General.AutoGenerateTitles;
+            SelectedLanguage = Languages.First(l => l.Language == current.General.Language);
 
             // A null sampling parameter means "do not send this field at all", which the
             // UI represents as an unchecked box next to a disabled slider.
@@ -312,7 +330,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task ChooseWorkspaceAsync()
     {
-        var chosen = _dialogs.OpenFolder("Choose the folder the agent may work in", WorkspaceRoot);
+        var chosen = _dialogs.OpenFolder(_localization.T("S.Dialog.ChooseWorkspace"), WorkspaceRoot);
 
         if (chosen is not { Length: > 0 })
         {
@@ -330,7 +348,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             return;
         }
 
-        WorkspaceProblem = result.Error ?? "That folder cannot be used as a workspace.";
+        WorkspaceProblem = result.Error ?? _localization.T("S.Chat.NotWorkspace");
     }
 
     /// <summary>Closes the workspace, which is the off switch for everything the agent can reach.</summary>
@@ -388,6 +406,15 @@ public sealed partial class SettingsViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Could not save a settings change.");
+        }
+    }
+
+    /// <summary>Switches the interface language; the service persists it and notifies the other panes.</summary>
+    partial void OnSelectedLanguageChanged(LanguageOption value)
+    {
+        if (!_isLoading)
+        {
+            _ = _localization.SetLanguageAsync(value.Language);
         }
     }
 
@@ -514,7 +541,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// step and an approval prompt to find out. Nothing is said while the switch is off, where neither
     /// matters.
     /// </remarks>
-    private static string? CommandListProblem(string text, bool allowed)
+    private string? CommandListProblem(string text, bool allowed)
     {
         if (!allowed)
         {
@@ -525,15 +552,36 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         if (dropped.Count > 0)
         {
-            return "Left out, because a program is named without a path, a space or an argument: "
-                + $"{string.Join(", ", dropped)}.";
+            return string.Format(
+                _localization.T("S.Settings.Programs.Dropped"),
+                string.Join(", ", dropped));
         }
 
         return ParseCommandNames(text).Count == 0
-            ? "Nothing is allowed, so every command will be refused. Add the programs this project is built "
-                + "and tested with."
+            ? _localization.T("S.Settings.Programs.Empty")
             : null;
     }
+
+    /// <summary>Recomputes everything on this screen that is written in words rather than bound as a number.</summary>
+    private void RefreshLocalized()
+    {
+        Shortcuts = BuildShortcuts();
+        OnPropertyChanged(nameof(Shortcuts));
+        OnPropertyChanged(nameof(WorkspaceLabel));
+        OnPropertyChanged(nameof(VersionText));
+        AllowedCommandsProblem = CommandListProblem(AllowedCommands, AllowCommands);
+    }
+
+    private IReadOnlyList<ShortcutInfo> BuildShortcuts() =>
+    [
+        new(_localization.T("S.Settings.Shortcut.NewChat"), "Ctrl+N"),
+        new(_localization.T("S.Settings.Shortcut.Search"), "Ctrl+K"),
+        new(_localization.T("S.Settings.Shortcut.OpenSettings"), "Ctrl+,"),
+        new(_localization.T("S.Settings.Shortcut.Palette"), "Ctrl+Shift+P"),
+        new(_localization.T("S.Settings.Shortcut.Send"), "Enter"),
+        new(_localization.T("S.Settings.Shortcut.NewLine"), "Shift+Enter"),
+        new(_localization.T("S.Settings.Shortcut.Stop"), "Esc"),
+    ];
 
     /// <summary>Splits the allowlist box the way people type it: by commas, semicolons or spaces.</summary>
     private static string[] Tokenize(string text) =>
@@ -573,3 +621,6 @@ public sealed partial class SettingsViewModel : ObservableObject
 
 /// <summary>One row in the keyboard shortcut reference.</summary>
 public sealed record ShortcutInfo(string Description, string Keys);
+
+/// <summary>One entry in the language picker: the language and its own name, as it is written natively.</summary>
+public sealed record LanguageOption(UiLanguage Language, string NativeName);

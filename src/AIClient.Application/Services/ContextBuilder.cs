@@ -31,6 +31,10 @@ public sealed class ContextBuilder : IContextBuilder
     /// </remarks>
     private const int AssumedContextWindow = 8192;
 
+    /// <summary>The ordinary case: the question carries no files of its own.</summary>
+    private static readonly IReadOnlySet<string> NoInlinedFiles =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
     private readonly IConversationService _conversations;
     private readonly IGraphContextSource? _graph;
     private readonly ILogger<ContextBuilder> _logger;
@@ -67,7 +71,7 @@ public sealed class ContextBuilder : IContextBuilder
         var systemPrompt = string.IsNullOrWhiteSpace(request.SystemPrompt) ? null : request.SystemPrompt.Trim();
         var budget = CalculateBudget(request);
 
-        systemPrompt = await WithGraphAsync(systemPrompt, request, budget, cancellationToken)
+        systemPrompt = await WithGraphAsync(systemPrompt, request, history, budget, cancellationToken)
             .ConfigureAwait(false);
 
         var dropped = budget is null ? 0 : Trim(blocks, systemPrompt, budget.Value);
@@ -111,6 +115,7 @@ public sealed class ContextBuilder : IContextBuilder
     private async Task<string?> WithGraphAsync(
         string? systemPrompt,
         ContextBuildRequest request,
+        IReadOnlyList<MessageDto> history,
         int? budget,
         CancellationToken cancellationToken)
     {
@@ -123,6 +128,7 @@ public sealed class ContextBuilder : IContextBuilder
             .BuildAsync(
                 selection,
                 budget ?? (AssumedContextWindow - request.ReservedOutputTokens),
+                InlinedFiles(history),
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -136,6 +142,37 @@ public sealed class ContextBuilder : IContextBuilder
             selection.NodeIds.Count);
 
         return systemPrompt is null ? block : $"{systemPrompt}\n\n{block}";
+    }
+
+    /// <summary>
+    /// Files the question being asked already carries whole.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The last user turn only. An attachment from five turns back may be trimmed out of this prompt,
+    /// and suppressing an excerpt on account of it would lose the file altogether; the final turn is
+    /// the one <see cref="Trim"/> never drops, so what it carries is safe to leave out of the graph
+    /// block.
+    /// </para>
+    /// <para>
+    /// Names rather than paths, because that is what <see cref="ToTurn"/> writes into
+    /// <c>&lt;file name="…"&gt;</c> - and why a file staged from the graph is named by its
+    /// workspace-relative path, so the two agree.
+    /// </para>
+    /// </remarks>
+    private static IReadOnlySet<string> InlinedFiles(IReadOnlyList<MessageDto> history)
+    {
+        var asked = history.LastOrDefault(message => message.Role == MessageRole.User);
+
+        if (asked is null || asked.Attachments.Count == 0)
+        {
+            return NoInlinedFiles;
+        }
+
+        return asked.Attachments
+            .Where(attachment => !string.IsNullOrEmpty(attachment.TextContent))
+            .Select(attachment => attachment.FileName)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -164,6 +201,9 @@ public sealed class ContextBuilder : IContextBuilder
             // A failed turn has no content worth sending, and an empty assistant turn
             // (a placeholder that never received tokens) would confuse the model.
             .Where(m => m.Status != MessageStatus.Failed)
+            // Compaction folded these into a later summary. The rows stay on disk so the
+            // transcript remains a faithful record; only the prompt forgets them.
+            .Where(m => !m.IsCompacted)
             .Where(HasSomethingToSend);
 
         return Repair(eligible);

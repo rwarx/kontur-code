@@ -31,6 +31,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly ISettingsService _settings;
     private readonly IProviderRegistry _registry;
     private readonly IAppThemeService _themeService;
+    private readonly ILocalizationService _localization;
     private readonly IConnectivityMonitor _connectivity;
     private readonly ILogger<MainViewModel> _logger;
 
@@ -63,6 +64,7 @@ public sealed partial class MainViewModel : ObservableObject
         ISettingsService settingsService,
         IProviderRegistry registry,
         IAppThemeService themeService,
+        ILocalizationService localization,
         IConnectivityMonitor connectivity,
         ILogger<MainViewModel> logger)
     {
@@ -79,6 +81,7 @@ public sealed partial class MainViewModel : ObservableObject
         _settings = settingsService;
         _registry = registry;
         _themeService = themeService;
+        _localization = localization;
         _connectivity = connectivity;
         _logger = logger;
 
@@ -92,6 +95,10 @@ public sealed partial class MainViewModel : ObservableObject
         Settings.SettingsApplied += OnSettingsApplied;
         CommandPalette.CommandInvoked += OnPaletteCommand;
         FirstRun.Finished += OnFirstRunFinished;
+
+        // A language switch is written in words, and half of those words are computed in the
+        // child ViewModels rather than bound from the string table, so each is told to rebuild.
+        _localization.LanguageChanged += OnLanguageChanged;
 
         // The canvas and the inspector do not know about each other either. A selection made on the
         // canvas arrives here and is handed on; a related node clicked in the inspector comes back
@@ -194,7 +201,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         try
         {
-            await Chat.AskAboutGraphAsync(request.Selection, request.Prompt, request.Label)
+            await Chat.AskAboutGraphAsync(request.Selection, request.Prompt, request.Label, request.Files)
                       .ConfigureAwait(true);
         }
         catch (Exception ex)
@@ -394,6 +401,17 @@ public sealed partial class MainViewModel : ObservableObject
     /// </remarks>
     private void OnConnectivityChanged(object? sender, bool isOnline) =>
         UiThread.Post(() => IsOffline = !isOnline);
+
+    /// <summary>Hands a language switch to the panes whose words are computed in code.</summary>
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Chat.OnLanguageChanged();
+        Sessions.OnLanguageChanged();
+        FirstRun.OnLanguageChanged();
+        Canvas.OnLanguageChanged();
+        Inspector.OnLanguageChanged();
+        CommandPalette.OnLanguageChanged();
+    }
 
     /// <summary>Raised so the view can focus the search box, which is a view concern.</summary>
     public event EventHandler? SearchRequested;

@@ -31,4 +31,26 @@ public interface IGraphContextSource
         GraphSelection selection,
         int tokenBudget,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Describes <paramref name="selection"/> without quoting files the prompt already carries.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A question asked from the canvas arrives with its files attached, and an attachment is inlined
+    /// whole. Quoting the first two hundred lines of the same file again inside this block spends the
+    /// budget twice on one file and leaves the model to work out whether the two copies differ.
+    /// </para>
+    /// <para>
+    /// A separate method rather than an argument on the one above so that the cancellation token stays
+    /// last and every existing caller keeps compiling. The names are matched to what the prompt calls
+    /// each file, which is the workspace-relative path.
+    /// </para>
+    /// </remarks>
+    /// <param name="inlinedFiles">Names already present in the prompt, compared case-insensitively.</param>
+    Task<string?> BuildAsync(
+        GraphSelection selection,
+        int tokenBudget,
+        IReadOnlySet<string> inlinedFiles,
+        CancellationToken cancellationToken = default);
 }

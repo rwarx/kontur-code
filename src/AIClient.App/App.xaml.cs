@@ -67,7 +67,9 @@ public partial class App : System.Windows.Application
 
             // After the window exists, before it is shown: the theme service attaches the
             // backdrop and the system-theme watcher to it, and applying the theme first
-            // would show a light frame for one frame on a dark system.
+            // would show a light frame for one frame on a dark system. The localization
+            // service goes first so the strings are already in place when the theme runs.
+            _host.Services.GetRequiredService<ILocalizationService>().Initialize();
             _host.Services.GetRequiredService<IAppThemeService>().Initialize();
 
             window.Show();

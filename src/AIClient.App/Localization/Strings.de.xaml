@@ -1,0 +1,403 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- Deutsche Zeichenkettentabelle. Die Schlüssel müssen Strings.en.xaml genau entsprechen;
+        der Lokalisierungsdienst prüft die Übereinstimmung beim Laden und protokolliert Abweichungen. -->
+
+    <!-- ===== Allgemein ===== -->
+    <sys:String x:Key="S.Common.Cancel">Abbrechen</sys:String>
+    <sys:String x:Key="S.Common.Save">Speichern</sys:String>
+    <sys:String x:Key="S.Common.Close">Schließen</sys:String>
+    <sys:String x:Key="S.Common.Delete">Löschen</sys:String>
+    <sys:String x:Key="S.Common.Open">Öffnen</sys:String>
+    <sys:String x:Key="S.Common.Edit">Bearbeiten</sys:String>
+    <sys:String x:Key="S.Common.Copy">Kopieren</sys:String>
+    <sys:String x:Key="S.Common.Retry">Wiederholen</sys:String>
+    <sys:String x:Key="S.Common.Back">Zurück</sys:String>
+    <sys:String x:Key="S.Common.TechnicalDetails">Technische Details</sys:String>
+
+    <!-- ===== Sprachen (immer in der jeweiligen Landessprache) ===== -->
+    <sys:String x:Key="S.Language.English">English</sys:String>
+    <sys:String x:Key="S.Language.Russian">Русский</sys:String>
+    <sys:String x:Key="S.Language.German">Deutsch</sys:String>
+
+    <!-- ===== Designs ===== -->
+    <sys:String x:Key="S.Theme.System">System</sys:String>
+    <sys:String x:Key="S.Theme.Light">Hell</sys:String>
+    <sys:String x:Key="S.Theme.Dark">Dunkel</sys:String>
+
+    <!-- ===== Hauptfenster ===== -->
+    <sys:String x:Key="S.Main.Offline.Title">Keine Internetverbindung</sys:String>
+    <sys:String x:Key="S.Main.Offline.Message">Gespeicherte Unterhaltungen und Einstellungen bleiben verfügbar. Neue Nachrichten schlagen fehl, bis die Verbindung wieder steht.</sys:String>
+    <sys:String x:Key="S.Main.ToggleSidebar.ToolTip">Seitenleiste ein- oder ausblenden (Ctrl+B)</sys:String>
+    <sys:String x:Key="S.Main.ChangeModel.ToolTip">Modell wechseln</sys:String>
+    <sys:String x:Key="S.Main.SelectModel">Modell auswählen</sys:String>
+    <sys:String x:Key="S.Main.Export.ToolTip">Unterhaltung exportieren</sys:String>
+    <sys:String x:Key="S.Main.Export.Markdown">Als Markdown exportieren</sys:String>
+    <sys:String x:Key="S.Main.Export.Json">Als JSON exportieren</sys:String>
+    <sys:String x:Key="S.Main.Export.Text">Als reinen Text exportieren</sys:String>
+    <sys:String x:Key="S.Main.Settings.ToolTip">Einstellungen (Ctrl+,)</sys:String>
+
+    <!-- ===== Seitenleiste ===== -->
+    <sys:String x:Key="S.Sidebar.NewChat">Neuer Chat</sys:String>
+    <sys:String x:Key="S.Sidebar.NewChat.ToolTip">Neuer Chat (Ctrl+N)</sys:String>
+    <sys:String x:Key="S.Sidebar.Search.Placeholder">Chats durchsuchen…</sys:String>
+    <sys:String x:Key="S.Sidebar.Search.ToolTip">Chats durchsuchen (Ctrl+K)</sys:String>
+    <sys:String x:Key="S.Sidebar.Menu.Open">Öffnen</sys:String>
+    <sys:String x:Key="S.Sidebar.Menu.Rename">Umbenennen…</sys:String>
+    <sys:String x:Key="S.Sidebar.Menu.Pin">Anheften / Lösen</sys:String>
+    <sys:String x:Key="S.Sidebar.Menu.Delete">Löschen</sys:String>
+    <sys:String x:Key="S.Sidebar.Empty.Search">Keine Chats zu „{0}“.</sys:String>
+    <sys:String x:Key="S.Sidebar.Empty.None">Noch keine Chats.&#10;Beginnen Sie mit „Neuer Chat“.</sys:String>
+    <sys:String x:Key="S.Sidebar.Canvas">Canvas</sys:String>
+    <sys:String x:Key="S.Sidebar.Canvas.ToolTip">Wissensgraph (Ctrl+G)</sys:String>
+    <sys:String x:Key="S.Sidebar.Settings">Einstellungen</sys:String>
+    <sys:String x:Key="S.Sidebar.Settings.ToolTip">Einstellungen (Ctrl+,)</sys:String>
+    <sys:String x:Key="S.Sidebar.ToggleTheme">Design wechseln</sys:String>
+    <sys:String x:Key="S.Sidebar.Palette">Befehlspalette</sys:String>
+    <sys:String x:Key="S.Sidebar.Palette.ToolTip">Ctrl+Shift+P</sys:String>
+
+    <!-- ===== Chat: Verlauf ===== -->
+    <sys:String x:Key="S.Chat.Empty.Title">Womit kann ich helfen?</sys:String>
+    <sys:String x:Key="S.Chat.Empty.Subtitle">Stellen Sie eine Frage, fügen Sie Code ein oder hängen Sie eine Datei an.</sys:String>
+    <sys:String x:Key="S.Chat.JumpToLatest">Zum Neuesten springen</sys:String>
+    <sys:String x:Key="S.Chat.SaveResend">Speichern und erneut senden</sys:String>
+    <sys:String x:Key="S.Chat.Thinking">Denkt nach…</sys:String>
+    <sys:String x:Key="S.Chat.Reasoning">Gedankengang</sys:String>
+    <sys:String x:Key="S.Chat.Failed.Title">Anfrage fehlgeschlagen</sys:String>
+    <sys:String x:Key="S.Chat.Stopped">Generierung gestoppt.</sys:String>
+    <sys:String x:Key="S.Chat.Copy.ToolTip">Nachricht kopieren</sys:String>
+    <sys:String x:Key="S.Chat.Regenerate">Neu generieren</sys:String>
+    <sys:String x:Key="S.Chat.Regenerate.ToolTip">Eine neue Antwort erzeugen</sys:String>
+    <sys:String x:Key="S.Chat.Delete.ToolTip">Nachricht löschen</sys:String>
+    <sys:String x:Key="S.Chat.Truncated">gekürzt</sys:String>
+    <sys:String x:Key="S.Chat.RemoveAttachment.ToolTip">Anhang entfernen</sys:String>
+    <sys:String x:Key="S.Chat.Attach.ToolTip">Datei anhängen</sys:String>
+    <sys:String x:Key="S.Chat.Send.ToolTip">Senden (Enter)</sys:String>
+    <sys:String x:Key="S.Chat.ShowResult.ToolTip">Zeigen, was dieser Aufruf geliefert hat</sys:String>
+    <sys:String x:Key="S.Tool.Risk.Write">ändert Dateien</sys:String>
+    <sys:String x:Key="S.Tool.Risk.Execute">führt ein Programm aus</sys:String>
+
+    <!-- ===== Werkzeugaufruf-Zustände ===== -->
+    <sys:String x:Key="S.Tool.Waiting">Warten</sys:String>
+    <sys:String x:Key="S.Tool.Running">Läuft</sys:String>
+    <sys:String x:Key="S.Tool.Done">Fertig</sys:String>
+    <sys:String x:Key="S.Tool.Denied">Nicht erlaubt</sys:String>
+    <sys:String x:Key="S.Tool.Interrupted">Unterbrochen</sys:String>
+    <sys:String x:Key="S.Tool.Failed">Fehlgeschlagen</sys:String>
+    <sys:String x:Key="S.Tool.Body.Truncated">... der Rest dieses Ergebnisses wird nicht angezeigt.</sys:String>
+
+    <!-- ===== Agent-Schaltfläche und -Menü ===== -->
+    <sys:String x:Key="S.Agent.Label">Agent</sys:String>
+    <sys:String x:Key="S.Agent.ToolTip">Das Modell am Projekt arbeiten lassen. Es plant standardmäßig und fragt nach, bevor es etwas Unwiderrufliches tut.</sys:String>
+    <sys:String x:Key="S.Agent.Mode.Plan">Planen</sys:String>
+    <sys:String x:Key="S.Agent.Mode.PlanCanvas">Planen + Canvas</sys:String>
+    <sys:String x:Key="S.Agent.Mode.Build">Bauen</sys:String>
+    <sys:String x:Key="S.Agent.Mode.Off">Aus</sys:String>
+    <sys:String x:Key="S.Agent.Menu.Plan.Hint">Liest und überlegt, was zu tun ist. Ändert nichts.</sys:String>
+    <sys:String x:Key="S.Agent.Menu.PlanCanvas.Hint">Plant und zeichnet das Projekt, das es bauen würde.</sys:String>
+    <sys:String x:Key="S.Agent.Menu.Build.Hint">Führt die Arbeit aus und fragt vor jeder Änderung.</sys:String>
+    <sys:String x:Key="S.Agent.Menu.Off.Hint">Eine Antwort des Modells, ohne Werkzeuge.</sys:String>
+    <sys:String x:Key="S.Agent.Hint.Build.NoFolder">Bauen · kein Ordner offen. Wählen Sie einen unter Einstellungen.</sys:String>
+    <sys:String x:Key="S.Agent.Hint.Build.In">Bauen · arbeitet in {0}</sys:String>
+    <sys:String x:Key="S.Agent.Hint.Plan.New">{0} · plant etwas Neues. Es wird nichts gelesen oder geändert.</sys:String>
+    <sys:String x:Key="S.Agent.Hint.Plan.In">{0} · liest {1}. Es wird nichts geändert.</sys:String>
+
+    <!-- ===== Freigabe-Karte ===== -->
+    <sys:String x:Key="S.Approval.Headline.Fallback">{0} mit den Argumenten unten ausführen</sys:String>
+    <sys:String x:Key="S.Approval.Consequence.Execute">Führt ein Programm auf diesem Computer aus.</sys:String>
+    <sys:String x:Key="S.Approval.Consequence.Write">Ändert Dateien in dem von Ihnen geöffneten Ordner.</sys:String>
+    <sys:String x:Key="S.Approval.Consequence.Read">Liest aus dem von Ihnen geöffneten Ordner.</sys:String>
+    <sys:String x:Key="S.Chat.Repeat">Diesen exakten Aufruf haben Sie in diesem Durchlauf bereits erlaubt. Er wird erneut gefragt, weil Antworten auf solche Aufrufe bewusst nicht gemerkt werden.</sys:String>
+    <sys:String x:Key="S.Approval.DenyPlaceholder">Warum nicht? Optional und wird dem Modell übermittelt.</sys:String>
+    <sys:String x:Key="S.Approval.Deny">Nicht erlauben</sys:String>
+    <sys:String x:Key="S.Approval.AllowRun">Für diesen Durchlauf erlauben</sys:String>
+    <sys:String x:Key="S.Approval.AllowOnce">Einmal erlauben</sys:String>
+    <sys:String x:Key="S.Approval.Arguments">Argumente</sys:String>
+
+    <!-- ===== Vorschläge im leeren Zustand ===== -->
+    <sys:String x:Key="S.Suggest.Explain.Title">Code erklären</sys:String>
+    <sys:String x:Key="S.Suggest.Explain.Description">Ich erkläre Ihnen, was ein Ausschnitt tut</sys:String>
+    <sys:String x:Key="S.Suggest.Function.Title">Funktion schreiben</sys:String>
+    <sys:String x:Key="S.Suggest.Function.Description">Ich erstelle eine Umsetzung aus einer Beschreibung</sys:String>
+    <sys:String x:Key="S.Suggest.Analyse.Title">Datei analysieren</sys:String>
+    <sys:String x:Key="S.Suggest.Analyse.Description">Hängen Sie eine Datei an und fragen Sie dazu</sys:String>
+    <sys:String x:Key="S.Suggest.Debug.Title">Bei der Fehlersuche helfen</sys:String>
+    <sys:String x:Key="S.Suggest.Debug.Description">Wir arbeiten eine Fehlermeldung durch</sys:String>
+
+    <!-- ===== Eingabehinweise und Banner ===== -->
+    <sys:String x:Key="S.Hint.EnterSend">Enter sendet · Shift+Enter für eine neue Zeile</sys:String>
+    <sys:String x:Key="S.Hint.ShiftEnterSend">Shift+Enter sendet · Enter für eine neue Zeile</sys:String>
+    <sys:String x:Key="S.Banner.ChooseModel">Wählen Sie vor dem Senden einer Nachricht ein Modell.</sys:String>
+    <sys:String x:Key="S.Banner.ChooseModel.Regenerate">Wählen Sie vor dem Neugenerieren ein Modell.</sys:String>
+    <sys:String x:Key="S.Banner.ChooseModel.Edit">Wählen Sie vor dem Bearbeiten ein Modell.</sys:String>
+    <sys:String x:Key="S.Banner.BuildNeedsFolder">Bauen braucht einen Ordner zum Arbeiten. Öffnen Sie einen unter Einstellungen, wechseln Sie zu Planen, oder schalten Sie den Agent-Modus aus, um nur zu chatten.</sys:String>
+    <sys:String x:Key="S.Banner.UnsupportedFile">„{0}“ ist kein unterstützter Dateityp.</sys:String>
+    <sys:String x:Key="S.Banner.Exported">Exportiert nach {0}.</sys:String>
+    <sys:String x:Key="S.Banner.ExportFailed">Export fehlgeschlagen</sys:String>
+    <sys:String x:Key="S.Stop.AfterStep">Nach 1 Schritt gestoppt. Weiter wurde nichts geändert.</sys:String>
+    <sys:String x:Key="S.Stop.AfterSteps">Gestoppt. Ausgeführte Schritte: {0}. Weiter wurde nichts geändert.</sys:String>
+    <sys:String x:Key="S.Stop.Plain">Gestoppt. Weiter wurde nichts geändert.</sys:String>
+    <sys:String x:Key="S.RunEnd.StepLimit">Der Agent hielt an — ausgeführte Schritte: {0}, so viele bekommt ein Durchlauf. Senden Sie eine weitere Nachricht, falls noch etwas zu tun ist.</sys:String>
+    <sys:String x:Key="S.RunEnd.TimeLimit">Dem Agent ging die Zeit aus — ausgeführte Schritte: {0}. Senden Sie eine weitere Nachricht, falls noch etwas zu tun ist.</sys:String>
+    <sys:String x:Key="S.Error.Unknown.Generation">Beim Erzeugen der Antwort ist etwas schiefgegangen.</sys:String>
+    <sys:String x:Key="S.Error.Unknown.Agent">Während der Arbeit des Agenten ist etwas schiefgegangen.</sys:String>
+
+    <!-- ===== Fehlerarten (als Fehlertext gezeigt; Details bleiben technisch) ===== -->
+    <sys:String x:Key="S.Error.InvalidApiKey">Der Schlüssel wurde abgelehnt. Prüfen Sie ihn unter Einstellungen → Anbieter und fordern Sie einen neuen an, falls er widerrufen wurde.</sys:String>
+    <sys:String x:Key="S.Error.PermissionDenied">Der Schlüssel hat keinen Zugriff auf dieses Modell, oder die Abrechnung ist nicht aktiviert.</sys:String>
+    <sys:String x:Key="S.Error.NotFound">Modell oder Endpunkt wurde nicht gefunden. Aktualisieren Sie die Modellliste.</sys:String>
+    <sys:String x:Key="S.Error.RateLimited">Sie sind gedrosselt oder das Guthaben ist aufgebraucht. Warten Sie einen Moment und versuchen Sie es erneut.</sys:String>
+    <sys:String x:Key="S.Error.Timeout">Die Anfrage hat zu lange gedauert.</sys:String>
+    <sys:String x:Key="S.Error.ServerError">Der Anbieter meldet einen internen Fehler.</sys:String>
+    <sys:String x:Key="S.Error.ServiceUnavailable">Der Anbieter ist vorübergehend nicht erreichbar. Das ist meist kurzfristig.</sys:String>
+    <sys:String x:Key="S.Error.NetworkError">Der Anbieter war nicht erreichbar. Prüfen Sie Ihre Internetverbindung.</sys:String>
+    <sys:String x:Key="S.Error.ContextLengthExceeded">Die Unterhaltung passt nicht mehr in das Kontextfenster des Modells. Beginnen Sie einen neuen Chat oder wählen Sie ein Modell mit größerem Fenster.</sys:String>
+    <sys:String x:Key="S.Error.ModelUnavailable">Das Modell ist derzeit nicht verfügbar.</sys:String>
+    <sys:String x:Key="S.Error.InvalidRequest">Die Anfrage wurde als ungültig abgelehnt.</sys:String>
+    <sys:String x:Key="S.Error.ContentFiltered">Der Anbieter hat abgelehnt, das zu beantworten.</sys:String>
+    <sys:String x:Key="S.Error.NotConfigured">Für diesen Anbieter ist kein API-Schlüssel hinterlegt. Fügen Sie einen unter Einstellungen → Anbieter hinzu.</sys:String>
+
+    <!-- ===== Dialoge ===== -->
+    <sys:String x:Key="S.Dialog.DeleteMessage.Title">Nachricht löschen</sys:String>
+    <sys:String x:Key="S.Dialog.DeleteMessage.Message">Diese Nachricht wird aus der Unterhaltung entfernt.</sys:String>
+    <sys:String x:Key="S.Dialog.DeleteChat.Title">Chat löschen</sys:String>
+    <sys:String x:Key="S.Dialog.DeleteChat.Message">„{0}“ und alle seine Nachrichten werden endgültig gelöscht.</sys:String>
+    <sys:String x:Key="S.Dialog.Rename.Title">Chat umbenennen</sys:String>
+    <sys:String x:Key="S.Dialog.Rename.Label">Chatname</sys:String>
+    <sys:String x:Key="S.Dialog.ChooseWorkspace">Ordner wählen, in dem der Agent arbeiten darf</sys:String>
+    <sys:String x:Key="S.Chat.NotWorkspace">Dieser Ordner kann nicht als Arbeitsordner verwendet werden.</sys:String>
+    <sys:String x:Key="S.Chat.NotOpened">Dieser Ordner konnte nicht geöffnet werden. Wählen Sie einen anderen unter Einstellungen.</sys:String>
+
+    <!-- ===== Anbieter ===== -->
+    <sys:String x:Key="S.Provider.ApiKey">API-Schlüssel</sys:String>
+    <sys:String x:Key="S.Provider.Change">Ändern</sys:String>
+    <sys:String x:Key="S.Provider.AddKey">Schlüssel hinzufügen</sys:String>
+    <sys:String x:Key="S.Provider.Remove">Entfernen</sys:String>
+    <sys:String x:Key="S.Provider.TestConnection">Verbindung testen</sys:String>
+    <sys:String x:Key="S.Provider.RefreshModels">Modelle aktualisieren</sys:String>
+    <sys:String x:Key="S.Provider.GetKey">API-Schlüssel besorgen</sys:String>
+    <sys:String x:Key="S.Provider.Include.ToolTip">Modelle dieses Anbieters in die Modellauswahl aufnehmen</sys:String>
+    <sys:String x:Key="S.Provider.KeyNote">Wird mit Windows DPAPI unter Ihrem Benutzerkonto verschlüsselt. Er gelangt niemals in die Datenbank, die Protokolldateien oder einen Export.</sys:String>
+    <sys:String x:Key="S.Provider.NotConfigured">Nicht eingerichtet</sys:String>
+    <sys:String x:Key="S.Provider.NoKey">Kein API-Schlüssel</sys:String>
+    <sys:String x:Key="S.Provider.Testing">Wird getestet…</sys:String>
+    <sys:String x:Key="S.Provider.Connected">Verbunden</sys:String>
+    <sys:String x:Key="S.Provider.Failed">Verbindung fehlgeschlagen</sys:String>
+    <sys:String x:Key="S.Provider.NotTested">Nicht getestet</sys:String>
+    <sys:String x:Key="S.Provider.Models.None">Keine Modelle zwischengespeichert</sys:String>
+    <sys:String x:Key="S.Provider.Models.One">1 Modell zwischengespeichert</sys:String>
+    <sys:String x:Key="S.Provider.Models.Many">{0} Modelle zwischengespeichert</sys:String>
+    <sys:String x:Key="S.Provider.ModelsAvailable">{0} Modelle verfügbar.</sys:String>
+    <sys:String x:Key="S.Provider.TestIncomplete">Der Verbindungstest konnte nicht abgeschlossen werden.</sys:String>
+    <sys:String x:Key="S.Provider.RefreshFailed">Die Modellliste konnte nicht aktualisiert werden.</sys:String>
+    <sys:String x:Key="S.Provider.RemoveKey.Title">API-Schlüssel von {0} entfernen</sys:String>
+    <sys:String x:Key="S.Provider.RemoveKey.Message">Der gespeicherte Schlüssel für {0} wird gelöscht. Zwischengespeicherte Modelle bleiben erhalten, lassen sich aber erst wieder nutzen, wenn ein neuer Schlüssel hinzugefügt wird.</sys:String>
+
+    <!-- ===== Einstellungen ===== -->
+    <sys:String x:Key="S.Settings.Title">Einstellungen</sys:String>
+    <sys:String x:Key="S.Settings.Back.ToolTip">Zurück zum Chat</sys:String>
+    <sys:String x:Key="S.Settings.Providers">Anbieter</sys:String>
+    <sys:String x:Key="S.Settings.General">Allgemein</sys:String>
+    <sys:String x:Key="S.Settings.Appearance">Erscheinungsbild</sys:String>
+    <sys:String x:Key="S.Settings.Chat">Chat</sys:String>
+    <sys:String x:Key="S.Settings.Agent">Agent</sys:String>
+    <sys:String x:Key="S.Settings.Programs">Programmausführung</sys:String>
+    <sys:String x:Key="S.Settings.Storage">Speicher</sys:String>
+    <sys:String x:Key="S.Settings.Shortcuts">Tastenkombinationen</sys:String>
+    <sys:String x:Key="S.Settings.About">Über</sys:String>
+
+    <sys:String x:Key="S.Settings.General.Reopen">Letzte Unterhaltung beim Start wieder öffnen</sys:String>
+    <sys:String x:Key="S.Settings.General.ConfirmDelete">Vor dem Löschen eines Chats oder einer Nachricht nachfragen</sys:String>
+    <sys:String x:Key="S.Settings.General.AutoTitles">Neue Chats automatisch nach der ersten Nachricht benennen</sys:String>
+    <sys:String x:Key="S.Settings.General.Language">Sprache</sys:String>
+
+    <sys:String x:Key="S.Settings.Appearance.Theme">Design</sys:String>
+    <sys:String x:Key="S.Settings.Appearance.ChatFontSize">Schriftgröße im Chat</sys:String>
+    <sys:String x:Key="S.Settings.Appearance.CodeFontSize">Schriftgröße für Code</sys:String>
+    <sys:String x:Key="S.Settings.Appearance.Mica">Mica-Hintergrund (wirkt nach dem nächsten Start)</sys:String>
+
+    <sys:String x:Key="S.Settings.Chat.SystemPrompt">Systemprompt</sys:String>
+    <sys:String x:Key="S.Settings.Chat.SystemPrompt.Hint">Wird jeder neuen Unterhaltung vorangestellt. Leer lassen, um keinen Systemturn zu senden.</sys:String>
+    <sys:String x:Key="S.Settings.Chat.Temperature">Temperatur</sys:String>
+    <sys:String x:Key="S.Settings.Chat.TopP">Top P</sys:String>
+    <sys:String x:Key="S.Settings.Chat.MaxTokens">Maximale Token</sys:String>
+    <sys:String x:Key="S.Settings.Chat.SendWithEnter">Mit Enter senden (Shift+Enter fügt eine neue Zeile ein)</sys:String>
+    <sys:String x:Key="S.Settings.Chat.RenderMarkdown">Markdown in Antworten darstellen</sys:String>
+    <sys:String x:Key="S.Settings.Chat.HighlightCode">Syntax in Codeblöcken hervorheben</sys:String>
+    <sys:String x:Key="S.Settings.Chat.AutoScroll">Der Antwort beim Streamen folgen</sys:String>
+    <sys:String x:Key="S.Settings.Chat.ShowUsage">Tokenverbrauch und Generierungszeit anzeigen</sys:String>
+    <sys:String x:Key="S.Settings.Chat.History">Nachrichten des Verlaufs pro Anfrage</sys:String>
+    <sys:String x:Key="S.Settings.Chat.Timeout">Anfrage-Timeout (Sekunden)</sys:String>
+
+    <sys:String x:Key="S.Settings.Agent.Workspace">Arbeitsordner</sys:String>
+    <sys:String x:Key="S.Settings.Agent.Workspace.None">Kein Ordner offen. Der Agent kann nichts lesen oder ändern, bis einer gewählt ist.</sys:String>
+    <sys:String x:Key="S.Settings.Agent.Choose">Auswählen…</sys:String>
+    <sys:String x:Key="S.Settings.Agent.ShowInExplorer">Im Explorer anzeigen</sys:String>
+    <sys:String x:Key="S.Settings.Agent.Close">Schließen</sys:String>
+    <sys:String x:Key="S.Settings.Agent.Close.ToolTip">Nimmt dem Agenten alles, was er lesen oder ändern könnte.</sys:String>
+    <sys:String x:Key="S.Settings.Agent.NotOpened">Dieser Ordner wurde nicht geöffnet</sys:String>
+    <sys:String x:Key="S.Settings.Agent.Hint">Mit eingeschaltetem Agent-Modus im Chateingabefeld darf das Modell Dateien in diesem Ordner auflisten, lesen, durchsuchen, schreiben, verschieben und löschen. Alles, was eine Datei ändert oder entfernt, wird Ihnen vorab zur Freigabe vorgelegt — jedes Mal; Versionsverwaltungs-Interna und Dateien mit Zugangsdaten werden rundherum abgelehnt. Das Ausführen von Programmen ist eine eigene Entscheidung, siehe unten.</sys:String>
+    <sys:String x:Key="S.Settings.Agent.MaxSteps">Maximale Schritte pro Nachricht</sys:String>
+    <sys:String x:Key="S.Settings.Agent.TimeLimit">Zeitlimit pro Nachricht (Sekunden, 0 für keines)</sys:String>
+    <sys:String x:Key="S.Settings.Agent.MaxFile">Maximale Dateigröße, die der Agent öffnen darf (KB)</sys:String>
+
+    <sys:String x:Key="S.Settings.Programs.Allow">Dem Agenten erlauben, Programme auszuführen</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Allow.Hint">Aus: Der Agent darf nur Dateien lesen und ändern. Ein: Er darf das Projekt zusätzlich bauen, seine Tests ausführen und die Versionsverwaltung fragen, was sich geändert hat — genau das hilft ihm zu erkennen, ob eine Änderung wirklich funktioniert.</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Warning.Title">Ein Programm ist nicht auf den Projektordner beschränkt</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Warning.Message">Es läuft in Ihrem Namen und erreicht damit das Netzwerk, den Rest der Festplatte und alles, was Ihr Konto öffnen darf. Jeder einzelne Befehl wird Ihnen zuerst mit vollständig aufgelistetem Programm und allen Argumenten zur Freigabe vorgelegt, und diese Freigabe wird nie gemerkt — zehn Befehle, zehn Fragen. Es gibt keine Shell, also kann ein Befehl keinen zweiten nachschieben.</sys:String>
+    <sys:String x:Key="S.Settings.Programs.List">Programme, die der Agent ausführen darf</sys:String>
+    <sys:String x:Key="S.Settings.Programs.List.Hint">Getrennt durch Kommas oder Leerzeichen, und nur mit Namen — „dotnet“, nie ein Pfad dazu. Großschreibung und ein angehängtes .exe werden ignoriert. Alles, was nicht auf dieser Liste steht, wird abgelehnt; der Agent wird angewiesen, Sie zu fragen, statt nach einem anderen Weg zu suchen.</sys:String>
+    <sys:String x:Key="S.Settings.Programs.List.ShellWarning">Eine Shell hinzuzufügen — cmd, powershell, pwsh, bash, wsl — lässt jedes Programm des Rechners durch sie hindurch und macht den Rest dieser Liste zur Dekoration.</sys:String>
+    <sys:String x:Key="S.Settings.Programs.CheckList">Liste prüfen</sys:String>
+    <sys:String x:Key="S.Settings.Programs.KillAfter">Programm beenden nach (Sekunden)</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Output">Behaltene Zeichen der Ausgabe (das Ende, nicht der Anfang)</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Dropped">Ausgelassen, weil ein Programm ohne Pfad, Leerzeichen oder Argument benannt ist: {0}</sys:String>
+    <sys:String x:Key="S.Settings.Programs.Empty">Es ist nichts erlaubt, also wird jeder Befehl abgelehnt. Fügen Sie die Programme hinzu, mit denen dieses Projekt gebaut und getestet wird.</sys:String>
+
+    <sys:String x:Key="S.Settings.Storage.MaxAttachment">Maximale Anhanggröße (KB)</sys:String>
+    <sys:String x:Key="S.Settings.Storage.LogLevel">Minimaler Protokolllevel</sys:String>
+    <sys:String x:Key="S.Settings.Storage.KeepLogs">Protokolle aufbewahren (Tage)</sys:String>
+    <sys:String x:Key="S.Settings.Storage.Database">Datenbank</sys:String>
+    <sys:String x:Key="S.Settings.Storage.OpenData">Datenordner öffnen</sys:String>
+    <sys:String x:Key="S.Settings.Storage.OpenLogs">Protokollordner öffnen</sys:String>
+
+    <sys:String x:Key="S.Settings.Shortcut.NewChat">Neuer Chat</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.Search">Chats durchsuchen</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.OpenSettings">Einstellungen öffnen</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.Palette">Befehlspalette</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.Send">Nachricht senden</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.NewLine">Neue Zeile in der Nachricht</sys:String>
+    <sys:String x:Key="S.Settings.Shortcut.Stop">Generierung stoppen</sys:String>
+
+    <sys:String x:Key="S.Settings.About.Version">Version {0}</sys:String>
+    <sys:String x:Key="S.Settings.About.Text">Ein Desktop-Client für die Arbeit mit KI-Modellen mehrerer Anbieter. Unterhaltungen, Einstellungen und API-Schlüssel bleiben auf diesem Rechner.</sys:String>
+
+    <!-- ===== Erster Start ===== -->
+    <sys:String x:Key="S.FirstRun.Step">Schritt {0} von 3</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Title">Willkommen bei AI Client</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Intro">Ein Desktop-Client für die Arbeit mit KI-Modellen. Bringen Sie Ihren eigenen API-Schlüssel eines Anbieters mit, den Sie bereits nutzen — Unterhaltungen und Einstellungen bleiben auf diesem Rechner.</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Get.Title">Das bekommen Sie</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Get.1">• Gestreamte Antworten mit Markdown und Syntaxhervorhebung</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Get.2">• Unterhaltungen lokal gespeichert und durchsuchbar</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Get.3">• Mehrere Anbieter nebeneinander, hinter einer Modellauswahl</sys:String>
+    <sys:String x:Key="S.FirstRun.Welcome.Get.4">• API-Schlüssel verschlüsselt mit Windows DPAPI, nie in der Datenbank</sys:String>
+    <sys:String x:Key="S.FirstRun.Connect.Title">Anbieter verbinden</sys:String>
+    <sys:String x:Key="S.FirstRun.Connect.Intro">Fügen Sie einen Schlüssel für mindestens einen Anbieter hinzu. Die anderen können warten — all das steht auch in den Einstellungen.</sys:String>
+    <sys:String x:Key="S.FirstRun.Model.Title">Standardmodell wählen</sys:String>
+    <sys:String x:Key="S.FirstRun.Model.Intro">Neue Chats starten mit diesem Modell. Es lässt sich pro Chat über den Kopfbereich wechseln.</sys:String>
+    <sys:String x:Key="S.FirstRun.Skip">Einrichtung überspringen</sys:String>
+    <sys:String x:Key="S.FirstRun.StartChat">Loslegen</sys:String>
+    <sys:String x:Key="S.FirstRun.Continue">Weiter</sys:String>
+
+    <!-- ===== Modellauswahl ===== -->
+    <sys:String x:Key="S.Picker.Filter.Placeholder">Modelle filtern…</sys:String>
+    <sys:String x:Key="S.Picker.Vision">Vision</sys:String>
+    <sys:String x:Key="S.Picker.Tools">Werkzeuge</sys:String>
+    <sys:String x:Key="S.Picker.None.Title">Keine Modelle verfügbar</sys:String>
+    <sys:String x:Key="S.Picker.None.Hint">Fügen Sie einen API-Schlüssel unter Einstellungen → Anbieter hinzu und aktualisieren Sie dann die Modellliste.</sys:String>
+
+    <!-- ===== Befehlspalette ===== -->
+    <sys:String x:Key="S.Palette.Placeholder">Befehl eingeben…</sys:String>
+    <sys:String x:Key="S.Palette.NoMatches">Keine passenden Befehle.</sys:String>
+    <sys:String x:Key="S.Palette.Hints">↑↓ navigieren · Enter ausführen · Esc schließen</sys:String>
+    <sys:String x:Key="S.Palette.NewChat">Neuer Chat</sys:String>
+    <sys:String x:Key="S.Palette.SearchChats">Chats durchsuchen</sys:String>
+    <sys:String x:Key="S.Palette.ChangeModel">Modell wechseln</sys:String>
+    <sys:String x:Key="S.Palette.OpenCanvas">Canvas öffnen</sys:String>
+    <sys:String x:Key="S.Palette.OpenSettings">Einstellungen</sys:String>
+    <sys:String x:Key="S.Palette.ToggleTheme">Design wechseln</sys:String>
+    <sys:String x:Key="S.Palette.ExportMarkdown">Chat als Markdown exportieren</sys:String>
+    <sys:String x:Key="S.Palette.ExportJson">Chat als JSON exportieren</sys:String>
+    <sys:String x:Key="S.Palette.ExportText">Chat als Text exportieren</sys:String>
+    <sys:String x:Key="S.Palette.Category.Chat">Chat</sys:String>
+    <sys:String x:Key="S.Palette.Category.Application">Anwendung</sys:String>
+    <sys:String x:Key="S.Palette.Category.Export">Export</sys:String>
+
+    <!-- ===== Inspektor ===== -->
+    <sys:String x:Key="S.Inspector.Source">Quelle</sys:String>
+    <sys:String x:Key="S.Inspector.Metadata">Metadaten</sys:String>
+    <sys:String x:Key="S.Inspector.DependsOn">Hängt ab von</sys:String>
+    <sys:String x:Key="S.Inspector.UsedBy">Verwendet von</sys:String>
+    <sys:String x:Key="S.Inspector.History">Verlauf</sys:String>
+    <sys:String x:Key="S.Inspector.HistoryLoading">Änderungsprotokoll wird gelesen…</sys:String>
+    <sys:String x:Key="S.Inspector.Explain">Erklären</sys:String>
+    <sys:String x:Key="S.Inspector.Analyze">Analysieren</sys:String>
+    <sys:String x:Key="S.Inspector.Refactor">Umgestalten</sys:String>
+    <sys:String x:Key="S.Inspector.GenerateTests">Tests erzeugen</sys:String>
+    <sys:String x:Key="S.Inspector.ViewCode">Code anzeigen</sys:String>
+    <sys:String x:Key="S.Inspector.OpenSource">Quelldatei öffnen</sys:String>
+    <sys:String x:Key="S.Inspector.ViewCode.ToolTip">Die Datei neben dem Canvas lesen</sys:String>
+    <sys:String x:Key="S.Inspector.OpenSource.ToolTip">Die Datei im Explorer anzeigen</sys:String>
+    <sys:String x:Key="S.Inspector.Status.Missing">Die Datei hinter diesem Knoten ist nicht mehr auf der Festplatte.</sys:String>
+    <sys:String x:Key="S.Inspector.Status.Archived">Als archiviert markiert.</sys:String>
+    <sys:String x:Key="S.Inspector.Origin.Indexer">Aus den Projektdateien</sys:String>
+    <sys:String x:Key="S.Inspector.Origin.User">Von Ihnen hinzugefügt</sys:String>
+    <sys:String x:Key="S.Inspector.Origin.Chat">Aus einer Unterhaltung</sys:String>
+    <sys:String x:Key="S.Inspector.Origin.Agent">Von einem Agenten hinzugefügt</sys:String>
+    <sys:String x:Key="S.Inspector.Origin.Import">Importiert</sys:String>
+    <sys:String x:Key="S.Inspector.Group.Nodes">{0} Knoten</sys:String>
+    <sys:String x:Key="S.Inspector.Group.NodesRelations">{0} Knoten · {1} Beziehungen</sys:String>
+    <sys:String x:Key="S.Inspector.Group.Selection">Auswahl</sys:String>
+    <sys:String x:Key="S.Inspector.Selection.OneNode">1 Knoten</sys:String>
+
+    <!-- ===== Canvas ===== -->
+    <sys:String x:Key="S.Canvas.Back">← Chat</sys:String>
+    <sys:String x:Key="S.Canvas.Back.ToolTip">Zurück zur Unterhaltung</sys:String>
+    <sys:String x:Key="S.Canvas.Reindex">Neu indizieren</sys:String>
+    <sys:String x:Key="S.Canvas.Reindex.ToolTip">Den Projektordner erneut durchlaufen und den Graphen aktualisieren</sys:String>
+    <sys:String x:Key="S.Canvas.Folder">Ordner…</sys:String>
+    <sys:String x:Key="S.Canvas.Folder.ToolTip">Projektordner wählen, der auf den Canvas projiziert wird</sys:String>
+    <sys:String x:Key="S.Canvas.Ask">Kontur AI fragen…</sys:String>
+    <sys:String x:Key="S.Canvas.Action.Analyze">Analysieren</sys:String>
+    <sys:String x:Key="S.Canvas.Action.Explain">Erklären</sys:String>
+    <sys:String x:Key="S.Canvas.Action.Refactor">Umgestalten</sys:String>
+    <sys:String x:Key="S.Canvas.Action.FindProblems">Probleme finden</sys:String>
+    <sys:String x:Key="S.Canvas.Action.GenerateTests">Tests erzeugen</sys:String>
+    <sys:String x:Key="S.Canvas.AutoLayout">Auto-Layout</sys:String>
+    <sys:String x:Key="S.Canvas.AutoLayout.ToolTip">Die Karten aufräumen, die niemand von Hand angeordnet hat</sys:String>
+    <sys:String x:Key="S.Canvas.Empty.Title">Kontur Code</sys:String>
+    <sys:String x:Key="S.Canvas.Empty.Graph">Ihr Projekt hat noch keinen Wissensgraphen.</sys:String>
+    <sys:String x:Key="S.Canvas.Empty.Index">Arbeitsbereich indizieren</sys:String>
+    <sys:String x:Key="S.Canvas.Empty.Note">Der Graph wird aus Ihrer Projektstruktur erzeugt.</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.Select.ToolTip">Auswählen — Klick wählt eine Karte, Ziehen verschiebt sie, ein Rahmen auf leerem Fläche markiert eine Gruppe (V)</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.Pan.ToolTip">Verschieben — überall ziehen, um den Canvas zu bewegen (H)</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.ZoomIn.ToolTip">Vergrößern (Ctrl +)</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.ZoomOut.ToolTip">Verkleinern (Ctrl −)</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.ZoomSelection.ToolTip">Auf die Auswahl zoomen (E)</sys:String>
+    <sys:String x:Key="S.Canvas.Tool.Fit.ToolTip">Auf den Inhalt einpassen (F)</sys:String>
+    <sys:String x:Key="S.Canvas.Status.Indexing">Projekt wird indiziert…</sys:String>
+    <sys:String x:Key="S.Canvas.Status.Indexing.Nodes">Projekt wird indiziert…   {0} Knoten</sys:String>
+    <sys:String x:Key="S.Canvas.Status.NoGraph">Noch kein Graph</sys:String>
+    <sys:String x:Key="S.Canvas.Status.NodesRelations">{0} Knoten · {1} Beziehungen</sys:String>
+    <sys:String x:Key="S.Canvas.Breadcrumb.Project">Projekt</sys:String>
+    <sys:String x:Key="S.Canvas.Workspace.None">Kein Ordner offen</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.LoadFailed">Der Canvas konnte nicht geladen werden. Der Graph ist unversehrt — versuchen Sie, die Seite neu zu öffnen.</sys:String>
+    <sys:String x:Key="S.Canvas.ChooseFolder">Projektordner zum Indizieren wählen</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.NotProject">Dieser Ordner kann nicht als Projektordner verwendet werden.</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.IndexFailed">Das Projekt konnte nicht indiziert werden.</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.IndexTruncated">Die ersten {0} Knoten wurden indiziert — das Projekt ist größer als das aktuelle Limit.</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.IndexSkipped">{0} Knoten wurden indiziert. {1} Pfad(e) wurden übersprungen.</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.NoCode">Ein Ordner hat keinen Code zum Anzeigen.</sys:String>
+    <sys:String x:Key="S.Canvas.Notice.NoFile">Hinter diesem Knoten steht keine Datei.</sys:String>
+
+    <!-- ===== Codepanel des Canvas ===== -->
+    <sys:String x:Key="S.Code.CouldNotRead">Diese Datei konnte nicht gelesen werden.</sys:String>
+    <sys:String x:Key="S.Code.OneLine">1 Zeile</sys:String>
+    <sys:String x:Key="S.Code.Lines">{0} Zeilen</sys:String>
+    <sys:String x:Key="S.Code.LinesRange">Zeilen {0}-{1} von {2}</sys:String>
+    <sys:String x:Key="S.Code.Reading">Wird gelesen…</sys:String>
+    <sys:String x:Key="S.Code.Close.ToolTip">Schließen (Esc)</sys:String>
+    <sys:String x:Key="S.Code.Automation.Close">Code schließen</sys:String>
+    <sys:String x:Key="S.Code.Automation.Gutter">Zeilennummern</sys:String>
+    <sys:String x:Key="S.Code.Automation.Contents">Dateiinhalt</sys:String>
+
+    <!-- ===== Quellaufruf ===== -->
+    <sys:String x:Key="S.Source.NoFile">Hinter diesem Knoten steht keine Datei.</sys:String>
+    <sys:String x:Key="S.Source.NoFolder">Kein Projektordner offen.</sys:String>
+    <sys:String x:Key="S.Source.Outside">Dieser Pfad liegt außerhalb des Projektordners.</sys:String>
+    <sys:String x:Key="S.Source.Missing">Diese Datei ist nicht mehr auf der Festplatte.</sys:String>
+    <sys:String x:Key="S.Source.NotShown">Diese Datei konnte nicht angezeigt werden.</sys:String>
+
+</ResourceDictionary>

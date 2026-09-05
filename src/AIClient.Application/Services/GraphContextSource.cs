@@ -65,6 +65,10 @@ public sealed class GraphContextSource : IGraphContextSource
     private static readonly IReadOnlyDictionary<Guid, WorkspaceFile> NoExcerpts =
         new Dictionary<Guid, WorkspaceFile>().AsReadOnly();
 
+    /// <summary>The ordinary case: the prompt carries no file text of its own.</summary>
+    private static readonly IReadOnlySet<string> NoInlinedFiles =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
     private readonly IGraphService _graph;
     private readonly IWorkspaceService _workspace;
     private readonly ISettingsService _settings;
@@ -98,9 +102,16 @@ public sealed class GraphContextSource : IGraphContextSource
         Outline,
     }
 
+    public Task<string?> BuildAsync(
+        GraphSelection selection,
+        int tokenBudget,
+        CancellationToken cancellationToken = default) =>
+        BuildAsync(selection, tokenBudget, NoInlinedFiles, cancellationToken);
+
     public async Task<string?> BuildAsync(
         GraphSelection selection,
         int tokenBudget,
+        IReadOnlySet<string> inlinedFiles,
         CancellationToken cancellationToken = default)
     {
         if (selection is null || selection.IsEmpty)
@@ -126,7 +137,8 @@ public sealed class GraphContextSource : IGraphContextSource
             return null;
         }
 
-        var excerpts = await ReadExcerptsAsync(view, budget, cancellationToken).ConfigureAwait(false);
+        var excerpts = await ReadExcerptsAsync(view, budget, inlinedFiles, cancellationToken)
+            .ConfigureAwait(false);
 
         foreach (var detail in new[] { Detail.Excerpts, Detail.Reference, Detail.Described })
         {
@@ -223,6 +235,7 @@ public sealed class GraphContextSource : IGraphContextSource
     private async Task<IReadOnlyDictionary<Guid, WorkspaceFile>> ReadExcerptsAsync(
         SelectionView view,
         int budget,
+        IReadOnlySet<string> inlinedFiles,
         CancellationToken cancellationToken)
     {
         if (!_workspace.IsOpen)
@@ -231,8 +244,9 @@ public sealed class GraphContextSource : IGraphContextSource
         }
 
         var candidates = view.Selected
-            .Where(node => node.Kind == GraphNodeKind.File && node.Source is not null)
-            .Where(node => node.Status == GraphNodeStatus.Active)
+            .Where(node => node.Kind == GraphNodeKind.File && node.Status == GraphNodeStatus.Active)
+            // A file the question already carries whole is not worth quoting the head of again.
+            .Where(node => node.Source is { } source && !inlinedFiles.Contains(source.Value))
             .ToList();
 
         if (candidates.Count == 0 || candidates.Count > MaxExcerptFiles)

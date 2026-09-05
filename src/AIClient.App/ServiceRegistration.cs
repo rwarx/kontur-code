@@ -26,6 +26,7 @@ public static class ServiceRegistration
         services.AddSingleton<ISnackbarService, SnackbarService>();
 
         services.AddSingleton<IAppThemeService, AppThemeService>();
+        services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddSingleton<IDialogService, DialogService>();
 
         // The approval gate, over the refusing one Infrastructure installs. Registered last wins, and

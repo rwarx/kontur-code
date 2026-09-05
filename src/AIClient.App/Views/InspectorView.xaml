@@ -248,7 +248,7 @@
                         points at the file, and the file stays the only place the text lives.
                     -->
                     <StackPanel Visibility="{Binding HasSource, Converter={StaticResource BoolToVisibility}}">
-                        <TextBlock Text="Source" Style="{StaticResource InspectorSection}" />
+                        <TextBlock Text="{DynamicResource S.Inspector.Source}" Style="{StaticResource InspectorSection}" />
                         <TextBlock Text="{Binding SourceText}"
                                    FontFamily="{StaticResource CodeFont}"
                                    FontSize="11"
@@ -264,28 +264,28 @@
                                Foreground="{StaticResource ApprovalAccentBrush}"
                                Visibility="{Binding HasStatus, Converter={StaticResource BoolToVisibility}}" />
 
-                    <HeaderedItemsControl Header="Metadata"
+                    <HeaderedItemsControl Header="{DynamicResource S.Inspector.Metadata}"
                                           Style="{StaticResource InspectorGroup}"
                                           ItemsSource="{Binding Facts}"
                                           ItemTemplate="{StaticResource InspectorFactTemplate}" />
 
-                    <HeaderedItemsControl Header="Depends on"
+                    <HeaderedItemsControl Header="{DynamicResource S.Inspector.DependsOn}"
                                           Style="{StaticResource InspectorGroup}"
                                           ItemsSource="{Binding Outgoing}"
                                           ItemTemplate="{StaticResource InspectorRelationTemplate}" />
 
                     <!-- Both directions: "what breaks if I change this" is an incoming question. -->
-                    <HeaderedItemsControl Header="Used by"
+                    <HeaderedItemsControl Header="{DynamicResource S.Inspector.UsedBy}"
                                           Style="{StaticResource InspectorGroup}"
                                           ItemsSource="{Binding Incoming}"
                                           ItemTemplate="{StaticResource InspectorRelationTemplate}" />
 
                     <StackPanel Visibility="{Binding IsHistoryLoading, Converter={StaticResource BoolToVisibility}}">
-                        <TextBlock Text="History" Style="{StaticResource InspectorSection}" />
-                        <TextBlock Text="Reading the change log…" Style="{StaticResource SubtleText}" FontSize="11" />
+                        <TextBlock Text="{DynamicResource S.Inspector.History}" Style="{StaticResource InspectorSection}" />
+                        <TextBlock Text="{DynamicResource S.Inspector.HistoryLoading}" Style="{StaticResource SubtleText}" FontSize="11" />
                     </StackPanel>
 
-                    <HeaderedItemsControl Header="History"
+                    <HeaderedItemsControl Header="{DynamicResource S.Inspector.History}"
                                           Style="{StaticResource InspectorGroup}"
                                           ItemsSource="{Binding History}"
                                           ItemTemplate="{StaticResource InspectorHistoryTemplate}" />
@@ -310,29 +310,29 @@
                     BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
                     BorderThickness="0,1,0,0">
                 <WrapPanel>
-                    <ui:Button Content="Explain"
+                    <ui:Button Content="{DynamicResource S.Inspector.Explain}"
                                Style="{StaticResource InspectorAction}"
                                Command="{Binding AskAiCommand}"
                                CommandParameter="explain" />
-                    <ui:Button Content="Analyze"
+                    <ui:Button Content="{DynamicResource S.Inspector.Analyze}"
                                Style="{StaticResource InspectorAction}"
                                Command="{Binding AskAiCommand}"
                                CommandParameter="analyze" />
-                    <ui:Button Content="Refactor"
+                    <ui:Button Content="{DynamicResource S.Inspector.Refactor}"
                                Style="{StaticResource InspectorAction}"
                                Command="{Binding AskAiCommand}"
                                CommandParameter="refactor" />
-                    <ui:Button Content="Generate tests"
+                    <ui:Button Content="{DynamicResource S.Inspector.GenerateTests}"
                                Style="{StaticResource InspectorAction}"
                                Command="{Binding AskAiCommand}"
                                CommandParameter="tests" />
-                    <ui:Button Content="View code"
+                    <ui:Button Content="{DynamicResource S.Inspector.ViewCode}"
                                Style="{StaticResource InspectorAction}"
-                               ToolTip="Read the file next to the canvas"
+                               ToolTip="{DynamicResource S.Inspector.ViewCode.ToolTip}"
                                Command="{Binding ViewCodeCommand}" />
-                    <ui:Button Content="Open source"
+                    <ui:Button Content="{DynamicResource S.Inspector.OpenSource}"
                                Style="{StaticResource InspectorAction}"
-                               ToolTip="Show the file in Explorer"
+                               ToolTip="{DynamicResource S.Inspector.OpenSource.ToolTip}"
                                Command="{Binding OpenSourceCommand}" />
                 </WrapPanel>
             </Border>

@@ -97,8 +97,8 @@
 
                     <ui:Button Style="{StaticResource CanvasCodeButton}"
                                Content="✕"
-                               AutomationProperties.Name="Close code"
-                               ToolTip="Close (Esc)"
+                               AutomationProperties.Name="{DynamicResource S.Code.Automation.Close}"
+                               ToolTip="{DynamicResource S.Code.Close.ToolTip}"
                                Command="{Binding CloseCommand}" />
                 </StackPanel>
             </Grid>
@@ -117,7 +117,7 @@
                          Grid.Column="0"
                          Margin="14,0,0,10"
                          Style="{StaticResource CanvasCodeGutter}"
-                         AutomationProperties.Name="Line numbers"
+                         AutomationProperties.Name="{DynamicResource S.Code.Automation.Gutter}"
                          Text="{Binding Gutter, Mode=OneWay}" />
 
                 <TextBox Grid.Column="1"
@@ -125,7 +125,7 @@
                          Style="{StaticResource CanvasCodeText}"
                          VerticalScrollBarVisibility="Auto"
                          HorizontalScrollBarVisibility="Auto"
-                         AutomationProperties.Name="File contents"
+                         AutomationProperties.Name="{DynamicResource S.Code.Automation.Contents}"
                          ScrollViewer.ScrollChanged="OnCodeScrollChanged"
                          Text="{Binding Text, Mode=OneWay}" />
 
@@ -133,7 +133,7 @@
                            Margin="14,0"
                            HorizontalAlignment="Center" VerticalAlignment="Center"
                            Style="{StaticResource SubtleText}"
-                           Text="Reading…"
+                           Text="{DynamicResource S.Code.Reading}"
                            Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
 
                 <!-- The same amber the status strip uses for a refusal, and the same kind of sentence:

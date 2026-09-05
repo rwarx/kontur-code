@@ -28,11 +28,11 @@
         </Grid.RowDefinitions>
 
         <Grid Grid.Row="0" Margin="24,16,24,4">
-            <TextBlock Text="Settings" FontSize="24" FontWeight="SemiBold" />
+            <TextBlock Text="{DynamicResource S.Settings.Title}" FontSize="24" FontWeight="SemiBold" />
             <ui:Button HorizontalAlignment="Right"
                        Icon="{ui:SymbolIcon Dismiss24}"
                        Appearance="Secondary"
-                       ToolTip="Back to chat"
+                       ToolTip="{DynamicResource S.Settings.Back.ToolTip}"
                        Command="{Binding DataContext.ShowChatCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
         </Grid>
 
@@ -46,7 +46,7 @@
                     Providers first. Every other setting on this page is inert until a key
                     exists, and this is the screen the first-run wizard sends people to.
                 -->
-                <TextBlock Style="{StaticResource SectionHeader}" Text="Providers" Margin="0,8,0,10" />
+                <TextBlock Style="{StaticResource SectionHeader}" Text="{DynamicResource S.Settings.Providers}" Margin="0,8,0,10" />
 
                 <ItemsControl ItemsSource="{Binding Providers}">
                     <ItemsControl.ItemTemplate>
@@ -97,7 +97,7 @@
                                         <ui:ToggleSwitch Grid.Column="2"
                                                          VerticalAlignment="Center"
                                                          IsChecked="{Binding IsEnabled}"
-                                                         ToolTip="Include this provider's models in the picker" />
+                                                         ToolTip="{DynamicResource S.Provider.Include.ToolTip}" />
                                     </Grid>
 
                                     <Border Height="1" Margin="0,12"
@@ -113,7 +113,7 @@
                                         </Grid.ColumnDefinitions>
 
                                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                            <TextBlock Text="API key" FontSize="12"
+                                            <TextBlock Text="{DynamicResource S.Provider.ApiKey}" FontSize="12"
                                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                             <TextBlock Text="{Binding ApiKeyDisplay}"
                                                        FontFamily="{StaticResource CodeFont}"
@@ -121,16 +121,16 @@
                                         </StackPanel>
 
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                            <ui:Button Content="Change"
+                                            <ui:Button Content="{DynamicResource S.Provider.Change}"
                                                        Margin="0,0,6,0"
                                                        Command="{Binding BeginEditApiKeyCommand}"
                                                        Visibility="{Binding HasApiKey, Converter={StaticResource BoolToVisibility}}" />
-                                            <ui:Button Content="Add key"
+                                            <ui:Button Content="{DynamicResource S.Provider.AddKey}"
                                                        Appearance="Primary"
                                                        Margin="0,0,6,0"
                                                        Command="{Binding BeginEditApiKeyCommand}"
                                                        Visibility="{Binding HasApiKey, Converter={StaticResource InverseBoolToVisibility}}" />
-                                            <ui:Button Content="Remove"
+                                            <ui:Button Content="{DynamicResource S.Provider.Remove}"
                                                        Command="{Binding RemoveApiKeyCommand}"
                                                        Visibility="{Binding HasApiKey, Converter={StaticResource BoolToVisibility}}" />
                                         </StackPanel>
@@ -139,7 +139,7 @@
                                     <!-- Entry. A PasswordBox, so the key is not a bound
                                          property and not readable out of the visual tree. -->
                                     <StackPanel Visibility="{Binding IsEditingApiKey, Converter={StaticResource BoolToVisibility}}">
-                                        <TextBlock Text="API key" FontSize="12" Margin="0,0,0,4"
+                                        <TextBlock Text="{DynamicResource S.Provider.ApiKey}" FontSize="12" Margin="0,0,0,4"
                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
                                         <Grid>
@@ -154,11 +154,11 @@
                                                          Padding="8,7" />
 
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="6,0,0,0">
-                                                <ui:Button Content="Save"
+                                                <ui:Button Content="{DynamicResource S.Common.Save}"
                                                            Appearance="Primary"
                                                            Margin="0,0,6,0"
                                                            Command="{Binding SaveApiKeyCommand}" />
-                                                <ui:Button Content="Cancel"
+                                                <ui:Button Content="{DynamicResource S.Common.Cancel}"
                                                            Command="{Binding CancelEditApiKeyCommand}" />
                                             </StackPanel>
                                         </Grid>
@@ -167,18 +167,18 @@
                                                    Margin="0,6,0,0"
                                                    TextWrapping="Wrap"
                                                    TextTrimming="None"
-                                                   Text="Encrypted with Windows DPAPI under your user account. It is never written to the database, the log files or an export." />
+                                                   Text="{DynamicResource S.Provider.KeyNote}" />
                                     </StackPanel>
 
                                     <!-- Actions -->
                                     <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                                        <ui:Button Content="Test connection"
+                                        <ui:Button Content="{DynamicResource S.Provider.TestConnection}"
                                                    Margin="0,0,6,0"
                                                    Command="{Binding TestConnectionCommand}" />
-                                        <ui:Button Content="Refresh models"
+                                        <ui:Button Content="{DynamicResource S.Provider.RefreshModels}"
                                                    Margin="0,0,6,0"
                                                    Command="{Binding RefreshModelsCommand}" />
-                                        <ui:Button Content="Get an API key"
+                                        <ui:Button Content="{DynamicResource S.Provider.GetKey}"
                                                    Appearance="Transparent"
                                                    Command="{Binding OpenApiKeyPageCommand}"
                                                    Visibility="{Binding ApiKeyUrl, Converter={StaticResource StringToVisibility}}" />
@@ -196,7 +196,7 @@
 
                                     <!-- Section 21: the human sentence is the status line
                                          above; the raw detail is here, folded away. -->
-                                    <Expander Header="Technical details"
+                                    <Expander Header="{DynamicResource S.Common.TechnicalDetails}"
                                               Margin="0,8,0,0"
                                               Visibility="{Binding TechnicalDetails, Converter={StaticResource StringToVisibility}}">
                                         <TextBox Text="{Binding TechnicalDetails, Mode=OneWay}"
@@ -216,36 +216,55 @@
                 </ItemsControl>
 
                 <!-- ============ General ============ -->
-                <TextBlock Style="{StaticResource SectionHeader}" Text="General" />
+                <TextBlock Style="{StaticResource SectionHeader}" Text="{DynamicResource S.Settings.General}" />
 
                 <ui:Card Padding="16">
                     <StackPanel>
                         <CheckBox Style="{StaticResource SettingCheck}"
-                                  Content="Reopen the last conversation on startup"
+                                  Content="{DynamicResource S.Settings.General.Reopen}"
                                   IsChecked="{Binding RestoreLastConversation}" />
                         <CheckBox Style="{StaticResource SettingCheck}"
-                                  Content="Ask before deleting a chat or a message"
+                                  Content="{DynamicResource S.Settings.General.ConfirmDelete}"
                                   IsChecked="{Binding ConfirmBeforeDelete}" />
-                        <CheckBox Content="Name new chats automatically from the first message"
+                        <CheckBox Style="{StaticResource SettingCheck}"
+                                  Content="{DynamicResource S.Settings.General.AutoTitles}"
                                   IsChecked="{Binding AutoGenerateTitles}" />
+
+                        <Grid>
+                            <TextBlock Style="{StaticResource SettingLabel}"
+                                       Text="{DynamicResource S.Settings.General.Language}" />
+                            <!-- Language names are shown in their own language everywhere, so
+                                 they stay recognisable whichever language is active. -->
+                            <ComboBox HorizontalAlignment="Right"
+                                      MinWidth="160"
+                                      ItemsSource="{Binding Languages}"
+                                      SelectedItem="{Binding SelectedLanguage}"
+                                      DisplayMemberPath="NativeName" />
+                        </Grid>
                     </StackPanel>
                 </ui:Card>
 
                 <!-- ============ Appearance ============ -->
-                <TextBlock Style="{StaticResource SectionHeader}" Text="Appearance" />
+                <TextBlock Style="{StaticResource SectionHeader}" Text="{DynamicResource S.Settings.Appearance}" />
 
                 <ui:Card Padding="16">
                     <StackPanel>
                         <Grid Style="{StaticResource SettingRow}">
-                            <TextBlock Style="{StaticResource SettingLabel}" Text="Theme" />
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource S.Settings.Appearance.Theme}" />
                             <ComboBox HorizontalAlignment="Right"
                                       MinWidth="160"
                                       ItemsSource="{Binding ThemeModes}"
-                                      SelectedItem="{Binding Theme}" />
+                                      SelectedItem="{Binding Theme}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Converter={StaticResource ThemeModeLabel}}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
                         </Grid>
 
                         <Grid Style="{StaticResource SettingRow}">
-                            <TextBlock Style="{StaticResource SettingLabel}" Text="Chat font size" />
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource S.Settings.Appearance.ChatFontSize}" />
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Slider Width="180"
                                         Minimum="10" Maximum="24"
@@ -261,7 +280,7 @@
                         </Grid>
 
                         <Grid Style="{StaticResource SettingRow}">
-                            <TextBlock Style="{StaticResource SettingLabel}" Text="Code font size" />
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource S.Settings.Appearance.CodeFontSize}" />
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Slider Width="180"
                                         Minimum="9" Maximum="22"
@@ -276,17 +295,17 @@
                             </StackPanel>
                         </Grid>
 
-                        <CheckBox Content="Mica backdrop (takes effect on the next launch)"
+                        <CheckBox Content="{DynamicResource S.Settings.Appearance.Mica}"
                                   IsChecked="{Binding UseMicaBackdrop}" />
                     </StackPanel>
                 </ui:Card>
 
                 <!-- ============ Chat ============ -->
-                <TextBlock Style="{StaticResource SectionHeader}" Text="Chat" />
+                <TextBlock Style="{StaticResource SectionHeader}" Text="{DynamicResource S.Settings.Chat}" />
 
                 <ui:Card Padding="16">
                     <StackPanel>
-                        <TextBlock Text="System prompt" Margin="0,0,0,4" />
+                        <TextBlock Text="{DynamicResource S.Settings.Chat.SystemPrompt}" Margin="0,0,0,4" />
                         <TextBox Text="{Binding SystemPrompt, UpdateSourceTrigger=LostFocus}"
                                  AcceptsReturn="True"
                                  TextWrapping="Wrap"
@@ -298,7 +317,7 @@
                                    TextWrapping="Wrap"
                                    TextTrimming="None"
                                    Margin="0,0,0,14"
-                                   Text="Prepended to every new conversation. Leave it empty to send no system turn." />
+                                   Text="{DynamicResource S.Settings.Chat.SystemPrompt.Hint}" />
 
                         <!--
                             Each sampling parameter is a checkbox plus a value. Unchecked means
@@ -307,7 +326,7 @@
                             not implement with a 400 instead of ignoring it.
                         -->
                         <Grid Style="{StaticResource SettingRow}">
-                            <CheckBox Content="Temperature"
+                            <CheckBox Content="{DynamicResource S.Settings.Chat.Temperature}"
                                       IsChecked="{Binding IsTemperatureEnabled}"
                                       VerticalAlignment="Center" />
                             <StackPanel Orientation="Horizontal"
@@ -327,7 +346,7 @@
                         </Grid>
 
                         <Grid Style="{StaticResource SettingRow}">
-                            <CheckBox Content="Top P"
+                            <CheckBox Content="{DynamicResource S.Settings.Chat.TopP}"
                                       IsChecked="{Binding IsTopPEnabled}"
                                       VerticalAlignment="Center" />
                             <StackPanel Orientation="Horizontal"
@@ -347,7 +366,7 @@
                         </Grid>
 
                         <Grid Style="{StaticResource SettingRow}">
-                            <CheckBox Content="Max tokens"
+                            <CheckBox Content="{DynamicResource S.Settings.Chat.MaxTokens}"
                                       IsChecked="{Binding IsMaxTokensEnabled}"
                                       VerticalAlignment="Center" />
                             <ui:NumberBox HorizontalAlignment="Right"
@@ -363,23 +382,23 @@
                                 Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
 
                         <CheckBox Style="{StaticResource SettingCheck}"
-                                  Content="Send with Enter (Shift+Enter inserts a new line)"
+                                  Content="{DynamicResource S.Settings.Chat.SendWithEnter}"
                                   IsChecked="{Binding SendWithEnter}" />
                         <CheckBox Style="{StaticResource SettingCheck}"
-                                  Content="Render Markdown in answers"
+                                  Content="{DynamicResource S.Settings.Chat.RenderMarkdown}"
                                   IsChecked="{Binding RenderMarkdown}" />
                         <CheckBox Style="{StaticResource SettingCheck}"
-                                  Content="Highlight syntax in code blocks"
+                                  Content="{DynamicResource S.Settings.Chat.HighlightCode}"
                                   IsChecked="{Binding HighlightCode}" />
                         <CheckBox Style="{StaticResource SettingCheck}"
-                                  Content="Follow the answer as it streams"
+                                  Content="{DynamicResource S.Settings.Chat.AutoScroll}"
                                   IsChecked="{Binding AutoScroll}" />
-                        <CheckBox Content="Show token usage and generation time"
+                        <CheckBox Content="{DynamicResource S.Settings.Chat.ShowUsage}"
                                   IsChecked="{Binding ShowTokenUsage}"
                                   Margin="0,0,0,14" />
 
                         <Grid Style="{StaticResource SettingRow}">
-                            <TextBlock Style="{StaticResource SettingLabel}" Text="History messages per request" />
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource S.Settings.Chat.History}" />
                             <ui:NumberBox HorizontalAlignment="Right"
                                           Width="150"
                                           Minimum="2" Maximum="1000"
@@ -388,7 +407,7 @@
                         </Grid>
 
                         <Grid Style="{StaticResource SettingRow}">
-                            <TextBlock Style="{StaticResource SettingLabel}" Text="Request timeout (seconds)" />
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource S.Settings.Chat.Timeout}" />
                             <ui:NumberBox HorizontalAlignment="Right"
                                           Width="150"
                                           Minimum="10" Maximum="3600"
@@ -399,11 +418,11 @@
                 </ui:Card>
 
                 <!-- ============ Agent ============ -->
-                <TextBlock Style="{StaticResource SectionHeader}" Text="Agent" />
+                <TextBlock Style="{StaticResource SectionHeader}" Text="{DynamicResource S.Settings.Agent}" />
 
                 <ui:Card Padding="16">
                     <StackPanel>
-                        <TextBlock Text="Workspace folder" Margin="0,0,0,4" />
+                        <TextBlock Text="{DynamicResource S.Settings.Agent.Workspace}" Margin="0,0,0,4" />
 
                         <!--
                             The whole of the agent's reach, in one line. Everything it can read,
@@ -418,18 +437,18 @@
                                    Margin="0,0,0,10" />
 
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <ui:Button Content="Choose…"
+                            <ui:Button Content="{DynamicResource S.Settings.Agent.Choose}"
                                        Icon="{ui:SymbolIcon FolderOpen24}"
                                        Command="{Binding ChooseWorkspaceCommand}"
                                        Margin="0,0,8,0" />
-                            <ui:Button Content="Show in Explorer"
+                            <ui:Button Content="{DynamicResource S.Settings.Agent.ShowInExplorer}"
                                        Appearance="Secondary"
                                        Command="{Binding OpenWorkspaceFolderCommand}"
                                        Visibility="{Binding HasWorkspace, Converter={StaticResource BoolToVisibility}}"
                                        Margin="0,0,8,0" />
-                            <ui:Button Content="Close"
+                            <ui:Button Content="{DynamicResource S.Settings.Agent.Close}"
                                        Appearance="Secondary"
-                                       ToolTip="Leaves the agent with nothing it can read or change."
+                                       ToolTip="{DynamicResource S.Settings.Agent.Close.ToolTip}"
                                        Command="{Binding CloseWorkspaceCommand}"
                                        Visibility="{Binding HasWorkspace, Converter={StaticResource BoolToVisibility}}" />
                         </StackPanel>
@@ -438,7 +457,7 @@
                         <ui:InfoBar Severity="Warning"
                                     IsOpen="True"
                                     IsClosable="False"
-                                    Title="That folder was not opened"
+                                    Title="{DynamicResource S.Settings.Agent.NotOpened}"
                                     Message="{Binding WorkspaceProblem}"
                                     Margin="0,0,0,10"
                                     Visibility="{Binding WorkspaceProblem, Converter={StaticResource StringToVisibility}}" />
@@ -447,10 +466,10 @@
                                    TextWrapping="Wrap"
                                    TextTrimming="None"
                                    Margin="0,0,0,14"
-                                   Text="With agent mode on in the chat box, the model can list, read, search, write, move and delete files under this folder. Anything that changes or removes a file is put to you for approval first, every time, and version-control internals and files that carry credentials are refused outright. Running programs is a separate decision, below." />
+                                   Text="{DynamicResource S.Settings.Agent.Hint}" />
 
                         <Grid Style="{StaticResource SettingRow}">
-                            <TextBlock Style="{StaticResource SettingLabel}" Text="Max steps per message" />
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource S.Settings.Agent.MaxSteps}" />
                             <ui:NumberBox HorizontalAlignment="Right"
                                           Width="150"
                                           Minimum="1" Maximum="100"
@@ -459,7 +478,7 @@
                         </Grid>
 
                         <Grid Style="{StaticResource SettingRow}">
-                            <TextBlock Style="{StaticResource SettingLabel}" Text="Time limit per message (seconds, 0 for none)" />
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource S.Settings.Agent.TimeLimit}" />
                             <ui:NumberBox HorizontalAlignment="Right"
                                           Width="150"
                                           Minimum="0" Maximum="7200"
@@ -468,7 +487,7 @@
                         </Grid>
 
                         <Grid Style="{StaticResource SettingRow}">
-                            <TextBlock Style="{StaticResource SettingLabel}" Text="Max file size the agent may open (KB)" />
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource S.Settings.Agent.MaxFile}" />
                             <ui:NumberBox HorizontalAlignment="Right"
                                           Width="150"
                                           Minimum="1" Maximum="8192"
@@ -479,7 +498,7 @@
                 </ui:Card>
 
                 <!-- ============ Running programs ============ -->
-                <TextBlock Style="{StaticResource SectionHeader}" Text="Running programs" />
+                <TextBlock Style="{StaticResource SectionHeader}" Text="{DynamicResource S.Settings.Programs}" />
 
                 <ui:Card Padding="16">
                     <StackPanel>
@@ -488,7 +507,7 @@
                             is, so the consequence is written next to it rather than in a tooltip. Off by
                             default, and only a person can move it.
                         -->
-                        <CheckBox Content="Let the agent run programs"
+                        <CheckBox Content="{DynamicResource S.Settings.Programs.Allow}"
                                   IsChecked="{Binding AllowCommands}"
                                   Margin="0,0,0,4" />
 
@@ -496,17 +515,17 @@
                                    TextWrapping="Wrap"
                                    TextTrimming="None"
                                    Margin="0,0,0,10"
-                                   Text="Off, the agent can only read and change files. On, it can also build the project, run its tests and ask version control what changed - which is what lets it find out whether an edit actually works." />
+                                   Text="{DynamicResource S.Settings.Programs.Allow.Hint}" />
 
                         <ui:InfoBar Severity="Warning"
                                     IsOpen="True"
                                     IsClosable="False"
-                                    Title="A program is not confined to the project folder"
-                                    Message="It runs as you, so it can reach the network, the rest of the disk and anything your account can open. Every single command is put to you for approval first, with the program and each argument shown in full, and that approval is never remembered - ten commands is ten questions. There is no shell, so nothing in a command can chain a second one."
+                                    Title="{DynamicResource S.Settings.Programs.Warning.Title}"
+                                    Message="{DynamicResource S.Settings.Programs.Warning.Message}"
                                     Margin="0,0,0,14"
                                     Visibility="{Binding AllowCommands, Converter={StaticResource BoolToVisibility}}" />
 
-                        <TextBlock Text="Programs the agent may run"
+                        <TextBlock Text="{DynamicResource S.Settings.Programs.List}"
                                    Margin="0,0,0,4"
                                    IsEnabled="{Binding AllowCommands}" />
 
@@ -529,7 +548,7 @@
                                    TextTrimming="None"
                                    Margin="0,0,0,4"
                                    IsEnabled="{Binding AllowCommands}"
-                                   Text="Separated by commas or spaces, and by name only - 'dotnet', never a path to it. Capitals and a trailing .exe are ignored. Anything not on this list is refused, and the agent is told to ask you rather than look for another way." />
+                                   Text="{DynamicResource S.Settings.Programs.List.Hint}" />
 
                         <!--
                             cmd, powershell, pwsh, bash and wsl are not on the shipped list, and the reason
@@ -541,18 +560,18 @@
                                    TextTrimming="None"
                                    Margin="0,0,0,10"
                                    IsEnabled="{Binding AllowCommands}"
-                                   Text="Adding a shell - cmd, powershell, pwsh, bash, wsl - allows every program on the machine through it, and makes the rest of this list decorative." />
+                                   Text="{DynamicResource S.Settings.Programs.List.ShellWarning}" />
 
                         <ui:InfoBar Severity="Warning"
                                     IsOpen="True"
                                     IsClosable="False"
-                                    Title="Check the list"
+                                    Title="{DynamicResource S.Settings.Programs.CheckList}"
                                     Message="{Binding AllowedCommandsProblem}"
                                     Margin="0,0,0,10"
                                     Visibility="{Binding AllowedCommandsProblem, Converter={StaticResource StringToVisibility}}" />
 
                         <Grid Style="{StaticResource SettingRow}" IsEnabled="{Binding AllowCommands}">
-                            <TextBlock Style="{StaticResource SettingLabel}" Text="Kill a program after (seconds)" />
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource S.Settings.Programs.KillAfter}" />
                             <ui:NumberBox HorizontalAlignment="Right"
                                           Width="150"
                                           Minimum="5" Maximum="3600"
@@ -561,7 +580,7 @@
                         </Grid>
 
                         <Grid Style="{StaticResource SettingRow}" IsEnabled="{Binding AllowCommands}">
-                            <TextBlock Style="{StaticResource SettingLabel}" Text="Characters of output kept (the end, not the beginning)" />
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource S.Settings.Programs.Output}" />
                             <ui:NumberBox HorizontalAlignment="Right"
                                           Width="150"
                                           Minimum="1000" Maximum="200000"
@@ -572,12 +591,12 @@
                 </ui:Card>
 
                 <!-- ============ Storage ============ -->
-                <TextBlock Style="{StaticResource SectionHeader}" Text="Storage" />
+                <TextBlock Style="{StaticResource SectionHeader}" Text="{DynamicResource S.Settings.Storage}" />
 
                 <ui:Card Padding="16">
                     <StackPanel>
                         <Grid Style="{StaticResource SettingRow}">
-                            <TextBlock Style="{StaticResource SettingLabel}" Text="Max attachment size (KB)" />
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource S.Settings.Storage.MaxAttachment}" />
                             <ui:NumberBox HorizontalAlignment="Right"
                                           Width="150"
                                           Minimum="1" Maximum="10240"
@@ -586,7 +605,7 @@
                         </Grid>
 
                         <Grid Style="{StaticResource SettingRow}">
-                            <TextBlock Style="{StaticResource SettingLabel}" Text="Minimum log level" />
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource S.Settings.Storage.LogLevel}" />
                             <ComboBox HorizontalAlignment="Right"
                                       MinWidth="150"
                                       ItemsSource="{Binding LogLevels}"
@@ -594,7 +613,7 @@
                         </Grid>
 
                         <Grid Style="{StaticResource SettingRow}">
-                            <TextBlock Style="{StaticResource SettingLabel}" Text="Keep logs for (days)" />
+                            <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource S.Settings.Storage.KeepLogs}" />
                             <ui:NumberBox HorizontalAlignment="Right"
                                           Width="150"
                                           Minimum="1" Maximum="365"
@@ -605,7 +624,7 @@
                         <Border Height="1" Margin="0,6,0,12"
                                 Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
 
-                        <TextBlock Style="{StaticResource SubtleText}" Text="Database" />
+                        <TextBlock Style="{StaticResource SubtleText}" Text="{DynamicResource S.Settings.Storage.Database}" />
                         <TextBlock Text="{Binding DatabasePath}"
                                    FontFamily="{StaticResource CodeFont}"
                                    FontSize="11"
@@ -613,11 +632,11 @@
                                    Margin="0,2,0,10" />
 
                         <StackPanel Orientation="Horizontal">
-                            <ui:Button Content="Open data folder"
+                            <ui:Button Content="{DynamicResource S.Settings.Storage.OpenData}"
                                        Icon="{ui:SymbolIcon FolderOpen24}"
                                        Margin="0,0,6,0"
                                        Command="{Binding OpenDataFolderCommand}" />
-                            <ui:Button Content="Open logs folder"
+                            <ui:Button Content="{DynamicResource S.Settings.Storage.OpenLogs}"
                                        Icon="{ui:SymbolIcon DocumentText24}"
                                        Command="{Binding OpenLogsFolderCommand}" />
                         </StackPanel>
@@ -625,7 +644,7 @@
                 </ui:Card>
 
                 <!-- ============ Keyboard shortcuts ============ -->
-                <TextBlock Style="{StaticResource SectionHeader}" Text="Keyboard shortcuts" />
+                <TextBlock Style="{StaticResource SectionHeader}" Text="{DynamicResource S.Settings.Shortcuts}" />
 
                 <ui:Card Padding="16">
                     <ItemsControl ItemsSource="{Binding Shortcuts}">
@@ -646,18 +665,18 @@
                 </ui:Card>
 
                 <!-- ============ About ============ -->
-                <TextBlock Style="{StaticResource SectionHeader}" Text="About" />
+                <TextBlock Style="{StaticResource SectionHeader}" Text="{DynamicResource S.Settings.About}" />
 
                 <ui:Card Padding="16" Margin="0,0,0,24">
                     <StackPanel>
                         <TextBlock Text="AI Client" FontSize="16" FontWeight="SemiBold" />
                         <TextBlock Style="{StaticResource SubtleText}"
-                                   Text="{Binding AppVersion, StringFormat=Version {0}}"
+                                   Text="{Binding VersionText}"
                                    Margin="0,2,0,10" />
                         <TextBlock Style="{StaticResource SubtleText}"
                                    TextWrapping="Wrap"
                                    TextTrimming="None"
-                                   Text="A desktop client for working with AI models across several providers. Conversations, settings and API keys stay on this machine." />
+                                   Text="{DynamicResource S.Settings.About.Text}" />
                     </StackPanel>
                 </ui:Card>
 
