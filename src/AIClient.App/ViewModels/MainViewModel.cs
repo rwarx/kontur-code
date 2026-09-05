@@ -1,4 +1,5 @@
 using AIClient.App.Services;
+using AIClient.Application.Graph;
 using AIClient.Application.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -6,20 +7,23 @@ using Microsoft.Extensions.Logging;
 
 namespace AIClient.App.ViewModels;
 
-/// <summary>Which pane the main area is showing.</summary>
-public enum ShellPage
-{
-    Chat = 0,
-    Settings = 1,
-}
-
 /// <summary>
-/// The shell: owns the sidebar, the chat pane and the settings pane, and routes between them.
+/// The shell: owns the sidebar, the workspace and its modes, the context panel, the palette
+/// and the overlays, and routes between them.
 /// </summary>
 /// <remarks>
-/// The child ViewModels do not know about each other. When a session is opened or a title is
-/// generated, the event lands here and this class decides what else needs to change. Wiring
-/// them directly would make the sidebar depend on the chat pane and vice versa.
+/// <para>
+/// The child view models do not know about each other. When a session is opened, a title is
+/// generated, the agent starts or stops working, or a surface asks the AI a question, the
+/// event lands here and this class decides what else changes. Wiring them directly would
+/// make the sidebar depend on the workspace and the workspace on the chat, each direction
+/// buying a little convenience and paying in rigidity.
+/// </para>
+/// <para>
+/// <see cref="WorkspaceMode"/> replaces the shell's old two-page routing: settings, models
+/// and tasks are workspace modes now, not a second navigation axis, so there is exactly one
+/// answer to "what am I looking at".
+/// </para>
 /// </remarks>
 public sealed partial class MainViewModel : ObservableObject
 {
@@ -28,13 +32,17 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IProviderRegistry _registry;
     private readonly IAppThemeService _themeService;
     private readonly IConnectivityMonitor _connectivity;
+    private readonly GraphContextSource _graphContext;
     private readonly ILogger<MainViewModel> _logger;
 
     [ObservableProperty]
-    private ShellPage _currentPage = ShellPage.Chat;
+    private bool _isSidebarVisible = true;
 
     [ObservableProperty]
-    private bool _isSidebarVisible = true;
+    private bool _isSidebarCollapsed;
+
+    [ObservableProperty]
+    private bool _isContextPanelVisible = true;
 
     [ObservableProperty]
     private bool _isCommandPaletteOpen;
@@ -53,11 +61,15 @@ public sealed partial class MainViewModel : ObservableObject
         SettingsViewModel settings,
         CommandPaletteViewModel commandPalette,
         FirstRunViewModel firstRun,
+        WorkspaceViewModel workspace,
+        TasksViewModel tasks,
+        ModelsPageViewModel modelsPage,
         IConversationService conversations,
         ISettingsService settingsService,
         IProviderRegistry registry,
         IAppThemeService themeService,
         IConnectivityMonitor connectivity,
+        GraphContextSource graphContext,
         ILogger<MainViewModel> logger)
     {
         Chat = chat;
@@ -66,12 +78,16 @@ public sealed partial class MainViewModel : ObservableObject
         Settings = settings;
         CommandPalette = commandPalette;
         FirstRun = firstRun;
+        Workspace = workspace;
+        Tasks = tasks;
+        ModelsPage = modelsPage;
 
         _conversations = conversations;
         _settings = settingsService;
         _registry = registry;
         _themeService = themeService;
         _connectivity = connectivity;
+        _graphContext = graphContext;
         _logger = logger;
 
         IsOffline = !connectivity.IsOnline;
@@ -84,17 +100,36 @@ public sealed partial class MainViewModel : ObservableObject
         Settings.SettingsApplied += OnSettingsApplied;
         CommandPalette.CommandInvoked += OnPaletteCommand;
         FirstRun.Finished += OnFirstRunFinished;
+
+        // The workspace asks; the shell routes the question to the chat with the graph
+        // context attached, because the chat is the one place a prompt is composed.
+        Workspace.AskAiRequested += OnWorkspaceAskAi;
+
+        // The AI state the context surface and status bar show is the chat's own state,
+        // mirrored rather than duplicated.
+        Chat.PropertyChanged += OnChatStateChanged;
+        Chat.Approval.PropertyChanged += OnChatStateChanged; // the gate's IsAsking drives the activity panel
+
+        MirrorAiState();
     }
 
     public ChatViewModel Chat { get; }
+
     public SessionListViewModel Sessions { get; }
+
     public ModelPickerViewModel ModelPicker { get; }
+
     public SettingsViewModel Settings { get; }
+
     public CommandPaletteViewModel CommandPalette { get; }
+
     public FirstRunViewModel FirstRun { get; }
 
-    public bool IsChatVisible => CurrentPage == ShellPage.Chat;
-    public bool IsSettingsVisible => CurrentPage == ShellPage.Settings;
+    public WorkspaceViewModel Workspace { get; }
+
+    public TasksViewModel Tasks { get; }
+
+    public ModelsPageViewModel ModelsPage { get; }
 
     /// <summary>Runs the startup sequence once the window is up.</summary>
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -111,28 +146,55 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
+        // The workspace brings up its graph (loading the persisted canvas for the open
+        // folder, or indexing a folder met for the first time) before any surface reads it.
+        await Workspace.InitializeAsync(cancellationToken).ConfigureAwait(true);
+        await ModelsPage.LoadAsync(cancellationToken).ConfigureAwait(true);
+
         if (general.RestoreLastConversation && general.LastConversationId is { } lastId)
         {
             await OpenConversationAsync(lastId, cancellationToken).ConfigureAwait(true);
         }
     }
 
+    // ------------------------------------------------------------- commands
+
     [RelayCommand]
     private void NewChat()
     {
         Chat.StartNewConversation();
         Sessions.ActiveConversationId = null;
-        CurrentPage = ShellPage.Chat;
+        Workspace.SwitchModeCommand.Execute(WorkspaceMode.Chat);
     }
 
     [RelayCommand]
-    private void ShowSettings() => CurrentPage = ShellPage.Settings;
+    private void ShowSettings() => Workspace.SwitchModeCommand.Execute(WorkspaceMode.Settings);
 
     [RelayCommand]
-    private void ShowChat() => CurrentPage = ShellPage.Chat;
+    private void ShowChat() => Workspace.SwitchModeCommand.Execute(WorkspaceMode.Chat);
 
     [RelayCommand]
-    private void ToggleSidebar() => IsSidebarVisible = !IsSidebarVisible;
+    private void ToggleSidebar()
+    {
+        if (IsSidebarCollapsed)
+        {
+            IsSidebarCollapsed = false;
+            IsSidebarVisible = true;
+        }
+        else
+        {
+            IsSidebarVisible = !IsSidebarVisible;
+        }
+    }
+
+    /// <summary>Cycles the sidebar between full, collapsed rail and hidden.</summary>
+    [RelayCommand]
+    private void CollapseSidebar() => (IsSidebarVisible, IsSidebarCollapsed) = IsSidebarVisible && !IsSidebarCollapsed
+        ? (true, true)
+        : (true, false);
+
+    [RelayCommand]
+    private void ToggleContextPanel() => IsContextPanelVisible = !IsContextPanelVisible;
 
     [RelayCommand]
     private void ToggleCommandPalette()
@@ -155,7 +217,25 @@ public sealed partial class MainViewModel : ObservableObject
     private void FocusSearch()
     {
         IsSidebarVisible = true;
+        IsSidebarCollapsed = false;
         SearchRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Ctrl+I. Asks the AI about whatever the workspace currently has selected, with the
+    /// graph context the model needs to answer about the code it cannot see.
+    /// </summary>
+    [RelayCommand]
+    private void AskAiAboutSelection()
+    {
+        var focus = Workspace.Canvas.Controller.SelectedNodeIds;
+        var context = _graphContext.BuildContext(focus.Count > 0 ? focus : null);
+
+        var prompt = string.IsNullOrEmpty(context)
+            ? "Explain the overall structure of this workspace"
+            : $"Explain the role of these parts of the workspace and how they relate:\n\n{context}";
+
+        Workspace.RequestAskAi(prompt);
     }
 
     /// <summary>Section 25. The chat pane owns the file dialog and the writing.</summary>
@@ -171,6 +251,14 @@ public sealed partial class MainViewModel : ObservableObject
             _logger.LogError(ex, "Export as {Format} failed.", format);
         }
     }
+
+    // --------------------------------------------------------------- events
+
+    /// <summary>Raised so the view can focus the search box, which is a view concern.</summary>
+    public event EventHandler? SearchRequested;
+
+    /// <summary>Raised so the view can open the model picker flyout.</summary>
+    public event EventHandler? ModelPickerRequested;
 
     /// <summary>Dismisses the wizard and picks up whatever it configured.</summary>
     private async void OnFirstRunFinished(object? sender, EventArgs e)
@@ -213,7 +301,7 @@ public sealed partial class MainViewModel : ObservableObject
         await Chat.LoadConversationAsync(conversationId, cancellationToken).ConfigureAwait(true);
 
         Sessions.ActiveConversationId = conversationId;
-        CurrentPage = ShellPage.Chat;
+        Workspace.SwitchModeCommand.Execute(WorkspaceMode.Chat);
 
         // The picker owns model state; ask it to match what this conversation was using.
         var detail = await _conversations.GetAsync(conversationId, cancellationToken).ConfigureAwait(true);
@@ -260,6 +348,43 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// The workspace asked the AI something. The prompt is written into the composer for
+    /// the user to see and edit before it is sent - the honest form of context sharing:
+    /// what the model reads is what the user reads.
+    /// </summary>
+    private void OnWorkspaceAskAi(object? sender, string prompt)
+    {
+        Chat.Draft = prompt;
+        Workspace.SwitchModeCommand.Execute(WorkspaceMode.Chat);
+        Chat.FocusInput();
+    }
+
+    private void OnChatStateChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(ChatViewModel.IsGenerating)
+            or nameof(ChatViewModel.IsAgentMode)
+            or nameof(ChatViewModel.SelectedAgentMode)
+            or nameof(ChatViewModel.SelectedModel)
+            or nameof(Chat.Approval.IsAsking))
+        {
+            MirrorAiState();
+        }
+    }
+
+    private void MirrorAiState()
+    {
+        var stateText = Chat.IsGenerating
+            ? Chat.IsAgentMode ? "Working" : "Answering"
+            : Chat.Approval.IsAsking ? "Waiting for approval" : "Idle";
+
+        Workspace.Context.SetAiState(
+            Chat.IsGenerating,
+            stateText,
+            Chat.SelectedModel?.Name ?? string.Empty,
+            Chat.Approval.IsAsking);
+    }
+
     private async void OnPaletteCommand(object? sender, PaletteCommand command)
     {
         IsCommandPaletteOpen = false;
@@ -300,6 +425,64 @@ public sealed partial class MainViewModel : ObservableObject
                 case PaletteCommand.ExportText:
                     await Chat.ExportAsync(ExportFormat.PlainText).ConfigureAwait(true);
                     break;
+
+                // The new palette surface: modes, workspace, graph, panels, AI.
+                case PaletteCommand.SwitchToCanvas:
+                case PaletteCommand.SwitchToGraph:
+                case PaletteCommand.SwitchToFiles:
+                case PaletteCommand.SwitchToCode:
+                case PaletteCommand.SwitchToChat:
+                case PaletteCommand.ShowModels:
+                case PaletteCommand.ShowTasks:
+                    Workspace.SwitchModeCommand.Execute(command switch
+                    {
+                        PaletteCommand.SwitchToCanvas => WorkspaceMode.Canvas,
+                        PaletteCommand.SwitchToGraph => WorkspaceMode.Graph,
+                        PaletteCommand.SwitchToFiles => WorkspaceMode.Files,
+                        PaletteCommand.SwitchToCode => WorkspaceMode.Code,
+                        PaletteCommand.ShowModels => WorkspaceMode.Models,
+                        PaletteCommand.ShowTasks => WorkspaceMode.Tasks,
+                        _ => WorkspaceMode.Chat,
+                    });
+                    break;
+
+                case PaletteCommand.OpenWorkspace:
+                    await Workspace.OpenWorkspaceCommand.ExecuteAsync(null).ConfigureAwait(true);
+                    break;
+
+                case PaletteCommand.CloseWorkspace:
+                    await Workspace.CloseWorkspaceCommand.ExecuteAsync(null).ConfigureAwait(true);
+                    break;
+
+                case PaletteCommand.RefreshGraph:
+                    await Workspace.RefreshGraphCommand.ExecuteAsync(null).ConfigureAwait(true);
+                    break;
+
+                case PaletteCommand.FitGraph:
+                    Workspace.SwitchModeCommand.Execute(WorkspaceMode.Canvas);
+                    Workspace.Canvas.Controller.NotifyGesture(
+                        AIClient.App.Canvas.GraphCanvas.GestureKind.BackgroundDoubleClicked, null);
+                    break;
+
+                case PaletteCommand.UndoGraph:
+                    await Workspace.Canvas.UndoCommand.ExecuteAsync(null).ConfigureAwait(true);
+                    break;
+
+                case PaletteCommand.RedoGraph:
+                    await Workspace.Canvas.RedoCommand.ExecuteAsync(null).ConfigureAwait(true);
+                    break;
+
+                case PaletteCommand.AskAiAboutSelection:
+                    AskAiAboutSelection();
+                    break;
+
+                case PaletteCommand.ToggleContextPanel:
+                    ToggleContextPanel();
+                    break;
+
+                case PaletteCommand.ToggleSidebar:
+                    ToggleSidebar();
+                    break;
             }
         }
         catch (Exception ex)
@@ -318,16 +501,4 @@ public sealed partial class MainViewModel : ObservableObject
     /// </remarks>
     private void OnConnectivityChanged(object? sender, bool isOnline) =>
         UiThread.Post(() => IsOffline = !isOnline);
-
-    /// <summary>Raised so the view can focus the search box, which is a view concern.</summary>
-    public event EventHandler? SearchRequested;
-
-    /// <summary>Raised so the view can open the model picker flyout.</summary>
-    public event EventHandler? ModelPickerRequested;
-
-    partial void OnCurrentPageChanged(ShellPage value)
-    {
-        OnPropertyChanged(nameof(IsChatVisible));
-        OnPropertyChanged(nameof(IsSettingsVisible));
-    }
 }

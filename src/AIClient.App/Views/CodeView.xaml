@@ -1,0 +1,156 @@
+<UserControl x:Class="AIClient.App.Views.CodeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:kontur="clr-namespace:AIClient.App.Controls"
+             xmlns:md="clr-namespace:AIClient.App.Markdown"
+             xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:CodeViewModel}"
+             Background="{DynamicResource Brush.Surface0}"
+             TextElement.Foreground="{DynamicResource Brush.TextPrimary}">
+
+    <!--
+        The code view: document tabs over read-only, highlighted files. The same safe
+        read the agent's tools get, the same highlighter the chat already uses - the
+        workspace reads code one way, everywhere.
+    -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Tab strip: icon + name + close, plus reload. -->
+        <Border Grid.Row="0" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1"
+                Background="{DynamicResource Brush.Surface1}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Disabled"
+                              HorizontalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Tabs}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="{StaticResource Radius.SM}" Margin="2,4"
+                                        Background="{Binding IsActive, Converter={StaticResource BoolToBrush}}"
+                                        BorderBrush="{Binding IsActive, Converter={StaticResource BoolToBorderBrush}}"
+                                        BorderThickness="1" Padding="8,4" Cursor="Hand"
+                                        MouseLeftButtonUp="OnTabClicked">
+                                    <StackPanel Orientation="Horizontal" MinWidth="0">
+                                        <kontur:KonturIcon Kind="{Binding Icon}" Width="13" Height="13"
+                                                           Foreground="{DynamicResource Brush.TextSecondary}" />
+                                        <TextBlock Text="{Binding Title}" Style="{StaticResource Type.Caption}"
+                                                   Margin="8,0,0,0" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <Button Style="{StaticResource KcButtonTool}" Width="18" Height="18"
+                                                Margin="6,-2,-4,-2" Click="OnCloseTabClicked"
+                                                ToolTip="Close">
+                                            <kontur:KonturIcon Kind="Close" Width="10" Height="10" GlyphThickness="1.8" />
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <Button Grid.Column="1" Style="{StaticResource KcButtonTool}" Width="26" Height="26" Margin="6,0,8,0"
+                        Command="{Binding ReloadActiveCommand}"
+                        Visibility="{Binding HasTabs, Converter={StaticResource BoolToVisibility}}"
+                        ToolTip="Reload (the agent may have rewritten the file)">
+                    <kontur:KonturIcon Kind="Refresh" Width="13" Height="13" />
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- Document host. All views stay alive; the active tab's content shows. -->
+        <Grid Grid.Row="1">
+            <!-- No tabs: the honest empty state. -->
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Visibility="{Binding HasTabs, Converter={StaticResource InverseBoolToVisibility}}">
+                <kontur:KonturIcon Kind="Code" Width="34" Height="34" GlyphThickness="1.1"
+                                   Foreground="{DynamicResource Brush.Accent}" HorizontalAlignment="Center" />
+                <TextBlock Text="No documents open" Style="{StaticResource Type.Section}"
+                           HorizontalAlignment="Center" Margin="0,10,0,0" />
+                <TextBlock Style="{StaticResource Type.Caption}" Margin="0,6,0,0" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource Brush.TextSecondary}"
+                           Text="Open a file from the Files view, or select a node on the canvas." />
+            </StackPanel>
+
+            <!-- The document: breadcrumbs, then line numbers + code, side by side and
+                 aligned because both are the same monospace at the same size with no
+                 wrapping. -->
+            <Grid Visibility="{Binding HasTabs, Converter={StaticResource BoolToVisibility}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Breadcrumbs. -->
+                <Border Grid.Row="0" Padding="14,6" BorderBrush="{DynamicResource Brush.BorderFaint}"
+                        BorderThickness="0,0,0,1" Background="{DynamicResource Brush.Surface1}">
+                    <StackPanel Orientation="Horizontal">
+                        <kontur:KonturIcon Kind="{Binding ActiveTab.Icon, TargetNullValue=File}" Width="13" Height="13"
+                                           Foreground="{DynamicResource Brush.AccentText}" />
+                        <TextBlock Text="{Binding ActiveTab.Directory, TargetNullValue=''}"
+                                   Style="{StaticResource Type.Metadata}" Margin="8,0,0,0" Opacity="0.7"
+                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding ActiveTab.Title, TargetNullValue=''}"
+                                   Style="{StaticResource Type.Caption}" Margin="6,0,0,0" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                        <Border Style="{StaticResource KcBadge}" Margin="10,0,0,0"
+                                Visibility="{Binding ActiveTab.IsTruncated, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Style="{StaticResource KcBadgeText}"
+                                       Text="{Binding ActiveTab.TotalLines, StringFormat=first {0:0} lines}" />
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Code surface: one horizontal ScrollViewer holding the aligned pair. -->
+                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Auto">
+                    <Grid Margin="0,8,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Line numbers: right-aligned, muted, same face and size as the
+                             code so the pair stays line-for-line. -->
+                        <Border Grid.Column="0" Background="{DynamicResource Brush.Surface0}">
+                            <Border BorderBrush="{DynamicResource Brush.BorderFaint}" BorderThickness="0,0,1,0"
+                                    Padding="10,0,10,0">
+                                <TextBlock x:Name="LineNumbers" FontFamily="{StaticResource Font.Mono}"
+                                           FontSize="{StaticResource Size.Code}" TextAlignment="Right"
+                                           Foreground="{DynamicResource Brush.TextMuted}"
+                                           TextOptions.TextFormattingMode="Display"
+                                           LineHeight="19" />
+                            </Border>
+                        </Border>
+
+                        <!-- The code itself: one TextBlock through the shared highlighter,
+                             exactly how chat renders a code block - one element, however
+                             many lines. -->
+                        <Border Grid.Column="1" Padding="12,0,24,0" Background="{DynamicResource Brush.Surface0}">
+                            <TextBlock x:Name="CodeText" FontFamily="{StaticResource Font.Mono}"
+                                       FontSize="{StaticResource Size.Code}"
+                                       Foreground="{DynamicResource Brush.TextPrimary}"
+                                       TextOptions.TextFormattingMode="Display"
+                                       LineHeight="19" />
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

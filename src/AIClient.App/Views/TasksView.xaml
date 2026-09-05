@@ -1,0 +1,134 @@
+<UserControl x:Class="AIClient.App.Views.TasksView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:kontur="clr-namespace:AIClient.App.Controls"
+             xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:TasksViewModel}"
+             Background="{DynamicResource Brush.Surface0}"
+             TextElement.Foreground="{DynamicResource Brush.TextPrimary}">
+
+    <!--
+        The agent surface: the run's state up top, its tool calls below. Compact rows -
+        this is a place to glance, not to read; the conversation holds the detail.
+    -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1"
+                Background="{DynamicResource Brush.Surface1}" Padding="12,7">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <kontur:KonturIcon Grid.Column="0" Kind="Tasks" Width="14" Height="14"
+                                   Foreground="{DynamicResource Brush.AccentText}" />
+                <TextBlock Grid.Column="1" Text="Tasks &amp; Agents" Style="{StaticResource Type.Section}"
+                           Margin="9,0,0,0" VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <!-- Run state: kind + state + the approval notice when the agent is waiting. -->
+        <Border Grid.Row="1" BorderBrush="{DynamicResource Brush.BorderFaint}" BorderThickness="0,0,0,1"
+                Padding="12,7" Background="{DynamicResource Brush.Surface1}">
+            <StackPanel Orientation="Horizontal">
+                <Ellipse Width="7" Height="7" VerticalAlignment="Center" Margin="0,0,7,0">
+                    <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                            <Setter Property="Fill" Value="{DynamicResource Brush.TextMuted}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                    <Setter Property="Fill" Value="{DynamicResource Brush.Running}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsApprovalPending}" Value="True">
+                                    <Setter Property="Fill" Value="{DynamicResource Brush.Warning}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Ellipse.Style>
+                </Ellipse>
+                <TextBlock Text="{Binding RunKind, FallbackValue='Chat'}" Style="{StaticResource Type.Caption}"
+                           FontWeight="SemiBold" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding StateText, FallbackValue='Idle'}" Style="{StaticResource Type.Metadata}"
+                           Margin="10,0,0,0" VerticalAlignment="Center" Opacity="0.8" />
+            </StackPanel>
+        </Border>
+
+        <!-- The rows. -->
+        <ListBox Grid.Row="2" ItemsSource="{Binding Rows}" Margin="6,4"
+                 HorizontalContentAlignment="Stretch"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                    <Setter Property="Padding" Value="10,6" />
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="Focusable" Value="False" />
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- State glyph: the dot carries the state colour. -->
+                        <Ellipse Grid.Column="0" Width="7" Height="7" VerticalAlignment="Center" Margin="0,0,10,0">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="{DynamicResource Brush.TextMuted}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding State}" Value="Running">
+                                            <Setter Property="Fill" Value="{DynamicResource Brush.Running}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="Done">
+                                            <Setter Property="Fill" Value="{DynamicResource Brush.Success}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="Failed">
+                                            <Setter Property="Fill" Value="{DynamicResource Brush.Error}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="Blocked">
+                                            <Setter Property="Fill" Value="{DynamicResource Brush.Warning}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+
+                        <StackPanel Grid.Column="1" MinWidth="0">
+                            <TextBlock Text="{Binding Title}" Style="{StaticResource Type.Caption}"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Type.Metadata}"
+                                       Opacity="0.65" TextTrimming="CharacterEllipsis" Margin="0,1,0,0" />
+                        </StackPanel>
+
+                        <TextBlock Grid.Column="2" Style="{StaticResource Type.Metadata}" Opacity="0.7"
+                                   Text="{Binding State}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Empty: the agent is idle, and the surface says so without pretending otherwise. -->
+        <StackPanel Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,30"
+                    Visibility="{Binding HasRows, Converter={StaticResource InverseBoolToVisibility}}">
+            <kontur:KonturIcon Kind="Bot" Width="34" Height="34" GlyphThickness="1.1"
+                               Foreground="{DynamicResource Brush.TextMuted}" HorizontalAlignment="Center" />
+            <TextBlock Text="No agent activity" Style="{StaticResource Type.Section}"
+                       HorizontalAlignment="Center" Margin="0,10,0,0" />
+            <TextBlock Style="{StaticResource Type.Caption}" Margin="0,6,0,0" HorizontalAlignment="Center"
+                       Foreground="{DynamicResource Brush.TextSecondary}"
+                       Text="Tool calls and agent steps will appear here while a run is working." />
+        </StackPanel>
+    </Grid>
+</UserControl>

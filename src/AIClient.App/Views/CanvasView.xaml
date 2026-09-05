@@ -1,0 +1,162 @@
+<UserControl x:Class="AIClient.App.Views.CanvasView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:canvas="clr-namespace:AIClient.App.Canvas"
+             xmlns:kontur="clr-namespace:AIClient.App.Controls"
+             xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:WorkspaceViewModel}">
+
+    <!--
+        The canvas mode: the renderer element, a floating toolbar, the minimap, and an
+        empty state that offers the two things an empty canvas can honestly do - open a
+        workspace, or ask for a plan. The toolbar floats over the canvas rather than
+        sitting in a chrome bar: every pixel of a dedicated spatial surface should belong
+        to the space, with tools appearing where the hands already are.
+    -->
+    <Grid>
+        <canvas:GraphCanvas x:Name="Surface" />
+
+        <!-- Toolbar. Compact tools, one row, top-right, over the canvas. -->
+        <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12"
+                Background="{DynamicResource Brush.Surface2}"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource Radius.MD}"
+                Padding="3,2"
+                Effect="{StaticResource Shadow.Subtle}">
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.ZoomOutCommand}"
+                        ToolTip="Zoom out (scroll)">
+                    <kontur:KonturIcon Kind="ZoomOut" Width="13" Height="13" />
+                </Button>
+                <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.ZoomResetCommand}"
+                        ToolTip="Zoom 100%">
+                    <TextBlock Text="{Binding Canvas.ZoomPercent, StringFormat={}{0:0}%}"
+                               Style="{StaticResource Type.Metadata}" MinWidth="38"
+                               HorizontalAlignment="Center" />
+                </Button>
+                <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.ZoomInCommand}"
+                        ToolTip="Zoom in (scroll)">
+                    <kontur:KonturIcon Kind="ZoomIn" Width="13" Height="13" />
+                </Button>
+                <Separator Margin="2,4" />
+                <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.FitCommand}"
+                        ToolTip="Fit graph to view (double-click empty space)">
+                    <kontur:KonturIcon Kind="Fit" Width="13" Height="13" />
+                </Button>
+                <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.FocusSelectionCommand}"
+                        ToolTip="Focus selection">
+                    <kontur:KonturIcon Kind="Focus" Width="13" Height="13" />
+                </Button>
+                <Separator Margin="2,4" />
+                <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.UndoCommand}"
+                        IsEnabled="{Binding Canvas.CanUndo}"
+                        ToolTip="Undo graph change (Ctrl+Z when the canvas has focus)">
+                    <kontur:KonturIcon Kind="Undo" Width="13" Height="13" />
+                </Button>
+                <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.RedoCommand}"
+                        IsEnabled="{Binding Canvas.CanRedo}"
+                        ToolTip="Redo graph change">
+                    <kontur:KonturIcon Kind="Redo" Width="13" Height="13" />
+                </Button>
+                <Separator Margin="2,4" />
+                <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.AskAiCommand}"
+                        ToolTip="Ask AI about the selection (Ctrl+I)">
+                    <kontur:KonturIcon Kind="Sparkle" Width="13" Height="13"
+                                       Foreground="{DynamicResource Brush.AccentText}" />
+                </Button>
+            </StackPanel>
+        </Border>
+
+        <!-- Minimap: bottom-right, out of the working area's way. -->
+        <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="12"
+                Background="#CC131519"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource Radius.MD}"
+                Padding="4"
+                Effect="{StaticResource Shadow.Subtle}"
+                Visibility="{Binding Canvas.NodeCount, Converter={StaticResource NodeCountToVisibility}}">
+            <canvas:CanvasMinimap x:Name="MiniMap" />
+        </Border>
+
+        <!-- Live stats chip: bottom-left, quiet. -->
+        <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12"
+                Background="#CC131519"
+                BorderBrush="{DynamicResource Brush.BorderFaint}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource Radius.SM}"
+                Padding="8,4"
+                Visibility="{Binding Canvas.NodeCount, Converter={StaticResource NodeCountToVisibility}}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource Type.Metadata}"
+                           Text="{Binding Canvas.NodeCount, StringFormat={}{0} nodes}" />
+                <TextBlock Style="{StaticResource Type.Metadata}" Opacity="0.6" Text=" · " />
+                <TextBlock Style="{StaticResource Type.Metadata}"
+                           Text="{Binding Canvas.EdgeCount, StringFormat={}{0} links}" />
+                <TextBlock Style="{StaticResource Type.Metadata}" Opacity="0.6" Text=" · "
+                           Visibility="{Binding Canvas.HasSelection, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock Style="{StaticResource Type.Accent}"
+                           Text="{Binding Canvas.SelectionSummary}"
+                           Visibility="{Binding Canvas.HasSelection, Converter={StaticResource BoolToVisibility}}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Indexing pulse: top-left while the workspace is being read. -->
+        <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12"
+                Background="#CC131519"
+                BorderBrush="{DynamicResource Brush.AccentBorder}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource Radius.SM}"
+                Padding="8,4"
+                Visibility="{Binding IsIndexing, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel Orientation="Horizontal">
+                <kontur:KonturIcon Kind="Refresh" Width="12" Height="12"
+                                   Foreground="{DynamicResource Brush.AccentText}" />
+                <TextBlock Text="Indexing workspace…" Style="{StaticResource Type.Metadata}" Margin="7,0,0,0" />
+            </StackPanel>
+        </Border>
+
+        <!--
+            The empty state. An empty canvas is a door, not a wall: the two honest next
+            actions are opening a workspace (the graph gets built) and asking the agent
+            for a plan (PlanCanvas mode draws one). Everything else is noise.
+        -->
+        <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{DynamicResource Brush.Surface1}"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource Radius.LG}"
+                Padding="28,24"
+                Visibility="{Binding Canvas.NodeCount, Converter={StaticResource NodeCountToVisibility}, ConverterParameter=invert}">
+            <StackPanel MaxWidth="380">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+                    <kontur:KonturIcon Kind="Canvas" Width="34" Height="34" GlyphThickness="1.1"
+                                       Foreground="{DynamicResource Brush.Accent}" />
+                </StackPanel>
+                <TextBlock Text="The canvas is empty"
+                           Style="{StaticResource Type.Section}" HorizontalAlignment="Center" />
+                <TextBlock Style="{StaticResource Type.CaptionWrap}" Margin="0,6,0,0" TextAlignment="Center"
+                           Foreground="{DynamicResource Brush.TextSecondary}"
+                           Text="Open a workspace to see it as a map, or ask the agent for a plan and have it drawn here." />
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+                    <Button Style="{StaticResource KcButtonPrimary}" Padding="14,8"
+                            Command="{Binding OpenWorkspaceCommand}" MinWidth="150">
+                        <TextBlock Text="Open Workspace" FontWeight="SemiBold" />
+                    </Button>
+                    <Button Style="{StaticResource KcButtonGhost}" Padding="14,8" Margin="8,0,0,0" MinWidth="150"
+                            Command="{Binding AskForPlanCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <kontur:KonturIcon Kind="Sparkle" Width="13" Height="13" />
+                            <TextBlock Text="Ask for a plan" Style="{StaticResource Type.Caption}" Margin="7,0,0,0" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

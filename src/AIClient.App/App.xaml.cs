@@ -62,6 +62,12 @@ public partial class App : System.Windows.Application
             var settings = _host.Services.GetRequiredService<ISettingsService>();
             await settings.LoadAsync().ConfigureAwait(true);
 
+            // The canvas plan sink persists drawn plans under the workspace's own key;
+            // it gets a root probe rather than a service reference, and it gets it here,
+            // once, before any run could produce a plan to save.
+            _host.Services.GetRequiredService<Graph.CanvasPlanSink>()
+                .SetWorkspaceRoot(() => _host.Services.GetRequiredService<IWorkspaceService>().Root);
+
             var window = _host.Services.GetRequiredService<MainWindow>();
             MainWindow = window;
 

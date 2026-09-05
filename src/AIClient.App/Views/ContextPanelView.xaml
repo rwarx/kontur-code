@@ -1,0 +1,343 @@
+<UserControl x:Class="AIClient.App.Views.ContextPanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:kontur="clr-namespace:AIClient.App.Controls"
+             xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:ContextPanelViewModel}"
+             Background="{DynamicResource Brush.Surface1}"
+             TextElement.Foreground="{DynamicResource Brush.TextPrimary}">
+
+    <!--
+        The context surface. One panel, five shapes, chosen by what deserves attention:
+        the workspace when nothing is selected, a node or an edge inspector when one is,
+        a summary for many, and the AI's own state whenever it needs the user. The
+        sections below are stacked, not tabbed - reading order follows importance order.
+    -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header: what this panel currently is. -->
+        <Border Grid.Row="0" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1"
+                Padding="12,7" Background="{DynamicResource Brush.Surface2}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <kontur:KonturIcon Grid.Column="0" Width="13" Height="13" Foreground="{DynamicResource Brush.AccentText}">
+                    <kontur:KonturIcon.Style>
+                        <Style TargetType="kontur:KonturIcon">
+                            <Setter Property="Kind" Value="Node" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Mode}" Value="Workspace">
+                                    <Setter Property="Kind" Value="Canvas" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Mode}" Value="Edge">
+                                    <Setter Property="Kind" Value="Link" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Mode}" Value="Selection">
+                                    <Setter Property="Kind" Value="Graph" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Mode}" Value="AiActivity">
+                                    <Setter Property="Kind" Value="Sparkle" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </kontur:KonturIcon.Style>
+                </kontur:KonturIcon>
+                <TextBlock Grid.Column="1" Margin="9,0,0,0" VerticalAlignment="Center"
+                           Style="{StaticResource Type.Section}">
+                    <TextBlock.Text>
+                        <Binding Path="Mode" FallbackValue="Workspace"
+                                 Converter="{StaticResource ContextPanelModeLabel}" />
+                    </TextBlock.Text>
+                </TextBlock>
+            </Grid>
+        </Border>
+
+        <!-- The five shapes. -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- ============ Workspace ============ -->
+                <StackPanel>
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Mode}" Value="Workspace">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+
+                    <StackPanel Margin="12,10">
+                        <TextBlock Text="{Binding WorkspaceName, FallbackValue='No workspace'}"
+                                   Style="{StaticResource Type.Section}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding WorkspaceRoot}" Style="{StaticResource Type.Metadata}"
+                                   TextTrimming="CharacterEllipsis" Margin="0,3,0,0" Opacity="0.7"
+                                   ToolTip="{Binding WorkspaceRoot}" />
+                        <TextBlock Text="{Binding GraphSummary, FallbackValue='Empty'}"
+                                   Style="{StaticResource Type.Caption}" Margin="0,8,0,0"
+                                   Foreground="{DynamicResource Brush.TextSecondary}" />
+                    </StackPanel>
+
+                    <!-- Timeline: the graph's history, newest first, undo attached. -->
+                    <TextBlock Text="TIMELINE" Style="{StaticResource Type.Metadata}" Margin="12,8,0,4" Opacity="0.7" />
+                    <ItemsControl ItemsSource="{Binding Timeline}" Margin="8,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="8,5" Margin="0,1" CornerRadius="{StaticResource Radius.SM}"
+                                        Background="{DynamicResource Brush.Surface2}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <kontur:KonturIcon Grid.Column="0" Width="10" Height="10" Margin="0,2,8,0"
+                                                           Foreground="{DynamicResource Brush.TextMuted}">
+                                            <kontur:KonturIcon.Style>
+                                                <Style TargetType="kontur:KonturIcon">
+                                                    <Setter Property="Kind" Value="Clock" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Origin}" Value="Agent">
+                                                            <Setter Property="Kind" Value="Sparkle" />
+                                                            <Setter Property="Foreground"
+                                                                    Value="{DynamicResource Brush.AccentText}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Origin}" Value="Indexer">
+                                                            <Setter Property="Kind" Value="Refresh" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Origin}" Value="User">
+                                                            <Setter Property="Kind" Value="User" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding WasRejected}" Value="True">
+                                                            <Setter Property="Kind" Value="Warning" />
+                                                            <Setter Property="Foreground"
+                                                                    Value="{DynamicResource Brush.Warning}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </kontur:KonturIcon.Style>
+                                        </kontur:KonturIcon>
+                                        <StackPanel Grid.Column="1" MinWidth="0">
+                                            <TextBlock Text="{Binding Title}" Style="{StaticResource Type.Caption}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Style="{StaticResource Type.Metadata}" Opacity="0.6"
+                                                       Text="{Binding At, StringFormat={}{0:HH:mm}}" Margin="0,1,0,0" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- ============ Node inspector ============ -->
+                <StackPanel>
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Mode}" Value="Node">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+
+                    <!-- Node identity. -->
+                    <StackPanel Margin="12,10">
+                        <StackPanel Orientation="Horizontal">
+                            <kontur:KonturIcon Kind="{Binding InspectedNode.Kind, TargetNullValue=Node, Converter={StaticResource NodeKindToIcon}}"
+                                               Width="15" Height="15" />
+                            <TextBlock Text="{Binding InspectedNode.Title, FallbackValue='—'}"
+                                       Style="{StaticResource Type.Section}" Margin="10,0,0,0"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="25,4,0,0">
+                            <TextBlock Text="{Binding InspectedNodeKind}" Style="{StaticResource Type.Accent}" />
+                            <TextBlock Text="{Binding InspectedNode.Subtitle, TargetNullValue=''}"
+                                       Style="{StaticResource Type.Metadata}" Margin="8,0,0,0" Opacity="0.75"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding InspectedNode.Detail, TargetNullValue=''}"
+                                   Style="{StaticResource Type.CaptionWrap}" Margin="25,6,0,0"
+                                   Foreground="{DynamicResource Brush.TextSecondary}" />
+                    </StackPanel>
+
+                    <!-- Open on disk, when this node is a real thing. -->
+                    <StackPanel Margin="12,2"
+                                Visibility="{Binding InspectedNode.Path, Converter={StaticResource StringToVisibility}}">
+                        <Button Style="{StaticResource KcButtonGhost}" Padding="10,6" HorizontalContentAlignment="Left"
+                                Command="{Binding OpenPathCommand}" CommandParameter="{Binding InspectedNode.Path}">
+                            <StackPanel Orientation="Horizontal">
+                                <kontur:KonturIcon Kind="Open" Width="13" Height="13" />
+                                <TextBlock Text="Open in Code" Style="{StaticResource Type.Caption}" Margin="9,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Relations. -->
+                    <TextBlock Text="RELATIONS" Style="{StaticResource Type.Metadata}" Margin="12,10,0,4" Opacity="0.7" />
+                    <ItemsControl ItemsSource="{Binding Relations}" Margin="8,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="8,5" Margin="0,1" CornerRadius="{StaticResource Radius.SM}"
+                                        Background="{DynamicResource Brush.Surface2}" Cursor="Hand"
+                                        MouseLeftButtonUp="OnRelationClicked" ToolTip="Focus on the canvas">
+                                    <StackPanel Orientation="Horizontal" MinWidth="0">
+                                        <TextBlock Text="{Binding Direction}" Style="{StaticResource Type.Metadata}"
+                                                   Foreground="{DynamicResource Brush.AccentText}" Margin="0,0,7,0"
+                                                   VerticalAlignment="Center" />
+                                        <kontur:KonturIcon Kind="{Binding Icon}" Width="12" Height="12"
+                                                           VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Title}" Style="{StaticResource Type.Caption}"
+                                                   Margin="7,0,0,0" TextTrimming="CharacterEllipsis"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding EdgeKind}" Style="{StaticResource Type.Metadata}"
+                                                   Opacity="0.55" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- AI actions on this node. -->
+                    <TextBlock Text="AI" Style="{StaticResource Type.Metadata}" Margin="12,10,0,4" Opacity="0.7" />
+                    <StackPanel Margin="8,0,8,10">
+                        <Button Style="{StaticResource KcButtonGhost}" Padding="10,6" Margin="0,1"
+                                HorizontalContentAlignment="Left" Command="{Binding AskExplainCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <kontur:KonturIcon Kind="Sparkle" Width="12" Height="12"
+                                                   Foreground="{DynamicResource Brush.AccentText}" />
+                                <TextBlock Text="Explain architecture" Style="{StaticResource Type.Caption}"
+                                           Margin="9,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource KcButtonGhost}" Padding="10,6" Margin="0,1"
+                                HorizontalContentAlignment="Left" Command="{Binding AskRelationsCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <kontur:KonturIcon Kind="Link" Width="12" Height="12" />
+                                <TextBlock Text="Explain dependencies" Style="{StaticResource Type.Caption}"
+                                           Margin="9,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource KcButtonGhost}" Padding="10,6" Margin="0,1"
+                                HorizontalContentAlignment="Left" Command="{Binding AskTestsCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <kontur:KonturIcon Kind="Check" Width="12" Height="12" />
+                                <TextBlock Text="Suggest tests" Style="{StaticResource Type.Caption}"
+                                           Margin="9,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- ============ Edge inspector ============ -->
+                <StackPanel>
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Mode}" Value="Edge">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+
+                    <StackPanel Margin="12,10">
+                        <StackPanel Orientation="Horizontal">
+                            <kontur:KonturIcon Kind="Link" Width="15" Height="15"
+                                               Foreground="{DynamicResource Brush.AccentText}" />
+                            <TextBlock Text="Connection" Style="{StaticResource Type.Section}" Margin="10,0,0,0" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding InspectedEdge.Kind, FallbackValue='relates'}"
+                                   Style="{StaticResource Type.Accent}" Margin="25,6,0,0" />
+                        <TextBlock Text="Both endpoints live on the canvas; select either node to inspect it in full."
+                                   Style="{StaticResource Type.CaptionWrap}" Margin="25,6,0,0"
+                                   Foreground="{DynamicResource Brush.TextSecondary}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- ============ Selection summary ============ -->
+                <StackPanel>
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Mode}" Value="Selection">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+
+                    <StackPanel Margin="12,10">
+                        <StackPanel Orientation="Horizontal">
+                            <kontur:KonturIcon Kind="Graph" Width="15" Height="15"
+                                               Foreground="{DynamicResource Brush.AccentText}" />
+                            <TextBlock Text="Selection" Style="{StaticResource Type.Section}" Margin="10,0,0,0" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding SelectionCount, StringFormat={}{0} nodes}"
+                                   Style="{StaticResource Type.Caption}" Margin="25,6,0,0" />
+                        <TextBlock Text="{Binding SelectionKinds}" Style="{StaticResource Type.Metadata}"
+                                   Margin="25,2,0,0" Opacity="0.75" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Margin="8,0,8,10">
+                        <Button Style="{StaticResource KcButtonGhost}" Padding="10,6" Margin="0,1"
+                                HorizontalContentAlignment="Left" Command="{Binding AskAboutSelectionCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <kontur:KonturIcon Kind="Sparkle" Width="12" Height="12"
+                                                   Foreground="{DynamicResource Brush.AccentText}" />
+                                <TextBlock Text="Ask AI about this selection" Style="{StaticResource Type.Caption}"
+                                           Margin="9,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- ============ AI activity ============ -->
+                <StackPanel>
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Mode}" Value="AiActivity">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+
+                    <StackPanel Margin="12,10">
+                        <StackPanel Orientation="Horizontal">
+                            <kontur:KonturIcon Kind="Sparkle" Width="15" Height="15"
+                                               Foreground="{DynamicResource Brush.AccentText}" />
+                            <TextBlock Text="{Binding AiStateText, FallbackValue='Idle'}"
+                                       Style="{StaticResource Type.Section}" Margin="10,0,0,0" />
+                            <Ellipse Width="7" Height="7" Margin="8,2,0,0" VerticalAlignment="Center"
+                                     Fill="{DynamicResource Brush.Running}"
+                                     Visibility="{Binding IsAiWorking, Converter={StaticResource BoolToVisibility}}" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding AiModelName}" Style="{StaticResource Type.Metadata}"
+                                   Margin="25,6,0,0" Opacity="0.7" />
+                        <TextBlock Style="{StaticResource Type.CaptionWrap}" Margin="25,10,0,0"
+                                   Foreground="{DynamicResource Brush.TextSecondary}"
+                                   Text="The approval card below the composer is where the agent asks before changing anything. Answer it there; this panel only watches." />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

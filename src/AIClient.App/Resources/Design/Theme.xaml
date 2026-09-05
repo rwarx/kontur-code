@@ -1,0 +1,21 @@
+<!--
+    Kontur Code design system — the aggregate dictionary.
+
+    App.xaml merges this single file, and this file merges the parts in the order that
+    makes the tokens resolvable by the styles that consume them: metrics first, then
+    colours, then drawings, then controls. A view needs exactly one thing from the whole
+    system: this dictionary in scope.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/Resources/Design/Spacing.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/Resources/Design/Typography.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/Resources/Design/Shadows.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/Resources/Design/Colors.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/Resources/Design/Icons.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/Resources/Design/Controls.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+</ResourceDictionary>

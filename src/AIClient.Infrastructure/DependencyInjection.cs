@@ -1,10 +1,12 @@
 using AIClient.Application.Configuration;
+using AIClient.Application.Graph;
 using AIClient.Application.Interfaces;
 using AIClient.Application.Services;
 using AIClient.Application.Services.Tools;
 using AIClient.Domain.Interfaces;
 using AIClient.Infrastructure.Configuration;
 using AIClient.Infrastructure.Database;
+using AIClient.Infrastructure.Graph;
 using AIClient.Infrastructure.Http;
 using AIClient.Infrastructure.Processes;
 using AIClient.Infrastructure.Providers;
@@ -132,6 +134,16 @@ public static class DependencyInjection
         // the whole of what a build without a canvas can honestly do; the WPF app registers a sink
         // that also draws, over the top of this.
         services.AddSingleton<IAgentPlanSink, TranscriptPlanSink>();
+
+        // The graph: one canvas state for the whole process, persisted as a document per
+        // workspace. Registered here rather than in the App because the canvas, the plan
+        // sink and the context builder are all just readers of it - only the composition
+        // order matters, and the WPF sink override for IAgentPlanSink must land after this
+        // line to take effect (it does: AddAppServices runs after AddInfrastructure).
+        services.AddSingleton<IGraphStore, JsonGraphStore>();
+        services.AddSingleton<IGraphService, GraphService>();
+        services.AddSingleton<WorkspaceGraphIndexer>();
+        services.AddSingleton<GraphContextSource>();
 
         services.AddSingleton<IAgentService, AgentService>();
     }

@@ -1,0 +1,128 @@
+<UserControl x:Class="AIClient.App.Views.StatusBarView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:kontur="clr-namespace:AIClient.App.Controls"
+             xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
+             Background="{DynamicResource Brush.Surface0}"
+             TextElement.Foreground="{DynamicResource Brush.TextSecondary}">
+
+    <!--
+        The status bar. One quiet line: what the workspace is, what the canvas holds,
+        and what the model is doing right now. Nothing here needs to be read to use the
+        product; everything here answers a question the user was about to ask.
+    -->
+    <Border BorderBrush="{DynamicResource Brush.BorderFaint}"
+            BorderThickness="0,1,0,0"
+            SnapsToDevicePixels="True">
+        <Grid MinHeight="28" Margin="{StaticResource Spacing.Panel}">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- The workspace identity. -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <kontur:KonturIcon Kind="Folder" Width="12" Height="12"
+                                   Foreground="{DynamicResource Brush.TextMuted}"
+                                   VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Workspace.WorkspaceName, FallbackValue='No workspace open'}"
+                           Margin="7,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                           MaxWidth="280" ToolTip="{Binding Workspace.WorkspaceRoot}">
+                    <TextBlock.Style>
+                        <!-- An open workspace with no name yet shows the root's file name part. -->
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Type.Metadata}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Workspace.HasWorkspace}" Value="False">
+                                    <Setter Property="Text" Value="No workspace open" />
+                                    <Setter Property="Opacity" Value="0.7" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <!-- The one honest busy state: the index is rebuilding. -->
+                <StackPanel Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center"
+                            Visibility="{Binding Workspace.IsIndexing, Converter={StaticResource BoolToVisibility}}">
+                    <kontur:KonturIcon Kind="Clock" Width="12" Height="12"
+                                       Foreground="{DynamicResource Brush.AccentText}"
+                                       VerticalAlignment="Center" />
+                    <TextBlock Text="Indexing…" Style="{StaticResource Type.Metadata}"
+                               Foreground="{DynamicResource Brush.AccentText}"
+                               Margin="5,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- The canvas state: selection, contents, zoom, history. -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+
+                <!-- Generation in flight - the only thing worth a glance while waiting. -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,12,0"
+                            Visibility="{Binding Chat.IsGenerating, Converter={StaticResource BoolToVisibility}}">
+                    <kontur:KonturIcon Kind="Sparkle" Width="12" Height="12"
+                                       Foreground="{DynamicResource Brush.AccentText}"
+                                       VerticalAlignment="Center" />
+                    <TextBlock Text="Generating…" Style="{StaticResource Type.Metadata}"
+                               Foreground="{DynamicResource Brush.AccentText}"
+                               Margin="5,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- The active model, as the picker last set it. -->
+                <TextBlock Text="{Binding Chat.SelectedModel.Name, FallbackValue='No model', TargetNullValue='No model'}"
+                           Style="{StaticResource Type.Metadata}"
+                           ToolTip="{Binding Chat.SelectedModel.ProviderName, FallbackValue='Pick a model in the Models surface'}"
+                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="200" />
+
+                <Rectangle Width="1" Height="12" Fill="{DynamicResource Brush.BorderFaint}"
+                           Margin="12,0,12,0" VerticalAlignment="Center" />
+
+                <!-- The selection, in the canvas's own words. -->
+                <TextBlock Text="{Binding Workspace.Canvas.SelectionSummary, FallbackValue=''}"
+                           Style="{StaticResource Type.Metadata}"
+                           Foreground="{DynamicResource Brush.TextPrimary}"
+                           VerticalAlignment="Center"
+                           Visibility="{Binding Workspace.Canvas.SelectionSummary, Converter={StaticResource StringToVisibility}}" />
+
+                <StackPanel Orientation="Horizontal"
+                            Visibility="{Binding Workspace.HasWorkspace, Converter={StaticResource BoolToVisibility}}">
+                    <!-- Contents. -->
+                    <TextBlock Style="{StaticResource Type.Metadata}" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="{}{0} nodes · {1} connections" FallbackValue="empty canvas">
+                                <Binding Path="Workspace.Canvas.NodeCount" />
+                                <Binding Path="Workspace.Canvas.EdgeCount" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+
+                    <!-- Zoom, as the canvas last reported it. -->
+                    <TextBlock Style="{StaticResource Type.Metadata}" VerticalAlignment="Center" Margin="0,0,12,0"
+                               Text="{Binding Workspace.Canvas.ZoomPercent, StringFormat='{}{0}%', FallbackValue='100%'}" />
+                </StackPanel>
+
+                <!-- History reach: undo and redo, disabled when their stack is empty. -->
+                <Button Style="{StaticResource KcButtonTool}"
+                        Command="{Binding Workspace.Canvas.UndoCommand}"
+                        IsEnabled="{Binding Workspace.Canvas.CanUndo}"
+                        ToolTip="Undo (Ctrl+Z)"
+                        VerticalAlignment="Center">
+                    <kontur:KonturIcon Kind="Undo" Width="12" Height="12" />
+                </Button>
+                <Button Style="{StaticResource KcButtonTool}"
+                        Command="{Binding Workspace.Canvas.RedoCommand}"
+                        IsEnabled="{Binding Workspace.Canvas.CanRedo}"
+                        ToolTip="Redo (Ctrl+Y)"
+                        VerticalAlignment="Center">
+                    <kontur:KonturIcon Kind="Redo" Width="12" Height="12" />
+                </Button>
+
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

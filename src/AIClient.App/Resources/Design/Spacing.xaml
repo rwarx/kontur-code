@@ -1,0 +1,31 @@
+<!--
+    Kontur Code design system — spacing and radius tokens.
+
+    Space is a 4px grid. Views compose from these values instead of inventing margins,
+    which is what keeps ten different panels from feeling like ten different apps.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- Base rhythm -->
+    <sys:Double x:Key="Spacing.XS">4</sys:Double>
+    <sys:Double x:Key="Spacing.SM">8</sys:Double>
+    <sys:Double x:Key="Spacing.MD">12</sys:Double>
+    <sys:Double x:Key="Spacing.LG">16</sys:Double>
+    <sys:Double x:Key="Spacing.XL">24</sys:Double>
+
+    <!-- Composite paddings -->
+    <Thickness x:Key="Spacing.Panel">12,10,12,10</Thickness>
+    <Thickness x:Key="Spacing.Card">12,10,12,10</Thickness>
+    <Thickness x:Key="Spacing.Toolbar">10,6,10,6</Thickness>
+    <Thickness x:Key="Spacing.Inset">8,6,8,6</Thickness>
+
+    <!-- Radii. Small by developer-tool standards: a rounded rectangle should read as a
+         control, not as a card. -->
+    <CornerRadius x:Key="Radius.SM">3</CornerRadius>
+    <CornerRadius x:Key="Radius.MD">5</CornerRadius>
+    <CornerRadius x:Key="Radius.LG">8</CornerRadius>
+    <CornerRadius x:Key="Radius.Pill">9</CornerRadius>
+
+</ResourceDictionary>

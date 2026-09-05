@@ -56,12 +56,12 @@
                 <Border Grid.Row="0"
                         Padding="10,4"
                         BorderThickness="0,0,0,1"
-                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                        BorderBrush="{DynamicResource Brush.Border}">
                     <Grid>
                         <TextBlock Text="{Binding Language}"
                                    VerticalAlignment="Center"
                                    FontSize="11"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                   Foreground="{DynamicResource Brush.TextSecondary}" />
 
                         <Button HorizontalAlignment="Right"
                                 Padding="8,2"
@@ -110,7 +110,7 @@
 
                         <TextBlock Grid.Column="0"
                                    Text="{Binding Marker}"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Foreground="{DynamicResource Brush.TextSecondary}"
                                    HorizontalAlignment="Right"
                                    Margin="0,0,8,0" />
 
@@ -127,12 +127,12 @@
 
     <DataTemplate DataType="{x:Type md:QuoteBlock}">
         <Border BorderThickness="3,0,0,0"
-                BorderBrush="{DynamicResource AccentTextFillColorSecondaryBrush}"
+                BorderBrush="{DynamicResource Brush.AccentBorder}"
                 Padding="12,2,0,2"
                 Margin="0,4,0,10">
             <ItemsControl ItemsSource="{Binding Blocks}"
                           Focusable="False"
-                          TextElement.Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                          TextElement.Foreground="{DynamicResource Brush.TextSecondary}" />
         </Border>
     </DataTemplate>
 
@@ -144,7 +144,7 @@
                       Margin="0,4,0,12">
             <Border BorderThickness="1"
                     CornerRadius="6"
-                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    BorderBrush="{DynamicResource Brush.Border}"
                     HorizontalAlignment="Left">
                 <Grid local:MarkdownHost.Table="{Binding}" />
             </Border>
@@ -156,7 +156,7 @@
     <DataTemplate DataType="{x:Type md:ThematicBreakBlock}">
         <Border Height="1"
                 Margin="0,10"
-                Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                Background="{DynamicResource Brush.Border}" />
     </DataTemplate>
 
 </ResourceDictionary>

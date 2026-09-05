@@ -17,6 +17,28 @@ public enum PaletteCommand
     ExportMarkdown,
     ExportJson,
     ExportText,
+
+    // Workspace modes.
+    SwitchToCanvas,
+    SwitchToGraph,
+    SwitchToFiles,
+    SwitchToCode,
+    SwitchToChat,
+    ShowModels,
+    ShowTasks,
+
+    // Workspace and graph actions.
+    OpenWorkspace,
+    CloseWorkspace,
+    RefreshGraph,
+    FitGraph,
+    UndoGraph,
+    RedoGraph,
+    AskAiAboutSelection,
+
+    // Shell.
+    ToggleContextPanel,
+    ToggleSidebar,
 }
 
 /// <summary>
@@ -113,11 +135,30 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         new(PaletteCommand.NewChat, "New Chat", "Chat", "Ctrl+N", "create start"),
         new(PaletteCommand.SearchChats, "Search Chats", "Chat", "Ctrl+K", "find filter"),
         new(PaletteCommand.ChangeModel, "Change Model", "Chat", null, "provider switch llm"),
+        new(PaletteCommand.AskAiAboutSelection, "Ask AI About Selection", "AI", "Ctrl+I", "explain graph context"),
         new(PaletteCommand.OpenSettings, "Settings", "Application", "Ctrl+,", "preferences options"),
         new(PaletteCommand.ToggleTheme, "Toggle Theme", "Application", null, "dark light appearance"),
+        new(PaletteCommand.ToggleContextPanel, "Toggle Context Panel", "Application", null, "inspector sidebar right"),
+        new(PaletteCommand.ToggleSidebar, "Toggle Sidebar", "Application", "Ctrl+B", "navigation collapse"),
         new(PaletteCommand.ExportMarkdown, "Export Chat as Markdown", "Export", null, "save md"),
         new(PaletteCommand.ExportJson, "Export Chat as JSON", "Export", null, "save json"),
         new(PaletteCommand.ExportText, "Export Chat as Text", "Export", null, "save txt plain"),
+
+        // The workspace's modes, in the order the tab strip shows them.
+        new(PaletteCommand.SwitchToCanvas, "Go to Canvas", "Workspace", null, "graph spatial nodes"),
+        new(PaletteCommand.SwitchToGraph, "Go to Graph Outline", "Workspace", null, "structure list"),
+        new(PaletteCommand.SwitchToFiles, "Go to Files", "Workspace", null, "tree folder"),
+        new(PaletteCommand.SwitchToCode, "Go to Code", "Workspace", null, "editor tabs"),
+        new(PaletteCommand.SwitchToChat, "Go to Chat", "Workspace", null, "conversation"),
+        new(PaletteCommand.ShowModels, "Models", "Workspace", null, "provider catalogue"),
+        new(PaletteCommand.ShowTasks, "Tasks & Agents", "Workspace", null, "activity tools"),
+
+        new(PaletteCommand.OpenWorkspace, "Open Workspace Folder", "Graph", null, "folder project repository"),
+        new(PaletteCommand.CloseWorkspace, "Close Workspace", "Graph", null, "folder"),
+        new(PaletteCommand.RefreshGraph, "Refresh Workspace Graph", "Graph", null, "reindex sync"),
+        new(PaletteCommand.FitGraph, "Fit Graph to View", "Graph", null, "zoom frame all"),
+        new(PaletteCommand.UndoGraph, "Undo Graph Change", "Graph", "Ctrl+Z", "revert timeline"),
+        new(PaletteCommand.RedoGraph, "Redo Graph Change", "Graph", "Ctrl+Y", "restore timeline"),
     ];
 
     partial void OnQueryChanged(string value)

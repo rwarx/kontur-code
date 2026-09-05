@@ -1,0 +1,99 @@
+<UserControl x:Class="AIClient.App.Views.GraphOutlineView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:kontur="clr-namespace:AIClient.App.Controls"
+             xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:GraphOutlineViewModel}"
+             Background="{DynamicResource Brush.Surface0}"
+             TextElement.Foreground="{DynamicResource Brush.TextPrimary}">
+
+    <!--
+        The outline: the graph as structure, for finding a thing by name. Selecting a row
+        selects the node on the canvas; the outline is a keyboard-friendly index, not a
+        second graph.
+    -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1"
+                Background="{DynamicResource Brush.Surface1}" Padding="10,6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <kontur:KonturIcon Grid.Column="0" Kind="Graph" Width="14" Height="14"
+                                   Foreground="{DynamicResource Brush.AccentText}" />
+                <TextBlock Grid.Column="1" Text="Graph outline" Style="{StaticResource Type.Section}"
+                           Margin="9,0,0,0" VerticalAlignment="Center" />
+                <Button Grid.Column="2" Style="{StaticResource KcButtonTool}" Width="24" Height="24"
+                        Command="{Binding ClearFilterCommand}" ToolTip="Clear filter">
+                    <kontur:KonturIcon Kind="Close" Width="12" Height="12" />
+                </Button>
+            </Grid>
+        </Border>
+
+        <TextBox Grid.Row="1" Margin="10,8,10,4" MinHeight="28"
+                 Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}"
+                 ToolTip="Filter by name or path" />
+
+        <ListBox Grid.Row="2" ItemsSource="{Binding Groups}" Margin="4,0"
+                 HorizontalContentAlignment="Stretch">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                    <Setter Property="Padding" Value="6,4" />
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel MinWidth="0">
+                        <!-- Kind header: icon, name, count. -->
+                        <Grid Margin="4,8,4,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <kontur:KonturIcon Grid.Column="0" Kind="{Binding Icon}" Width="13" Height="13"
+                                               Foreground="{DynamicResource Brush.TextMuted}" />
+                            <TextBlock Grid.Column="1" Text="{Binding Title}" Style="{StaticResource Type.Metadata}"
+                                       Margin="8,0,0,0" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="2" Text="{Binding Count, StringFormat={}{0} }"
+                                       Style="{StaticResource Type.Metadata}" Opacity="0.55"
+                                       HorizontalAlignment="Right" />
+                        </Grid>
+
+                        <!-- The group's nodes. -->
+                        <ItemsControl ItemsSource="{Binding Nodes}" Margin="0,0,0,4">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="Transparent" CornerRadius="{StaticResource Radius.SM}"
+                                            Padding="8,5" Margin="20,0,4,1"
+                                            Cursor="Hand" MouseLeftButtonUp="OnNodeClicked"
+                                            ToolTip="{Binding Path, TargetNullValue='Focus on the canvas'}">
+                                        <StackPanel Orientation="Horizontal" MinWidth="0">
+                                            <TextBlock Text="{Binding Title}" Style="{StaticResource Type.Caption}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Path}" Style="{StaticResource Type.Metadata}"
+                                                       Opacity="0.5" Margin="10,0,0,0" TextTrimming="CharacterEllipsis"
+                                                       MaxWidth="260" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+</UserControl>

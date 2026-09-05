@@ -7,15 +7,16 @@ using Wpf.Ui;
 namespace AIClient.App.Views;
 
 /// <summary>
-/// The application shell: sidebar, chat header with the model selector, and the panes.
+/// The application shell: title bar, sidebar, workspace, context surface and status bar.
 /// </summary>
 /// <remarks>
 /// Constructed by the container, so the ViewModel arrives ready rather than being fetched
 /// from a service locator in the constructor.
 ///
-/// The code here is limited to what a binding cannot express: moving keyboard focus, and
-/// opening and closing the model popup. Everything else the shell does is a command on
-/// <see cref="MainViewModel"/>, reached through the ViewModel events below rather than by
+/// The code here is limited to what a binding cannot express: moving keyboard focus,
+/// opening and closing the model popup, and collapsing the sidebar into its icon rail -
+/// all layout state the view owns on the ViewModel's behalf. Everything else is a command
+/// on <see cref="MainViewModel"/>, reached through the ViewModel's events rather than by
 /// the ViewModel holding a reference to this window.
 /// </remarks>
 public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
@@ -41,9 +42,14 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
         viewModel.SearchRequested += OnSearchRequested;
         viewModel.ModelPickerRequested += OnModelPickerRequested;
+        viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
         ModelPicker.SelectionCommitted += OnModelSelectionCommitted;
         CommandPalette.Dismissed += OnCommandPaletteDismissed;
+
+        // The sidebar starts expanded; the first sync makes the rail's width follow the
+        // view model in both directions from here on.
+        ApplySidebarState();
 
         Loaded += OnLoaded;
         Closed += OnClosed;
@@ -71,8 +77,35 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     {
         ViewModel.SearchRequested -= OnSearchRequested;
         ViewModel.ModelPickerRequested -= OnModelPickerRequested;
+        ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
         ModelPicker.SelectionCommitted -= OnModelSelectionCommitted;
         CommandPalette.Dismissed -= OnCommandPaletteDismissed;
+    }
+
+    /// <summary>
+    /// Sidebar width is a <see cref="GridLength"/>, which bindings cannot write as a
+    /// simple double; the shell translates the view model's collapse state here.
+    /// </summary>
+    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(MainViewModel.IsSidebarCollapsed)
+            or nameof(MainViewModel.IsSidebarVisible))
+        {
+            ApplySidebarState();
+        }
+    }
+
+    private void ApplySidebarState()
+    {
+        SidebarColumn.MinWidth = ViewModel.IsSidebarCollapsed ? 48 : 232;
+        SidebarColumn.MaxWidth = ViewModel.IsSidebarCollapsed ? 48 : 420;
+        SidebarColumn.Width = new GridLength(ViewModel.IsSidebarCollapsed ? 48 : 232);
+
+        // Collapsing to the rail keeps the splitter's 6px from lying about what can move.
+        ContextSplitterColumn.Width = ViewModel.IsContextPanelVisible
+            ? new GridLength(6)
+            : new GridLength(0);
+        ContextColumn.MinWidth = 280;
     }
 
     /// <summary>Ctrl+K, or the palette's Search entry.</summary>
@@ -99,22 +132,4 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
     private void OnCommandPaletteDismissed(object? sender, EventArgs e) =>
         ViewModel.IsCommandPaletteOpen = false;
-
-    /// <summary>
-    /// Opens the export menu on a left click, which a ContextMenu does not do by itself.
-    /// </summary>
-    private void OnExportButtonClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is not FrameworkElement { ContextMenu: { } menu })
-        {
-            return;
-        }
-
-        // Without an explicit DataContext the menu, being outside the visual tree, would
-        // inherit nothing and every command binding on it would fail silently.
-        menu.DataContext = DataContext;
-        menu.PlacementTarget = sender as UIElement;
-        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
-        menu.IsOpen = true;
-    }
 }

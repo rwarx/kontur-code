@@ -18,6 +18,17 @@
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
 
+                <!--
+                    The Kontur design system. Merged after WPF-UI's dictionaries so the
+                    product's own tokens and control styles take precedence over the
+                    framework defaults for everything inside the window, while WPF-UI
+                    keeps the window chrome (caption buttons, dialogs, snackbars).
+                    The legacy Shared.xaml and MarkdownTemplates.xaml below still serve
+                    the views not yet migrated onto the design system; their brush keys
+                    resolve into the design system's legacy aliases.
+                -->
+                <ResourceDictionary Source="pack://application:,,,/Resources/Design/Theme.xaml" />
+
                 <ResourceDictionary Source="pack://application:,,,/Resources/Styles/Converters.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/Resources/Styles/Shared.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/Resources/Styles/MarkdownTemplates.xaml" />

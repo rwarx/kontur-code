@@ -3,72 +3,141 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:kontur="clr-namespace:AIClient.App.Controls"
              xmlns:vm="clr-namespace:AIClient.App.ViewModels"
              xmlns:conv="clr-namespace:AIClient.App.Converters"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
-             d:DesignHeight="700" d:DesignWidth="280">
+             d:DesignHeight="800" d:DesignWidth="232"
+             Background="{DynamicResource Brush.Surface1}"
+             TextElement.Foreground="{DynamicResource Brush.TextPrimary}">
 
+    <!--
+        Navigation, the workspace, and the sessions - calm, narrow, and collapsible to a
+        48px icon rail. The code-behind mirrors the collapse state into the panel widths;
+        here every row simply hides its label, and the tooltips (always on) take over.
+    -->
     <UserControl.Resources>
         <!-- See BindingProxy: a ContextMenu is not in this visual tree. -->
         <conv:BindingProxy x:Key="Root" Data="{Binding}" />
+
+        <!-- One nav row. The nav vocabulary is icon + label, and the icon is always
+             16px so the rail reads evenly when the labels are hidden. -->
+        <DataTemplate x:Key="NavItemTemplate">
+            <StackPanel Orientation="Horizontal">
+                <kontur:KonturIcon Kind="{Binding Icon}" Width="15" Height="15"
+                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" />
+                <TextBlock Text="{Binding Label}" Style="{StaticResource Type.Caption}" Margin="10,0,0,0"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+        </DataTemplate>
     </UserControl.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- New Chat -->
-        <ui:Button Grid.Row="0"
-                   Margin="10,12,10,6"
-                   Padding="12,10"
-                   HorizontalAlignment="Stretch"
-                   HorizontalContentAlignment="Left"
-                   Appearance="Primary"
-                   Icon="{ui:SymbolIcon Add24}"
-                   Content="New Chat"
-                   ToolTip="New chat (Ctrl+N)"
-                   Command="{Binding NewChatCommand}" />
+        <!-- Brand + collapse. -->
+        <Grid Grid.Row="0" Margin="10,10,8,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <kontur:KonturIcon Kind="Logo" Width="16" Height="16" GlyphThickness="2"
+                                   Foreground="{DynamicResource Brush.Accent}" />
+                <TextBlock Text="Workspace" Style="{StaticResource Type.Section}" Margin="9,0,0,0"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+            <Button Grid.Column="1" Style="{StaticResource KcButtonTool}" Width="24" Height="24"
+                    Command="{Binding CollapseSidebarCommand}"
+                    ToolTip="Collapse to icon rail (Ctrl+B)">
+                <kontur:KonturIcon Kind="CollapsePanel" Width="13" Height="13" />
+            </Button>
+        </Grid>
 
-        <!-- Search -->
-        <ui:TextBox x:Name="SearchBox"
-                    Grid.Row="1"
-                    Margin="10,4,10,8"
-                    PlaceholderText="Search chats…"
-                    Icon="{ui:SymbolIcon Search24}"
-                    ClearButtonEnabled="True"
-                    Text="{Binding Sessions.SearchQuery, UpdateSourceTrigger=PropertyChanged}"
-                    ToolTip="Search chats (Ctrl+K)" />
+        <!-- New chat. -->
+        <Button Grid.Row="1" Style="{StaticResource KcButtonPrimary}" Margin="10,2,10,8"
+                Padding="10,7" HorizontalContentAlignment="Left"
+                Command="{Binding NewChatCommand}" ToolTip="New chat (Ctrl+N)">
+            <StackPanel Orientation="Horizontal">
+                <kontur:KonturIcon Kind="Plus" Width="14" Height="14"
+                                   Foreground="{DynamicResource Brush.TextOnAccent}" />
+                <TextBlock Text="New Chat" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
+        </Button>
 
-        <!-- Session list -->
-        <Grid Grid.Row="2">
-            <ListBox x:Name="SessionList"
+        <!-- Mode navigation. -->
+        <ListBox x:Name="NavList" Grid.Row="2" Margin="6,0"
+                 ItemContainerStyle="{StaticResource KcNavItem}"
+                 ItemTemplate="{StaticResource NavItemTemplate}"
+                 SelectionChanged="OnNavSelected"
+                 KeyboardNavigation.DirectionalNavigation="Contained" />
+
+        <!-- Workspace block: the folder, its two actions, and its health. -->
+        <StackPanel Grid.Row="3" Margin="10,10,10,6">
+            <TextBlock Text="WORKSPACE" Style="{StaticResource Type.Metadata}" Margin="2,0,0,4" Opacity="0.7" />
+            <Button Style="{StaticResource KcButtonGhost}" Padding="9,6" Margin="0,1"
+                    HorizontalContentAlignment="Left"
+                    Command="{Binding Workspace.OpenWorkspaceCommand}"
+                    ToolTip="{Binding Workspace.WorkspaceRoot, FallbackValue='Choose a folder to map'}">
+                <StackPanel Orientation="Horizontal">
+                    <kontur:KonturIcon Kind="Open" Width="14" Height="14" />
+                    <TextBlock Text="Open Folder" Style="{StaticResource Type.Caption}" Margin="9,0,0,0"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <Button Style="{StaticResource KcButtonGhost}" Padding="9,6" Margin="0,1"
+                    HorizontalContentAlignment="Left"
+                    Command="{Binding Workspace.RefreshGraphCommand}"
+                    ToolTip="Re-read the workspace into the graph">
+                <StackPanel Orientation="Horizontal">
+                    <kontur:KonturIcon Kind="Refresh" Width="14" Height="14"
+                                       Foreground="{DynamicResource Brush.AccentText}" />
+                    <TextBlock Text="Refresh Graph" Style="{StaticResource Type.Caption}" Margin="9,0,0,0"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+        <!-- Sessions. -->
+        <Grid Grid.Row="4" Margin="0,2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="SESSIONS" Style="{StaticResource Type.Metadata}"
+                       Margin="12,0,0,4" Opacity="0.7" />
+
+            <TextBox x:Name="SearchBox" Grid.Row="1" Margin="10,0,10,6" MinHeight="28"
+                     Text="{Binding Sessions.SearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="Search chats (Ctrl+K)" />
+
+            <ListBox x:Name="SessionList" Grid.Row="2"
                      ItemsSource="{Binding Sessions.Sessions}"
                      SelectedItem="{Binding Sessions.SelectedSession}"
-                     Background="Transparent"
-                     BorderThickness="0"
                      Margin="6,0"
                      HorizontalContentAlignment="Stretch"
-                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     ScrollViewer.ScrollChanged="OnSessionScrollChanged"
                      VirtualizingPanel.IsVirtualizing="True"
                      VirtualizingPanel.VirtualizationMode="Recycling"
-                     ScrollViewer.ScrollChanged="OnSessionScrollChanged"
                      SelectionChanged="OnSessionSelected"
-                     Visibility="{Binding Sessions.IsEmpty, Converter={StaticResource InverseBoolToVisibility}}">
-
+                     Style="{StaticResource {x:Type ListBox}}">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
-                        <Setter Property="Padding" Value="8,7" />
-                        <Setter Property="Margin" Value="0,1" />
+                        <Setter Property="Padding" Value="9,6" />
+                        <Setter Property="Margin" Value="1,0" />
                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                     </Style>
                 </ListBox.ItemContainerStyle>
-
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Grid>
@@ -76,96 +145,60 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-
-                            <ui:SymbolIcon Grid.Column="0"
-                                           Symbol="Pin24"
-                                           FontSize="13"
-                                           Margin="0,1,6,0"
-                                           VerticalAlignment="Top"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                           Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisibility}}" />
-
-                            <StackPanel Grid.Column="1">
-                                <TextBlock Text="{Binding Title}"
-                                           TextTrimming="CharacterEllipsis"
-                                           FontSize="13" />
-
+                            <kontur:KonturIcon Grid.Column="0" Kind="Pin" Width="11" Height="11"
+                                               Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisibility}}"
+                                               Foreground="{DynamicResource Brush.Warning}"
+                                               Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" MinWidth="0">
+                                <TextBlock Text="{Binding Title}" Style="{StaticResource Type.Caption}"
+                                           TextTrimming="CharacterEllipsis" />
                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                    <TextBlock Style="{StaticResource SubtleText}"
-                                               Text="{Binding UpdatedAt, Converter={StaticResource RelativeTime}}"
-                                               FontSize="11" />
-                                    <TextBlock Style="{StaticResource SubtleText}"
-                                               Text="{Binding Preview}"
-                                               FontSize="11"
-                                               Margin="6,0,0,0"
-                                               MaxWidth="150" />
+                                    <TextBlock Text="{Binding UpdatedAt, Converter={StaticResource RelativeTime}}"
+                                               Style="{StaticResource Type.Metadata}" />
+                                    <TextBlock Text="{Binding Preview}" Style="{StaticResource Type.Metadata}"
+                                               Opacity="0.55" Margin="8,0,0,0" MaxWidth="130"
+                                               TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
                             </StackPanel>
-
-                            <!-- Right-click rather than always-visible buttons: the list is
-                                 narrow and three icons per row would crowd out the title. -->
-                            <Grid.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="Open"
-                                              Command="{Binding Data.Sessions.OpenCommand, Source={StaticResource Root}}"
-                                              CommandParameter="{Binding}" />
-                                    <MenuItem Header="Rename…"
-                                              Command="{Binding Data.Sessions.RenameCommand, Source={StaticResource Root}}"
-                                              CommandParameter="{Binding}" />
-                                    <MenuItem Header="Pin / Unpin"
-                                              Command="{Binding Data.Sessions.TogglePinCommand, Source={StaticResource Root}}"
-                                              CommandParameter="{Binding}" />
-                                    <Separator />
-                                    <MenuItem Header="Delete"
-                                              Command="{Binding Data.Sessions.DeleteCommand, Source={StaticResource Root}}"
-                                              CommandParameter="{Binding}" />
-                                </ContextMenu>
-                            </Grid.ContextMenu>
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
+                <ListBox.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Open" Command="{Binding Data.Sessions.OpenCommand, Source={StaticResource Root}}"
+                                  CommandParameter="{Binding}" />
+                        <MenuItem Header="Rename…"
+                                  Command="{Binding Data.Sessions.RenameCommand, Source={StaticResource Root}}"
+                                  CommandParameter="{Binding}" />
+                        <MenuItem Header="Pin"
+                                  Command="{Binding Data.Sessions.TogglePinCommand, Source={StaticResource Root}}"
+                                  CommandParameter="{Binding}" />
+                        <Separator />
+                        <MenuItem Header="Delete"
+                                  Command="{Binding Data.Sessions.DeleteCommand, Source={StaticResource Root}}"
+                                  CommandParameter="{Binding}" />
+                    </ContextMenu>
+                </ListBox.ContextMenu>
             </ListBox>
-
-            <!-- Empty state, distinguishing "no chats yet" from "nothing matched". -->
-            <TextBlock Style="{StaticResource SubtleText}"
-                       VerticalAlignment="Center"
-                       Margin="20"
-                       TextAlignment="Center"
-                       TextWrapping="Wrap"
-                       TextTrimming="None"
-                       Text="{Binding Sessions.EmptyMessage}"
-                       Visibility="{Binding Sessions.IsEmpty, Converter={StaticResource BoolToVisibility}}" />
-
-            <ui:ProgressRing IsIndeterminate="True"
-                             Width="22" Height="22"
-                             VerticalAlignment="Bottom"
-                             HorizontalAlignment="Center"
-                             Margin="0,0,0,10"
-                             Visibility="{Binding Sessions.IsLoading, Converter={StaticResource BoolToVisibility}}" />
         </Grid>
 
-        <!-- Footer -->
-        <StackPanel Grid.Row="3" Margin="10,6,10,10">
-            <Border Height="1"
-                    Margin="0,0,0,8"
-                    Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
-
-            <ui:Button Style="{StaticResource SidebarButton}"
-                       Icon="{ui:SymbolIcon Settings24}"
-                       Content="Settings"
-                       ToolTip="Settings (Ctrl+,)"
-                       Command="{Binding ShowSettingsCommand}" />
-
-            <ui:Button Style="{StaticResource SidebarButton}"
-                       Icon="{ui:SymbolIcon WeatherMoon24}"
-                       Content="Toggle theme"
-                       Command="{Binding ToggleThemeCommand}" />
-
-            <ui:Button Style="{StaticResource SidebarButton}"
-                       Icon="{ui:SymbolIcon Keyboard24}"
-                       Content="Command palette"
-                       ToolTip="Ctrl+Shift+P"
-                       Command="{Binding ToggleCommandPaletteCommand}" />
-        </StackPanel>
+        <!-- Footer: settings, theme, palette. -->
+        <Border Grid.Row="5" BorderBrush="{DynamicResource Brush.BorderFaint}" BorderThickness="0,1,0,0"
+                Padding="6,6">
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource KcButtonTool}" Command="{Binding ShowSettingsCommand}"
+                        ToolTip="Settings (Ctrl+,)">
+                    <kontur:KonturIcon Kind="Settings" Width="14" Height="14" />
+                </Button>
+                <Button Style="{StaticResource KcButtonTool}" Command="{Binding ToggleThemeCommand}"
+                        ToolTip="Toggle theme">
+                    <kontur:KonturIcon Kind="Eye" Width="14" Height="14" />
+                </Button>
+                <Button Style="{StaticResource KcButtonTool}" Command="{Binding ToggleCommandPaletteCommand}"
+                        ToolTip="Command palette (Ctrl+Shift+P)">
+                    <kontur:KonturIcon Kind="Command" Width="14" Height="14" />
+                </Button>
+            </StackPanel>
+        </Border>
     </Grid>
 </UserControl>

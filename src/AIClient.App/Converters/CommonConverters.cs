@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
+using System.Windows.Media;
 
 namespace AIClient.App.Converters;
 
@@ -229,4 +230,103 @@ public sealed class EqualityConverter : IValueConverter
         value is true && parameter is not null
             ? parameter
             : Binding.DoNothing;
+}
+
+/// <summary>Maps "the workspace is in this mode" to Visibility, for the mode panes.</summary>
+/// <remarks>
+/// Mode switching is visibility over live views, and the views need to know which one is
+/// showing. A dedicated converter (rather than Equality + BoolToVisibility chained) keeps
+/// the XAML one attribute long and keeps the mode enum's name out of string literals
+/// scattered across every pane.
+/// </remarks>
+public sealed class WorkspaceModeEqualsConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        string.Equals(value?.ToString(), parameter?.ToString(), StringComparison.Ordinal)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is Visibility.Visible ? parameter ?? Binding.DoNothing : Binding.DoNothing;
+}
+
+/// <summary>Maps a node count to Visibility: an empty canvas shows its empty state, not a void.</summary>
+/// <remarks>
+/// ConverterParameter "invert" flips the sense, so one converter covers "show while
+/// empty" and "show while populated" without two classes.
+/// </remarks>
+public sealed class NodeCountToVisibilityConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var hasNodes = value is int count and > 0;
+        var invert = string.Equals(parameter?.ToString(), "invert", StringComparison.OrdinalIgnoreCase);
+
+        return hasNodes != invert ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        Binding.DoNothing;
+}
+
+/// <summary>Maps a bool to one of two brushes - the active tab's quiet emphasis.</summary>
+/// <remarks>
+/// A tab's active state is a background and border pair, and this converter lets both
+/// come from resources rather than hard-coded colours in the template.
+/// </remarks>
+public sealed class BoolToBrushConverter : IValueConverter
+{
+    public Brush? TrueBrush { get; set; }
+
+    public Brush? FalseBrush { get; set; }
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is true ? TrueBrush : FalseBrush;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        Binding.DoNothing;
+}
+
+/// <summary>Names the context panel's current shape for its header.</summary>
+public sealed class ContextPanelModeLabelConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value?.ToString() switch
+        {
+            nameof(AIClient.App.ViewModels.ContextPanelMode.Node) => "Node",
+            nameof(AIClient.App.ViewModels.ContextPanelMode.Edge) => "Connection",
+            nameof(AIClient.App.ViewModels.ContextPanelMode.Selection) => "Selection",
+            nameof(AIClient.App.ViewModels.ContextPanelMode.AiActivity) => "AI activity",
+            _ => "Workspace",
+        };
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        Binding.DoNothing;
+}
+
+/// <summary>Maps a graph node kind to the icon vocabulary, so inspectors and canvas agree.</summary>
+public sealed class NodeKindIconConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value?.ToString() switch
+        {
+            nameof(AIClient.Domain.Graph.GraphNodeKind.File) => AIClient.App.Controls.IconKind.File,
+            nameof(AIClient.Domain.Graph.GraphNodeKind.Folder) => AIClient.App.Controls.IconKind.Folder,
+            nameof(AIClient.Domain.Graph.GraphNodeKind.Module) => AIClient.App.Controls.IconKind.Code,
+            nameof(AIClient.Domain.Graph.GraphNodeKind.Service) => AIClient.App.Controls.IconKind.Package,
+            nameof(AIClient.Domain.Graph.GraphNodeKind.Interface) => AIClient.App.Controls.IconKind.Link,
+            nameof(AIClient.Domain.Graph.GraphNodeKind.Data) => AIClient.App.Controls.IconKind.Memory,
+            nameof(AIClient.Domain.Graph.GraphNodeKind.View) => AIClient.App.Controls.IconKind.Eye,
+            nameof(AIClient.Domain.Graph.GraphNodeKind.Test) => AIClient.App.Controls.IconKind.Check,
+            nameof(AIClient.Domain.Graph.GraphNodeKind.Plan) => AIClient.App.Controls.IconKind.Sparkle,
+            nameof(AIClient.Domain.Graph.GraphNodeKind.Task) => AIClient.App.Controls.IconKind.Tasks,
+            nameof(AIClient.Domain.Graph.GraphNodeKind.Agent) => AIClient.App.Controls.IconKind.Bot,
+            nameof(AIClient.Domain.Graph.GraphNodeKind.Model) => AIClient.App.Controls.IconKind.Models,
+            nameof(AIClient.Domain.Graph.GraphNodeKind.External) => AIClient.App.Controls.IconKind.Open,
+            nameof(AIClient.Domain.Graph.GraphNodeKind.Note) => AIClient.App.Controls.IconKind.Note,
+            _ => AIClient.App.Controls.IconKind.Node,
+        };
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        Binding.DoNothing;
 }

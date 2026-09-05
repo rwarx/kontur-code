@@ -1,0 +1,84 @@
+<!--
+    Kontur Code design system — typography tokens.
+
+    A developer tool is read, not glanced at. Sizes stay small and dense on purpose:
+    the largest thing on any screen is content, never chrome. Every style pins
+    TextFormattingMode to Display - at 11-13px, Ideal mode renders soft grey mush on
+    100% DPI displays, and this interface lives at exactly those sizes.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- Family. "Segoe UI Variable Text" is the Windows 11 UI face and degrades
+         gracefully to Segoe UI on 10; both render well at small sizes. -->
+    <FontFamily x:Key="Font.Interface">Segoe UI Variable Text, Segoe UI, Inter, System UI</FontFamily>
+    <FontFamily x:Key="Font.Mono">Cascadia Code, Consolas, Courier New</FontFamily>
+
+    <!-- Sizes -->
+    <sys:Double x:Key="Size.Title">15</sys:Double>
+    <sys:Double x:Key="Size.Section">13</sys:Double>
+    <sys:Double x:Key="Size.Body">13</sys:Double>
+    <sys:Double x:Key="Size.Caption">12</sys:Double>
+    <sys:Double x:Key="Size.Metadata">11</sys:Double>
+    <sys:Double x:Key="Size.Code">12.5</sys:Double>
+
+    <!-- Styles. Kept as TextBlock styles AND mirrored as setters-only resources so
+         non-TextBlock hosts (buttons, list items) can compose them inline. -->
+
+    <Style x:Key="Type.Title" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Interface}" />
+        <Setter Property="FontSize" Value="{StaticResource Size.Title}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+    </Style>
+
+    <Style x:Key="Type.Section" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Interface}" />
+        <Setter Property="FontSize" Value="{StaticResource Size.Section}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+    </Style>
+
+    <Style x:Key="Type.Body" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Interface}" />
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+    </Style>
+
+    <Style x:Key="Type.BodyWrap" TargetType="TextBlock" BasedOn="{StaticResource Type.Body}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="Type.Caption" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Interface}" />
+        <Setter Property="FontSize" Value="{StaticResource Size.Caption}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+    </Style>
+
+    <Style x:Key="Type.CaptionWrap" TargetType="TextBlock" BasedOn="{StaticResource Type.Caption}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!-- Metadata: counts, hints, timestamps, badges. The quietest text that is still
+         worth its pixels. -->
+    <Style x:Key="Type.Metadata" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Interface}" />
+        <Setter Property="FontSize" Value="{StaticResource Size.Metadata}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+    </Style>
+
+    <Style x:Key="Type.Accent" TargetType="TextBlock" BasedOn="{StaticResource Type.Metadata}">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.AccentText}" />
+    </Style>
+
+</ResourceDictionary>

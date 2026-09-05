@@ -5,21 +5,22 @@
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                  xmlns:views="clr-namespace:AIClient.App.Views"
+                 xmlns:kontur="clr-namespace:AIClient.App.Controls"
                  xmlns:vm="clr-namespace:AIClient.App.ViewModels"
-                 xmlns:app="clr-namespace:AIClient.Application.Interfaces;assembly=AIClient.Application"
                  mc:Ignorable="d"
                  d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
-                 Title="AI Client"
-                 Width="1240" Height="820"
-                 MinWidth="760" MinHeight="520"
+                 Title="Kontur Code"
+                 Width="1360" Height="860"
+                 MinWidth="900" MinHeight="560"
                  WindowStartupLocation="CenterScreen"
                  ExtendsContentIntoTitleBar="True"
-                 WindowCornerPreference="Round">
+                 WindowCornerPreference="Round"
+                 Background="{DynamicResource Brush.Surface0}">
 
     <!--
-        Section 23. Declared on the window rather than per view, so a shortcut works wherever
-        focus happens to be. Enter and Shift+Enter are not here: they are only meaningful
-        inside the composer and are handled there.
+        Declared on the window rather than per view, so a shortcut works wherever focus
+        happens to be. Enter and Shift+Enter stay in the composer; Ctrl+Z/Y belong to
+        whatever has focus, which is why they are not here.
     -->
     <ui:FluentWindow.InputBindings>
         <KeyBinding Key="N" Modifiers="Ctrl" Command="{Binding NewChatCommand}" />
@@ -27,198 +28,163 @@
         <KeyBinding Key="OemComma" Modifiers="Ctrl" Command="{Binding ShowSettingsCommand}" />
         <KeyBinding Key="P" Modifiers="Ctrl+Shift" Command="{Binding ToggleCommandPaletteCommand}" />
         <KeyBinding Key="B" Modifiers="Ctrl" Command="{Binding ToggleSidebarCommand}" />
+        <KeyBinding Key="I" Modifiers="Ctrl" Command="{Binding AskAiAboutSelectionCommand}" />
         <KeyBinding Key="Escape" Command="{Binding Chat.StopCommand}" />
     </ui:FluentWindow.InputBindings>
 
     <Grid>
         <Grid.RowDefinitions>
+            <!-- Title bar content: identity, workspace, model, AI state, search, palette. -->
+            <RowDefinition Height="40" />
+            <RowDefinition Height="*" MinHeight="240" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <ui:TitleBar Grid.Row="0"
-                     Title="AI Client"
-                     Icon="{ui:SymbolIcon Sparkle24}" />
+        <!--
+            The top bar. WPF-UI's TitleBar provides the drag region and the caption
+            buttons; everything the product needs in the title row sits on top of it as
+            an overlay whose container is deliberately transparent-null so the empty
+            stretches keep dragging the window. The right padding reserves the caption
+            buttons' width so nothing important is ever minimized by accident.
+        -->
+        <Grid Grid.Row="0" Background="{DynamicResource Brush.Surface1}">
+            <ui:TitleBar Title="" Icon="" ShowMaximize="True" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="142" />
+                </Grid.ColumnDefinitions>
 
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="SidebarColumn" Width="280" MinWidth="220" MaxWidth="420" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" MinWidth="440" />
-            </Grid.ColumnDefinitions>
+                <!-- Identity. The mark and the name; the one place the product is loud
+                     about being itself. -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+                    <kontur:KonturIcon Kind="Logo" Width="18" Height="18" GlyphThickness="2"
+                                       Foreground="{DynamicResource Brush.Accent}" />
+                    <TextBlock Text="Kontur Code" Style="{StaticResource Type.Title}" Margin="9,0,0,0"
+                               VerticalAlignment="Center" />
+                </StackPanel>
 
-            <views:SidebarView x:Name="Sidebar"
-                               Grid.Column="0"
-                               Visibility="{Binding IsSidebarVisible, Converter={StaticResource BoolToVisibility}}" />
+                <!-- Workspace chip: the folder everything on screen refers to. -->
+                <Button Grid.Column="1" Style="{StaticResource KcButtonGhost}" Margin="16,0,0,0"
+                        Padding="9,4" MinHeight="26"
+                        ToolTip="{Binding Workspace.WorkspaceRoot, FallbackValue='Open a workspace folder'}"
+                        Command="{Binding Workspace.OpenWorkspaceCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <kontur:KonturIcon Kind="Folder" Width="13" Height="13"
+                                           Foreground="{DynamicResource Brush.TextSecondary}" />
+                        <TextBlock Text="{Binding Workspace.WorkspaceName, FallbackValue='No workspace'}"
+                                   Style="{StaticResource Type.Caption}" Margin="7,0,0,0" MaxWidth="180"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
 
-            <GridSplitter Grid.Column="1"
-                          Width="1"
-                          HorizontalAlignment="Stretch"
-                          VerticalAlignment="Stretch"
-                          ResizeBehavior="PreviousAndNext"
-                          Background="{DynamicResource ControlStrokeColorDefaultBrush}"
-                          Visibility="{Binding IsSidebarVisible, Converter={StaticResource BoolToVisibility}}" />
+                <!-- AI state: quiet unless there is something to say. A running agent is
+                     the one thing worth a coloured dot in the title row. -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="16,0,12,0" VerticalAlignment="Center"
+                            HorizontalAlignment="Left">
+                    <Ellipse Width="7" Height="7" VerticalAlignment="Center" Margin="0,0,6,0"
+                             Fill="{DynamicResource Brush.Success}" />
+                    <TextBlock Text="{Binding Workspace.Context.AiStateText, FallbackValue='Idle'}"
+                               Style="{StaticResource Type.Metadata}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Workspace.Context.AiModelName, TargetNullValue=''}"
+                               Style="{StaticResource Type.Metadata}" Opacity="0.55" Margin="8,0,0,0"
+                               TextTrimming="CharacterEllipsis" MaxWidth="220" VerticalAlignment="Center" />
+                </StackPanel>
 
-            <!-- Main area -->
-            <Grid Grid.Column="2">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-
-                <!-- Section 31: connectivity is a strip, not a modal. Saved conversations,
-                     settings and the local database all stay usable while it is showing. -->
-                <ui:InfoBar Grid.Row="0"
-                            Severity="Warning"
-                            IsClosable="False"
-                            Margin="16,0,16,10"
-                            Title="No internet connection"
-                            Message="Saved conversations and settings are still available. New messages will fail until the connection is back."
-                            IsOpen="{Binding IsOffline}" />
-
-                <!-- Chat header: title, model selector, chat actions -->
-                <Border Grid.Row="1"
-                        Padding="14,8"
-                        BorderThickness="0,0,0,1"
-                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-                        Visibility="{Binding IsChatVisible, Converter={StaticResource BoolToVisibility}}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
-                        <ui:Button Grid.Column="0"
-                                   Icon="{ui:SymbolIcon PanelLeft24}"
-                                   Appearance="Transparent"
-                                   Margin="0,0,8,0"
-                                   ToolTip="Toggle sidebar (Ctrl+B)"
-                                   Command="{Binding ToggleSidebarCommand}" />
-
-                        <TextBlock Grid.Column="1"
-                                   Text="{Binding Chat.Title}"
-                                   FontSize="15"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"
-                                   TextTrimming="CharacterEllipsis" />
-
-                        <StackPanel Grid.Column="2" Orientation="Horizontal">
-
-                            <!-- Model selector. A popup rather than a ComboBox: the list needs
-                                 a filter box and provider grouping, and a combo cannot host
-                                 either without fighting its own keyboard handling. -->
-                            <ui:Button x:Name="ModelButton"
-                                       Appearance="Secondary"
-                                       Margin="0,0,6,0"
-                                       ToolTip="Change model"
-                                       Click="OnModelButtonClick">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding Chat.SelectedModel.Name, FallbackValue='Select a model', TargetNullValue='Select a model'}"
-                                               MaxWidth="230"
-                                               TextTrimming="CharacterEllipsis"
-                                               VerticalAlignment="Center" />
-                                    <ui:SymbolIcon Symbol="ChevronDown24"
-                                                   FontSize="12"
-                                                   Margin="8,0,0,0"
-                                                   VerticalAlignment="Center" />
-                                </StackPanel>
-                            </ui:Button>
-
-                            <ui:Button Icon="{ui:SymbolIcon ArrowExportLtr24}"
-                                       Appearance="Transparent"
-                                       ToolTip="Export conversation"
-                                       Click="OnExportButtonClick">
-                                <ui:Button.ContextMenu>
-                                    <ContextMenu>
-                                        <MenuItem Header="Export as Markdown"
-                                                  Command="{Binding ExportCommand}"
-                                                  CommandParameter="{x:Static app:ExportFormat.Markdown}" />
-                                        <MenuItem Header="Export as JSON"
-                                                  Command="{Binding ExportCommand}"
-                                                  CommandParameter="{x:Static app:ExportFormat.Json}" />
-                                        <MenuItem Header="Export as plain text"
-                                                  Command="{Binding ExportCommand}"
-                                                  CommandParameter="{x:Static app:ExportFormat.PlainText}" />
-                                    </ContextMenu>
-                                </ui:Button.ContextMenu>
-                            </ui:Button>
-
-                            <ui:Button Icon="{ui:SymbolIcon Settings24}"
-                                       Appearance="Transparent"
-                                       ToolTip="Settings (Ctrl+,)"
-                                       Command="{Binding ShowSettingsCommand}" />
+                <!-- Model chip + search + palette, ending before the caption buttons. -->
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="ModelButton" Style="{StaticResource KcButtonGhost}" Padding="9,4" MinHeight="26"
+                            Margin="0,0,4,0" Click="OnModelButtonClick" ToolTip="Change model">
+                        <StackPanel Orientation="Horizontal">
+                            <kontur:KonturIcon Kind="Models" Width="13" Height="13"
+                                               Foreground="{DynamicResource Brush.AccentText}" />
+                            <TextBlock Text="{Binding Chat.SelectedModel.Name, FallbackValue='Select a model', TargetNullValue='Select a model'}"
+                                       Style="{StaticResource Type.Caption}" MaxWidth="200" Margin="7,0,0,0"
+                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            <kontur:KonturIcon Kind="ChevronDown" Width="10" Height="10" GlyphThickness="1.8"
+                                               Foreground="{DynamicResource Brush.TextMuted}" Margin="6,1,0,0" />
                         </StackPanel>
-                    </Grid>
-                </Border>
+                    </Button>
 
-                <views:ChatView Grid.Row="2"
-                                DataContext="{Binding Chat}"
-                                Visibility="{Binding DataContext.IsChatVisible,
-                                                     RelativeSource={RelativeSource AncestorType=Window},
-                                                     Converter={StaticResource BoolToVisibility}}" />
-
-                <views:SettingsView Grid.Row="1"
-                                    Grid.RowSpan="2"
-                                    DataContext="{Binding Settings}"
-                                    Visibility="{Binding DataContext.IsSettingsVisible,
-                                                         RelativeSource={RelativeSource AncestorType=Window},
-                                                         Converter={StaticResource BoolToVisibility}}" />
+                    <Button Style="{StaticResource KcButtonTool}" Command="{Binding ToggleCommandPaletteCommand}"
+                            ToolTip="Command palette (Ctrl+Shift+P)">
+                        <kontur:KonturIcon Kind="Command" Width="14" Height="14" />
+                    </Button>
+                </StackPanel>
             </Grid>
         </Grid>
 
+        <!-- The body: sidebar | workspace | context surface, all user-resizable. -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="SidebarColumn" Width="232" MinWidth="232" MaxWidth="420" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" MinWidth="360" />
+                <ColumnDefinition x:Name="ContextSplitterColumn" Width="Auto" />
+                <ColumnDefinition x:Name="ContextColumn" Width="320" MinWidth="280" MaxWidth="480" />
+            </Grid.ColumnDefinitions>
+
+            <views:SidebarView x:Name="Sidebar" Grid.Column="0"
+                               Visibility="{Binding IsSidebarVisible, Converter={StaticResource BoolToVisibility}}" />
+
+            <GridSplitter Grid.Column="1" Style="{StaticResource KcSplitV}"
+                          Visibility="{Binding IsSidebarVisible, Converter={StaticResource BoolToVisibility}}" />
+
+            <views:WorkspaceView Grid.Column="2" x:Name="WorkspaceHost" />
+
+            <GridSplitter x:Name="ContextSplitter" Grid.Column="3" Style="{StaticResource KcSplitV}"
+                          Visibility="{Binding IsContextPanelVisible, Converter={StaticResource BoolToVisibility}}" />
+
+            <views:ContextPanelView x:Name="ContextPanel" Grid.Column="4"
+                                    Visibility="{Binding IsContextPanelVisible, Converter={StaticResource BoolToVisibility}}" />
+        </Grid>
+
+        <views:StatusBarView Grid.Row="2" />
+
         <!--
-            Overlays cover the content, deliberately not the title bar. Spanning both rows
-            hides the caption buttons, which leaves the window with no visible way to minimise
-            or close it while the wizard is up - it reads as a broken window rather than a
-            modal one. The dialog host is the exception below, and always carries its own
-            dismiss button.
+            Overlays cover the body, not the title row: spanning everything would hide
+            the caption buttons and leave the window with no visible way to close itself.
         -->
-        <views:CommandPaletteView x:Name="CommandPalette"
-                                  Grid.Row="1"
+        <views:CommandPaletteView x:Name="CommandPalette" Grid.Row="1"
                                   DataContext="{Binding CommandPalette}"
                                   Visibility="{Binding DataContext.IsCommandPaletteOpen,
                                                        RelativeSource={RelativeSource AncestorType=Window},
                                                        Converter={StaticResource BoolToVisibility}}" />
 
-        <views:FirstRunView Grid.Row="1"
+        <views:FirstRunView Grid.Row="0" Grid.RowSpan="3"
                             DataContext="{Binding FirstRun}"
                             Visibility="{Binding DataContext.IsFirstRunVisible,
                                                  RelativeSource={RelativeSource AncestorType=Window},
                                                  Converter={StaticResource BoolToVisibility}}" />
 
-        <!-- Hosts for the WPF-UI services resolved through DI; both are wired in the
-             constructor, because the services need the element and not the other way round.
-             ContentDialogHost rather than a bare ContentPresenter: it disables the rest of the
-             shell while a dialog is up, so a confirmation cannot be clicked around. -->
-        <ui:ContentDialogHost x:Name="DialogHost" Grid.Row="0" Grid.RowSpan="2" />
+        <!-- WPF-UI service hosts: wired in the constructor, before any dialog is shown. -->
+        <ui:ContentDialogHost x:Name="DialogHost" Grid.Row="0" Grid.RowSpan="3" />
 
         <ui:SnackbarPresenter x:Name="SnackbarHost"
-                              Grid.Row="1"
-                              Margin="0,0,0,18"
+                              Grid.Row="2"
+                              Margin="0,0,0,26"
                               VerticalAlignment="Bottom"
                               HorizontalAlignment="Center" />
 
         <Popup x:Name="ModelPopup"
                PlacementTarget="{Binding ElementName=ModelButton}"
                Placement="Bottom"
-               VerticalOffset="6"
-               HorizontalOffset="-300"
+               VerticalOffset="4"
+               HorizontalOffset="-264"
                StaysOpen="False"
                AllowsTransparency="True"
                Focusable="False"
                PopupAnimation="Fade">
-            <Border Background="{DynamicResource ApplicationBackgroundBrush}"
-                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+            <Border Background="{DynamicResource Brush.Surface3}"
+                    BorderBrush="{DynamicResource Brush.BorderStrong}"
                     BorderThickness="1"
                     CornerRadius="8"
                     Margin="12"
-                    Padding="4">
-                <Border.Effect>
-                    <DropShadowEffect BlurRadius="18" ShadowDepth="3" Direction="270" Opacity="0.35" Color="Black" />
-                </Border.Effect>
-
+                    Padding="4"
+                    Effect="{StaticResource Shadow.Overlay}">
                 <views:ModelPickerView x:Name="ModelPicker"
                                        Width="440"
                                        MaxHeight="460"

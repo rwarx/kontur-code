@@ -39,6 +39,26 @@ internal static class UiThread
             : dispatcher.InvokeAsync(operation).Task.Unwrap();
     }
 
+    /// <summary>
+    /// Runs a value-returning operation on the UI thread and completes with its result.
+    /// </summary>
+    /// <remarks>
+    /// Same marshalling rules as the void flavour; exists because awaiting a non-generic
+    /// Task yields void, and callers with results should not have to box them through a
+    /// closure variable to get them back.
+    /// </remarks>
+    public static async Task<TResult> RunAsync<TResult>(Func<Task<TResult>> operation)
+    {
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+
+        if (dispatcher is null || dispatcher.CheckAccess())
+        {
+            return await operation().ConfigureAwait(true);
+        }
+
+        return await dispatcher.InvokeAsync(operation).Task.Unwrap().ConfigureAwait(true);
+    }
+
     /// <summary>Applies a state change on the UI thread, without waiting for it.</summary>
     public static void Post(Action update)
     {

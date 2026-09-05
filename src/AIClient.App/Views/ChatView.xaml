@@ -49,10 +49,10 @@
                         <Style TargetType="TextBlock">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding Kind}" Value="Header">
-                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding Kind}" Value="Notice">
-                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
                                     <Setter Property="FontStyle" Value="Italic" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -74,8 +74,8 @@
             <Border Margin="0,4,0,0"
                     Padding="8,6"
                     CornerRadius="{StaticResource CardCorner}"
-                    Background="{DynamicResource ControlFillColorSecondaryBrush}"
-                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    Background="{DynamicResource Brush.Surface2}"
+                    BorderBrush="{DynamicResource Brush.Border}"
                     BorderThickness="1">
                 <StackPanel>
                     <Grid>
@@ -147,10 +147,10 @@
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource SubtleText}">
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding State}" Value="Proposed">
-                                            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorSecondaryBrush}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource Brush.AccentText}" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding State}" Value="Running">
-                                            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorSecondaryBrush}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource Brush.AccentText}" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding State}" Value="Failed">
                                             <Setter Property="Foreground" Value="{StaticResource ApprovalAccentBrush}" />
@@ -203,8 +203,8 @@
                     -->
                     <Border Margin="0,8,0,0"
                             CornerRadius="6"
-                            Background="{DynamicResource ApplicationBackgroundBrush}"
-                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                            Background="{DynamicResource Brush.SurfaceSunken}"
+                            BorderBrush="{DynamicResource Brush.Border}"
                             BorderThickness="1"
                             Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}">
                         <Grid>
@@ -346,7 +346,7 @@
                                  TextWrapping="Wrap"
                                  MaxHeight="220"
                                  Margin="0,6,0,0"
-                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                 Foreground="{DynamicResource Brush.TextSecondary}"
                                  FontSize="12"
                                  VerticalScrollBarVisibility="Auto"
                                  Background="Transparent"
@@ -599,7 +599,7 @@
                 Margin="24,0,24,0"
                 Padding="14,12"
                 CornerRadius="{StaticResource CardCorner}"
-                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                Background="{DynamicResource Brush.Surface2}"
                 BorderThickness="3,1,1,1"
                 BorderBrush="{StaticResource ApprovalAccentBrush}"
                 MaxWidth="{StaticResource ContentMaxWidth}"
@@ -745,7 +745,7 @@
         <!-- Composer -->
         <Border Grid.Row="2"
                 BorderThickness="0,1,0,0"
-                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                BorderBrush="{DynamicResource Brush.Border}"
                 Padding="24,12,24,16">
             <Grid MaxWidth="{StaticResource ContentMaxWidth}">
                 <Grid.RowDefinitions>
@@ -806,8 +806,8 @@
                 <Border Grid.Row="2"
                         CornerRadius="8"
                         BorderThickness="1"
-                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-                        Background="{DynamicResource ControlFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource Brush.Border}"
+                        Background="{DynamicResource Brush.Surface2}"
                         Padding="6"
                         AllowDrop="True"
                         Drop="OnFilesDropped"

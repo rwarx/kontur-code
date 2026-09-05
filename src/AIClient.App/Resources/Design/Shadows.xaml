@@ -1,0 +1,36 @@
+<!--
+    Kontur Code design system — elevation and focus.
+
+    Shadows are for overlays only (palettes, popups, dialogs): a handful of elements,
+    shown briefly. Anything permanent sits on flat surfaces separated by borders and
+    luminance steps - a room full of drop shadows is a room that never finishes
+    rendering. The canvas paints its own glows inside its DrawingContext, which is
+    bitmap-level cheap and bypasses the effect pipeline entirely.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <DropShadowEffect x:Key="Shadow.Subtle"
+                      BlurRadius="12" ShadowDepth="2" Direction="270"
+                      Opacity="0.28" Color="#000000" />
+
+    <DropShadowEffect x:Key="Shadow.Overlay"
+                      BlurRadius="28" ShadowDepth="6" Direction="270"
+                      Opacity="0.45" Color="#000000" />
+
+    <!-- Keyboard focus indicator. A 1px accent rectangle with the same radius as the
+         control; replaces the dotted default which reads as 1995. -->
+    <Style x:Key="KcFocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border CornerRadius="{StaticResource Radius.SM}"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource Brush.Accent}"
+                            SnapsToDevicePixels="True" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>
