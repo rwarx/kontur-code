@@ -10,6 +10,17 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!--
+        Tokens this dictionary's own templates reference. StaticResource inside deferred
+        template content resolves at INFLATION time against this dictionary's chain - the
+        sibling dictionaries merged alongside it in Theme.xaml are not visible there, so
+        the tokens must be merged here directly or KcFocusVisual fails with "Cannot find
+        resource named Radius.SM" at the first ApplyTemplate.
+    -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/Resources/Design/Spacing.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
     <DropShadowEffect x:Key="Shadow.Subtle"
                       BlurRadius="12" ShadowDepth="2" Direction="270"
                       Opacity="0.28" Color="#000000" />

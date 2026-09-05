@@ -13,6 +13,23 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:kontur="clr-namespace:AIClient.App.Controls">
 
+    <!--
+        Tokens the templates below reference. StaticResource inside deferred template
+        content (ControlTemplate/Setter templates) resolves at INFLATION time against
+        THIS dictionary's own chain; the dictionaries merged alongside this one in
+        Theme.xaml are siblings, invisible to that lookup. Radius/Spacing (Spacing.xaml),
+        Font/Size (Typography.xaml), Icon.* (Icons.xaml) and KcFocusVisual (Shadows.xaml)
+        must therefore be merged here directly, or the first ApplyTemplate of a styled
+        control fails with "Cannot find resource named Radius.SM". Brushes stay
+        DynamicResource, which resolves from the element site and needs no merge.
+    -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/Resources/Design/Spacing.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/Resources/Design/Typography.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/Resources/Design/Icons.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/Resources/Design/Shadows.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
     <!-- ================================================================ Icon -->
 
     <Style TargetType="kontur:KonturIcon">

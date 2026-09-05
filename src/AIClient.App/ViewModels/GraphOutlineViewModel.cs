@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AIClient.App.Controls;
+using AIClient.App.Services;
 using AIClient.Application.Interfaces;
 using AIClient.Domain.Graph;
 
@@ -48,7 +49,7 @@ public sealed partial class GraphOutlineViewModel : ObservableObject
 
     partial void OnFilterChanged(string value) => Rebuild();
 
-    private void OnSnapshotChanged(object? sender, GraphSnapshot snapshot) => Rebuild();
+    private void OnSnapshotChanged(object? sender, GraphSnapshot snapshot) => UiThread.Post(Rebuild);
 
     [RelayCommand]
     private void ClearFilter() => Filter = string.Empty;

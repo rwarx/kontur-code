@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AIClient.App.Canvas;
 using AIClient.App.Controls;
+using AIClient.App.Services;
 using AIClient.Application.Interfaces;
 using AIClient.Domain.Graph;
 
@@ -107,9 +108,9 @@ public sealed partial class ContextPanelViewModel : ObservableObject
         Reinspect();
     }
 
-    private void OnGraphSnapshotChanged(object? sender, GraphSnapshot snapshot) => Reinspect();
+    private void OnGraphSnapshotChanged(object? sender, GraphSnapshot snapshot) => UiThread.Post(Reinspect);
 
-    private void OnTimelineChanged(object? sender, EventArgs e) => RefreshTimeline();
+    private void OnTimelineChanged(object? sender, EventArgs e) => UiThread.Post(RefreshTimeline);
 
     private void OnNodeActivated(object? sender, string nodeId)
     {

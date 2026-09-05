@@ -3,6 +3,7 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AIClient.App.Canvas;
+using AIClient.App.Services;
 using AIClient.Application.Interfaces;
 using AIClient.Domain.Graph;
 
@@ -201,16 +202,26 @@ public sealed partial class CanvasViewModel : ObservableObject, CanvasController
 
     // -------------------------------------------------------------- events
 
+    // Graph events arrive on whatever thread finished the work - the agent's tool call
+    // for a plan, a thread-pool re-index. The controller, the Timeline collection and
+    // every mirrored observable all belong to the UI thread, so the hop back is taken
+    // here, once, at the boundary (see UiThread).
     private void OnGraphSnapshotChanged(object? sender, GraphSnapshot snapshot)
     {
-        _controller.SetSnapshot(snapshot);
-        MirrorState();
+        UiThread.Post(() =>
+        {
+            _controller.SetSnapshot(snapshot);
+            MirrorState();
+        });
     }
 
     private void OnTimelineChanged(object? sender, EventArgs e)
     {
-        SyncTimeline();
-        MirrorState();
+        UiThread.Post(() =>
+        {
+            SyncTimeline();
+            MirrorState();
+        });
     }
 
     private void SyncTimeline()
