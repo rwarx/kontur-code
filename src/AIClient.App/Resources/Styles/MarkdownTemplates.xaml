@@ -45,7 +45,7 @@
     <!-- Code block -->
 
     <DataTemplate DataType="{x:Type md:CodeBlock}">
-        <Border Style="{StaticResource CodeBlockContainer}">
+        <Border Style="{DynamicResource CodeBlockContainer}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -85,7 +85,7 @@
                               VerticalScrollBarVisibility="Disabled"
                               Padding="10,8">
                     <TextBlock local:MarkdownHost.CodeLines="{Binding Lines}"
-                               FontFamily="{StaticResource CodeFont}"
+                               FontFamily="{DynamicResource CodeFont}"
                                FontSize="13"
                                TextWrapping="NoWrap"
                                TextOptions.TextFormattingMode="Display" />

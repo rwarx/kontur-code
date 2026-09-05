@@ -29,7 +29,7 @@ public partial class WorkspaceView : UserControl
 
     private static readonly string[] PageTitles =
     [
-        "Models",
+        "Providers",
         "Tasks & Agents",
         "Settings",
     ];

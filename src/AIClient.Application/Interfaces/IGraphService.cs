@@ -30,11 +30,12 @@ public interface IGraphService
     GraphSnapshot Current { get; }
 
     /// <summary>
-    /// Raised after every change to <see cref="Current"/>, carrying the new snapshot, on
-    /// the thread that caused it; a version-only change still raises, because a view that
-    /// is waiting to redraw cannot tell the difference.
+    /// Raised after every change to <see cref="Current"/>, on the thread that caused it; a
+    /// version-only change still raises, because a view that is waiting to redraw cannot
+    /// tell the difference. The arguments also say whether the change replaced the whole
+    /// graph (a load) rather than stepping within the current one.
     /// </summary>
-    event EventHandler<GraphSnapshot>? SnapshotChanged;
+    event EventHandler<GraphSnapshotChangedEventArgs>? SnapshotChanged;
 
     /// <summary>
     /// Applies a change set through the domain model and records what happened.
@@ -94,6 +95,31 @@ public interface IGraphService
     /// before the load is a different document rather than an earlier state of this one.
     /// </remarks>
     Task<GraphSnapshot> LoadAsync(string key, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// A change to the graph, as its views receive it: the new snapshot, and whether it
+/// replaced the whole graph rather than stepping within the current one.
+/// </summary>
+/// <remarks>
+/// The distinction exists for one reader - the canvas. An incremental view redraws by
+/// diffing the old snapshot against the new and moving only what changed, and that diff is
+/// only meaningful within a single document, whose version counter climbs step by step. A
+/// load swaps in a different document whose counter is independent, so the diff would be
+/// nonsense and the canvas must discard what it drew and rebuild from scratch. Views that
+/// rebuild wholesale anyway - the outline, the inspector - read <see cref="Snapshot"/> and
+/// ignore <see cref="IsReload"/>.
+/// </remarks>
+public sealed class GraphSnapshotChangedEventArgs(GraphSnapshot snapshot, bool isReload) : EventArgs
+{
+    /// <summary>The graph as it now stands.</summary>
+    public GraphSnapshot Snapshot { get; } = snapshot;
+
+    /// <summary>
+    /// True when the snapshot replaced the whole graph (a load of another document), false
+    /// for a step within the current one (apply, undo, redo).
+    /// </summary>
+    public bool IsReload { get; } = isReload;
 }
 
 /// <summary>

@@ -62,6 +62,10 @@ public class GraphCanvas : FrameworkElement
     private readonly HashSet<string> _attachedEdges = new(StringComparer.Ordinal);
     private readonly HashSet<string> _visibleEdgeIds = new(StringComparer.Ordinal);
 
+    // The zoom the attached visuals were last baked at. Pen widths are zoom-compensated,
+    // so a change here means every attached visual must be re-rendered, not just moved.
+    private double _lastRenderZoom = double.NaN;
+
     private Point _pointerDownPosition;
     private Point _pointerLastPosition;
     private Point _marqueeStart;
@@ -101,6 +105,7 @@ public class GraphCanvas : FrameworkElement
             _controller.ViewportChanged -= OnViewportChanged;
             _controller.StateChanged -= OnStateChanged;
             _controller.SceneChanged -= OnSceneChanged;
+            _controller.ToolChanged -= OnToolChanged;
         }
 
         _controller = controller;
@@ -108,6 +113,7 @@ public class GraphCanvas : FrameworkElement
         _controller.ViewportChanged += OnViewportChanged;
         _controller.StateChanged += OnStateChanged;
         _controller.SceneChanged += OnSceneChanged;
+        _controller.ToolChanged += OnToolChanged;
 
         ApplyViewportTransform();
         RefreshPalette();
@@ -139,6 +145,19 @@ public class GraphCanvas : FrameworkElement
         ApplyViewportTransform();
         RenderGrid();
         SynchronizeCulling();
+
+        // Pen widths are baked per-zoom: a world-space pen of width w/zoom renders at a
+        // constant w screen pixels, so a zoom change makes every already-drawn visual stale
+        // (edges thin to sub-pixel and tear when zooming out). Panning leaves zoom alone, so
+        // only the visuals just revealed by culling - still dirty from creation - need work,
+        // which RenderVisible handles by skipping the clean ones.
+        if (_controller is not null && Math.Abs(_controller.Zoom - _lastRenderZoom) > 0.0001)
+        {
+            MarkAttachedDirty();
+            _lastRenderZoom = _controller.Zoom;
+        }
+
+        RenderVisible();
         RenderOverlay();
     }
 
@@ -149,6 +168,12 @@ public class GraphCanvas : FrameworkElement
         ApplySelectionStates();
         RenderVisible();
         RenderOverlay();
+    }
+
+    private void OnToolChanged(object? sender, EventArgs e)
+    {
+        // The tool decides the resting cursor; a live pan or marquee overrides it per gesture.
+        Cursor = _controller?.ActiveTool == CanvasTool.Pan ? Cursors.ScrollAll : Cursors.Arrow;
     }
 
     private void OnSceneChanged(object? sender, SceneChangedEventArgs e)
@@ -397,6 +422,29 @@ public class GraphCanvas : FrameworkElement
         }
     }
 
+    /// <summary>
+    /// Marks every attached visual dirty so the next <see cref="RenderVisible"/> rebakes
+    /// it. Used on zoom, where the baked pen widths are zoom-relative and go stale.
+    /// </summary>
+    private void MarkAttachedDirty()
+    {
+        foreach (var id in _attachedNodes)
+        {
+            if (_scene.FindNode(id) is { } visual)
+            {
+                visual.IsDirty = true;
+            }
+        }
+
+        foreach (var id in _attachedEdges)
+        {
+            if (_scene.FindEdge(id) is { } visual)
+            {
+                visual.IsDirty = true;
+            }
+        }
+    }
+
     private void ApplySelectionStates()
     {
         if (_controller is null)
@@ -535,7 +583,7 @@ public class GraphCanvas : FrameworkElement
 
         var hitEdge = _scene.HitEdge(world, [.. _visibleEdgeIds], _controller.Zoom);
 
-        if (_isSpacePanning)
+        if (_isSpacePanning || _controller.ActiveTool == CanvasTool.Pan)
         {
             _isPanActive = true;
             Cursor = Cursors.ScrollAll;
@@ -632,7 +680,15 @@ public class GraphCanvas : FrameworkElement
         var world = _controller.ScreenToWorld(position);
         var hover = _scene.Index.HitNode(world);
         _controller.SetHover(hover);
-        Cursor = hover is null ? Cursors.Arrow : Cursors.Hand;
+
+        if (_controller.ActiveTool == CanvasTool.Pan)
+        {
+            Cursor = Cursors.ScrollAll;
+        }
+        else
+        {
+            Cursor = hover is null ? Cursors.Arrow : Cursors.Hand;
+        }
     }
 
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
@@ -874,6 +930,10 @@ public class GraphCanvas : FrameworkElement
     {
         RenderGrid();
         SynchronizeCulling();
+
+        // A resize reveals nodes that culling had dropped; without this they attach blank
+        // until some other event redraws them.
+        RenderVisible();
     }
 
     /// <summary>Re-resolves the palette (theme change or first load) and redraws.</summary>

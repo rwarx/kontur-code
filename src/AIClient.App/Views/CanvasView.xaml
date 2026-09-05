@@ -19,8 +19,13 @@
     <Grid>
         <canvas:GraphCanvas x:Name="Surface" />
 
-        <!-- Toolbar. Compact tools, one row, top-right, over the canvas. -->
-        <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12"
+        <!--
+            Canvas controls: bottom-center, over the workflow, the way the previous
+            interface placed them. Pointer and hand are a radio pair (one tool at a time);
+            the rest are momentary actions. The bar floats so the spatial surface keeps
+            every pixel it can.
+        -->
+        <Border HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,16"
                 Background="{DynamicResource Brush.Surface2}"
                 BorderBrush="{DynamicResource Brush.Border}"
                 BorderThickness="1"
@@ -28,6 +33,21 @@
                 Padding="3,2"
                 Effect="{StaticResource Shadow.Subtle}">
             <StackPanel Orientation="Horizontal">
+                <RadioButton Style="{StaticResource KcToggle}" GroupName="CanvasTool"
+                             Width="30" Height="28" Padding="0"
+                             IsChecked="{Binding Canvas.IsSelectTool, Mode=OneWay}"
+                             Command="{Binding Canvas.UseSelectToolCommand}"
+                             ToolTip="Select and move (V)">
+                    <kontur:KonturIcon Kind="Pointer" Width="14" Height="14" />
+                </RadioButton>
+                <RadioButton Style="{StaticResource KcToggle}" GroupName="CanvasTool"
+                             Width="30" Height="28" Padding="0"
+                             IsChecked="{Binding Canvas.IsPanTool, Mode=OneWay}"
+                             Command="{Binding Canvas.UsePanToolCommand}"
+                             ToolTip="Pan the canvas (H, or hold Space)">
+                    <kontur:KonturIcon Kind="Hand" Width="14" Height="14" />
+                </RadioButton>
+                <Separator Margin="2,4" />
                 <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.ZoomOutCommand}"
                         ToolTip="Zoom out (scroll)">
                     <kontur:KonturIcon Kind="ZoomOut" Width="13" Height="13" />
@@ -43,24 +63,18 @@
                     <kontur:KonturIcon Kind="ZoomIn" Width="13" Height="13" />
                 </Button>
                 <Separator Margin="2,4" />
-                <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.FitCommand}"
-                        ToolTip="Fit graph to view (double-click empty space)">
-                    <kontur:KonturIcon Kind="Fit" Width="13" Height="13" />
-                </Button>
                 <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.FocusSelectionCommand}"
                         ToolTip="Focus selection">
                     <kontur:KonturIcon Kind="Focus" Width="13" Height="13" />
                 </Button>
-                <Separator Margin="2,4" />
-                <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.UndoCommand}"
-                        IsEnabled="{Binding Canvas.CanUndo}"
-                        ToolTip="Undo graph change (Ctrl+Z when the canvas has focus)">
-                    <kontur:KonturIcon Kind="Undo" Width="13" Height="13" />
+                <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.FitCommand}"
+                        ToolTip="Fit graph to view (double-click empty space)">
+                    <kontur:KonturIcon Kind="Fit" Width="13" Height="13" />
                 </Button>
-                <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.RedoCommand}"
-                        IsEnabled="{Binding Canvas.CanRedo}"
-                        ToolTip="Redo graph change">
-                    <kontur:KonturIcon Kind="Redo" Width="13" Height="13" />
+                <Separator Margin="2,4" />
+                <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.AutoLayoutCommand}"
+                        ToolTip="Auto layout">
+                    <kontur:KonturIcon Kind="AutoLayout" Width="14" Height="14" />
                 </Button>
                 <Separator Margin="2,4" />
                 <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.AskAiCommand}"
@@ -73,7 +87,7 @@
 
         <!-- Minimap: bottom-right, out of the working area's way. -->
         <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="12"
-                Background="#CC131519"
+                Background="#CC1F2022"
                 BorderBrush="{DynamicResource Brush.Border}"
                 BorderThickness="1"
                 CornerRadius="{StaticResource Radius.MD}"
@@ -85,7 +99,7 @@
 
         <!-- Live stats chip: bottom-left, quiet. -->
         <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12"
-                Background="#CC131519"
+                Background="#CC1F2022"
                 BorderBrush="{DynamicResource Brush.BorderFaint}"
                 BorderThickness="1"
                 CornerRadius="{StaticResource Radius.SM}"
@@ -107,7 +121,7 @@
 
         <!-- Indexing pulse: top-left while the workspace is being read. -->
         <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12"
-                Background="#CC131519"
+                Background="#CC1F2022"
                 BorderBrush="{DynamicResource Brush.AccentBorder}"
                 BorderThickness="1"
                 CornerRadius="{StaticResource Radius.SM}"

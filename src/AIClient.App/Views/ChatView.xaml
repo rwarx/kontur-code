@@ -5,6 +5,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+             xmlns:views="clr-namespace:AIClient.App.Views"
+             xmlns:kontur="clr-namespace:AIClient.App.Controls"
              xmlns:md="clr-namespace:AIClient.App.Markdown"
              xmlns:dto="clr-namespace:AIClient.Application.DTOs;assembly=AIClient.Application"
              mc:Ignorable="d"
@@ -816,6 +818,7 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
@@ -931,8 +934,60 @@
                             </ui:Button.ContextMenu>
                         </ui:Button>
 
+                        <!--
+                            The model for this conversation, chosen where the conversation happens
+                            rather than up in the title bar: which model answers is part of the
+                            message, like the agent mode beside it. The caption carries the current
+                            choice; the flyout is the same picker the rest of the app uses, bound to
+                            the one shared ModelPicker on the shell so a choice made here, in Settings,
+                            or at first run is always the same selection.
+                        -->
+                        <ui:Button Grid.Column="2"
+                                   x:Name="ModelPill"
+                                   FontSize="12"
+                                   Padding="10,4"
+                                   MinWidth="0"
+                                   MinHeight="0"
+                                   Appearance="Secondary"
+                                   VerticalAlignment="Bottom"
+                                   Margin="0,0,4,4"
+                                   ToolTip="Choose the model for this conversation"
+                                   Click="OnModelPillClick">
+                            <StackPanel Orientation="Horizontal">
+                                <kontur:KonturIcon Kind="Models" Width="13" Height="13"
+                                                   VerticalAlignment="Center" Margin="0,0,6,0" />
+                                <TextBlock VerticalAlignment="Center"
+                                           Text="{Binding SelectedModel.Name, FallbackValue='Model', TargetNullValue='Model'}" />
+                                <kontur:KonturIcon Kind="ChevronDown" Width="11" Height="11"
+                                                   VerticalAlignment="Center" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </ui:Button>
+
+                        <!--
+                            Placed above the pill: the composer sits at the bottom of the window, so a
+                            flyout opening downward would fall off-screen. DataContext reaches past the
+                            chat VM to the shell's shared ModelPicker.
+                        -->
+                        <Popup x:Name="ModelPopup"
+                               PlacementTarget="{Binding ElementName=ModelPill}"
+                               Placement="Top"
+                               StaysOpen="False"
+                               AllowsTransparency="True"
+                               PopupAnimation="Fade">
+                            <Border Background="{DynamicResource Brush.OverlayBackground}"
+                                    BorderBrush="{DynamicResource Brush.Border}"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Margin="8"
+                                    Padding="4">
+                                <views:ModelPickerView x:Name="ModelPicker"
+                                                       Width="440" MaxHeight="460"
+                                                       DataContext="{Binding DataContext.ModelPicker, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            </Border>
+                        </Popup>
+
                         <TextBox x:Name="DraftBox"
-                                 Grid.Column="2"
+                                 Grid.Column="3"
                                  Text="{Binding Draft, UpdateSourceTrigger=PropertyChanged}"
                                  AcceptsReturn="True"
                                  TextWrapping="Wrap"
@@ -947,7 +1002,7 @@
                                  SpellCheck.IsEnabled="True" />
 
                         <!-- Send and Stop swap: only one is ever meaningful. -->
-                        <ui:Button Grid.Column="3"
+                        <ui:Button Grid.Column="4"
                                    Appearance="Primary"
                                    Icon="{ui:SymbolIcon Send24}"
                                    ToolTip="Send (Enter)"
@@ -956,7 +1011,7 @@
                                    Command="{Binding SendCommand}"
                                    Visibility="{Binding IsGenerating, Converter={StaticResource InverseBoolToVisibility}}" />
 
-                        <ui:Button Grid.Column="3"
+                        <ui:Button Grid.Column="4"
                                    Appearance="Danger"
                                    Icon="{ui:SymbolIcon Stop24}"
                                    ToolTip="Stop generating (Esc)"

@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AIClient.App.Canvas;
 using AIClient.App.Services;
+using AIClient.Application.Graph;
 using AIClient.Application.Interfaces;
 using AIClient.Domain.Graph;
 
@@ -30,7 +31,12 @@ namespace AIClient.App.ViewModels;
 public sealed partial class CanvasViewModel : ObservableObject, CanvasController.IGraphAccess
 {
     private readonly IGraphService _graph;
+    private readonly IAppThemeService _theme;
     private readonly CanvasController _controller;
+
+    // Held while the view is attached, so a theme change can re-resolve the renderer's
+    // cached palette; the canvas caches brushes rather than binding, so it needs the nudge.
+    private GraphCanvas? _attachedCanvas;
 
     [ObservableProperty]
     private double _zoomPercent = 100;
@@ -66,6 +72,11 @@ public sealed partial class CanvasViewModel : ObservableObject, CanvasController
 
     public GraphSnapshot Snapshot => _graph.Current;
 
+    /// <summary>Mirrors the controller's active tool so the toolbar toggles can bind one-way.</summary>
+    public bool IsSelectTool => _controller.ActiveTool == CanvasTool.Select;
+
+    public bool IsPanTool => _controller.ActiveTool == CanvasTool.Pan;
+
     /// <summary>Raised when the user asks to frame the whole graph; the view knows its own size.</summary>
     public event EventHandler? FitRequested;
 
@@ -78,15 +89,18 @@ public sealed partial class CanvasViewModel : ObservableObject, CanvasController
     /// <summary>Raised when the user wants AI's opinion on the current selection.</summary>
     public event EventHandler? AskAiRequested;
 
-    public CanvasViewModel(IGraphService graph)
+    public CanvasViewModel(IGraphService graph, IAppThemeService theme)
     {
         ArgumentNullException.ThrowIfNull(graph);
+        ArgumentNullException.ThrowIfNull(theme);
 
         _graph = graph;
+        _theme = theme;
         _controller = new CanvasController(this);
 
         _graph.SnapshotChanged += OnGraphSnapshotChanged;
         _graph.TimelineChanged += OnTimelineChanged;
+        _controller.ToolChanged += OnToolChanged;
 
         // The canvas is created after the graph service (singleton, eager); bring the
         // controller up to the present immediately rather than waiting for the next change.
@@ -200,17 +214,71 @@ public sealed partial class CanvasViewModel : ObservableObject, CanvasController
     [RelayCommand]
     private void AskAi() => AskAiRequested?.Invoke(this, EventArgs.Empty);
 
+    [RelayCommand]
+    private void UseSelectTool() => _controller.SetTool(CanvasTool.Select);
+
+    [RelayCommand]
+    private void UsePanTool() => _controller.SetTool(CanvasTool.Pan);
+
+    /// <summary>Re-arranges every node by an automatic layout and frames the result - one undoable change set.</summary>
+    [RelayCommand]
+    private async Task AutoLayoutAsync()
+    {
+        var snapshot = _graph.Current;
+        if (snapshot.Nodes.Count == 0)
+        {
+            return;
+        }
+
+        var positions = ChooseLayout(snapshot);
+        var changes = positions
+            .Select(pair => new MoveNode(pair.Key, pair.Value.X, pair.Value.Y) as GraphChange)
+            .ToList();
+        if (changes.Count == 0)
+        {
+            return;
+        }
+
+        await ApplyAsync(new GraphChangeSet
+        {
+            Title = "Auto layout",
+            Description = "Nodes re-arranged by an automatic layout.",
+            Origin = GraphChangeOrigin.User,
+            Changes = changes,
+        }).ConfigureAwait(true);
+
+        FitRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    // Contains-heavy graphs (files and folders) read best layered; small graphs get a force
+    // pass; anything large or edgeless falls back to a deterministic grid.
+    private static IReadOnlyDictionary<string, (double X, double Y)> ChooseLayout(GraphSnapshot snapshot)
+    {
+        if (snapshot.Nodes.Count > 500)
+        {
+            return GraphLayouts.Grid(snapshot);
+        }
+
+        if (snapshot.Edges.Any(edge => edge.Kind == GraphEdgeKind.Contains))
+        {
+            return GraphLayouts.Layered(snapshot);
+        }
+
+        var force = GraphLayouts.Force(snapshot);
+        return force.Count > 0 ? force : GraphLayouts.Grid(snapshot);
+    }
+
     // -------------------------------------------------------------- events
 
     // Graph events arrive on whatever thread finished the work - the agent's tool call
     // for a plan, a thread-pool re-index. The controller, the Timeline collection and
     // every mirrored observable all belong to the UI thread, so the hop back is taken
     // here, once, at the boundary (see UiThread).
-    private void OnGraphSnapshotChanged(object? sender, GraphSnapshot snapshot)
+    private void OnGraphSnapshotChanged(object? sender, GraphSnapshotChangedEventArgs e)
     {
         UiThread.Post(() =>
         {
-            _controller.SetSnapshot(snapshot);
+            _controller.SetSnapshot(e.Snapshot, forceReset: e.IsReload);
             MirrorState();
         });
     }
@@ -260,6 +328,11 @@ public sealed partial class CanvasViewModel : ObservableObject, CanvasController
 
         _controller.GestureReceived += OnGesture;
 
+        // A theme change swaps the token dictionary, but the renderer caches resolved
+        // brushes; re-read them whenever the effective theme changes while the canvas lives.
+        _attachedCanvas = canvas;
+        _theme.EffectiveThemeChanged += OnThemeChanged;
+
         // The controller existed before the view; viewport changes raised without a
         // listener need one nudge to reach the canvas now that it listens.
         canvas.RefreshPalette();
@@ -269,6 +342,16 @@ public sealed partial class CanvasViewModel : ObservableObject, CanvasController
     public void DetachFrom(GraphCanvas canvas)
     {
         _controller.GestureReceived -= OnGesture;
+        _theme.EffectiveThemeChanged -= OnThemeChanged;
+        _attachedCanvas = null;
+    }
+
+    private void OnThemeChanged(object? sender, EventArgs e) => _attachedCanvas?.RefreshPalette();
+
+    private void OnToolChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(IsSelectTool));
+        OnPropertyChanged(nameof(IsPanTool));
     }
 
     private void OnGesture(object? sender, GestureEventArgs e)

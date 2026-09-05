@@ -69,16 +69,25 @@
         <Grid Grid.Row="2">
             <views:CanvasView x:Name="CanvasPane"
                               DataContext="{Binding Workspace}"
-                              Visibility="{Binding Workspace.Mode, Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Canvas}" />
+                              Visibility="{Binding Mode, Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Canvas}" />
 
             <views:GraphOutlineView x:Name="OutlinePane"
-                                    Visibility="{Binding Workspace.Mode, Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Graph}" />
+                                    DataContext="{Binding Workspace.Outline}"
+                                    Visibility="{Binding DataContext.Workspace.Mode,
+                                                         RelativeSource={RelativeSource AncestorType=UserControl},
+                                                         Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Graph}" />
 
             <views:FilesView x:Name="FilesPane"
-                             Visibility="{Binding Workspace.Mode, Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Files}" />
+                             DataContext="{Binding Workspace.Files}"
+                             Visibility="{Binding DataContext.Workspace.Mode,
+                                                  RelativeSource={RelativeSource AncestorType=UserControl},
+                                                  Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Files}" />
 
             <views:CodeView x:Name="CodePane"
-                            Visibility="{Binding Workspace.Mode, Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Code}" />
+                            DataContext="{Binding Workspace.Code}"
+                            Visibility="{Binding DataContext.Workspace.Mode,
+                                                 RelativeSource={RelativeSource AncestorType=UserControl},
+                                                 Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Code}" />
 
             <!-- The conversation: the existing chat surface, unchanged in behaviour. -->
             <views:ChatView x:Name="ChatPane"

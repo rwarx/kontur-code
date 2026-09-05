@@ -35,7 +35,7 @@ public partial class SidebarView : UserControl
         new(WorkspaceMode.Files, IconKind.Files, "Files", "The workspace's file tree"),
         new(WorkspaceMode.Code, IconKind.Code, "Code", "Open documents"),
         new(WorkspaceMode.Chat, IconKind.Chat, "Chat", "The conversation"),
-        new(WorkspaceMode.Models, IconKind.Models, "Models", "Providers and the model catalogue"),
+        new(WorkspaceMode.Models, IconKind.Models, "Providers", "Providers and the model catalogue"),
         new(WorkspaceMode.Tasks, IconKind.Tasks, "Tasks", "Agent activity"),
     ];
 
@@ -50,6 +50,7 @@ public partial class SidebarView : UserControl
             var row = new ListBoxItem
             {
                 Content = new NavRow(item),
+                ContentTemplate = (DataTemplate)FindResource("NavItemTemplate"),
                 Tag = item,
                 ToolTip = item.ToolTip,
             };

@@ -54,6 +54,24 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _isOffline;
 
+    /// <summary>Enables the title bar's back arrow; true when there is a prior view to return to.</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(GoBackCommand))]
+    private bool _canGoBack;
+
+    /// <summary>Enables the title bar's forward arrow; true after the back arrow has been used.</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(GoForwardCommand))]
+    private bool _canGoForward;
+
+    // Back/forward navigation over workspace modes: the title bar's arrows walk this the way
+    // an editor's do. The guard tells a history-driven switch from a fresh one, so walking
+    // back does not itself count as a new destination.
+    private readonly Stack<WorkspaceMode> _backModes = new();
+    private readonly Stack<WorkspaceMode> _forwardModes = new();
+    private WorkspaceMode _currentMode;
+    private bool _isNavigatingHistory;
+
     public MainViewModel(
         ChatViewModel chat,
         SessionListViewModel sessions,
@@ -104,6 +122,12 @@ public sealed partial class MainViewModel : ObservableObject
         // The workspace asks; the shell routes the question to the chat with the graph
         // context attached, because the chat is the one place a prompt is composed.
         Workspace.AskAiRequested += OnWorkspaceAskAi;
+
+        // The shell remembers where the workspace has been, so the title bar's arrows can
+        // return there. The workspace's mode is the single source of "what am I looking at",
+        // so one subscription catches every switch no matter who made it.
+        _currentMode = Workspace.Mode;
+        Workspace.PropertyChanged += OnWorkspacePropertyChanged;
 
         // The AI state the context surface and status bar show is the chat's own state,
         // mirrored rather than duplicated.
@@ -238,6 +262,60 @@ public sealed partial class MainViewModel : ObservableObject
         Workspace.RequestAskAi(prompt);
     }
 
+    /// <summary>
+    /// The title bar's back arrow (Alt+Left). Returns to the previously shown workspace mode
+    /// and keeps the place being left on the forward trail - an editor's history, over modes.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanGoBack))]
+    private void GoBack()
+    {
+        if (_backModes.Count == 0)
+        {
+            return;
+        }
+
+        _forwardModes.Push(_currentMode);
+        NavigateHistory(_backModes.Pop());
+    }
+
+    /// <summary>The forward arrow (Alt+Right): replays a mode the back arrow walked away from.</summary>
+    [RelayCommand(CanExecute = nameof(CanGoForward))]
+    private void GoForward()
+    {
+        if (_forwardModes.Count == 0)
+        {
+            return;
+        }
+
+        _backModes.Push(_currentMode);
+        NavigateHistory(_forwardModes.Pop());
+    }
+
+    private void NavigateHistory(WorkspaceMode mode)
+    {
+        // Flag the switch as history-driven so OnWorkspacePropertyChanged does not read it as
+        // a new destination and wipe the trail we are walking.
+        _isNavigatingHistory = true;
+
+        try
+        {
+            Workspace.SwitchModeCommand.Execute(mode);
+            _currentMode = mode;
+        }
+        finally
+        {
+            _isNavigatingHistory = false;
+        }
+
+        UpdateNavigationState();
+    }
+
+    private void UpdateNavigationState()
+    {
+        CanGoBack = _backModes.Count > 0;
+        CanGoForward = _forwardModes.Count > 0;
+    }
+
     /// <summary>Section 25. The chat pane owns the file dialog and the writing.</summary>
     [RelayCommand]
     private async Task ExportAsync(ExportFormat format)
@@ -370,6 +448,34 @@ public sealed partial class MainViewModel : ObservableObject
         {
             MirrorAiState();
         }
+    }
+
+    /// <summary>
+    /// Tracks the workspace mode into the back/forward trail. Every switch flows through the
+    /// workspace's one <see cref="WorkspaceViewModel.Mode"/>, so this is the single place the
+    /// history needs to watch - whoever moved it, the arrows stay honest.
+    /// </summary>
+    private void OnWorkspacePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(WorkspaceViewModel.Mode))
+        {
+            return;
+        }
+
+        var mode = Workspace.Mode;
+
+        if (mode == _currentMode || _isNavigatingHistory)
+        {
+            // A history-driven switch is bookkept by NavigateHistory; a no-op switch is nothing.
+            return;
+        }
+
+        // A fresh navigation retires the current place to the back trail and drops the
+        // forward trail, exactly as a browser does when you leave a back-stack midway.
+        _backModes.Push(_currentMode);
+        _forwardModes.Clear();
+        _currentMode = mode;
+        UpdateNavigationState();
     }
 
     private void MirrorAiState()

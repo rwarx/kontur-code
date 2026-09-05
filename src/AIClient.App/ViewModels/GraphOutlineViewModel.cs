@@ -49,7 +49,7 @@ public sealed partial class GraphOutlineViewModel : ObservableObject
 
     partial void OnFilterChanged(string value) => Rebuild();
 
-    private void OnSnapshotChanged(object? sender, GraphSnapshot snapshot) => UiThread.Post(Rebuild);
+    private void OnSnapshotChanged(object? sender, GraphSnapshotChangedEventArgs e) => UiThread.Post(Rebuild);
 
     [RelayCommand]
     private void ClearFilter() => Filter = string.Empty;

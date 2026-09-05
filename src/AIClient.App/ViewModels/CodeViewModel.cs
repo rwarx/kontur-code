@@ -169,7 +169,8 @@ public sealed partial class CodeTabViewModel : ObservableObject
     public string Title { get; }
 
     /// <summary>Set by the document host when this tab is the front one.</summary>
-    public bool IsActive { get; set; }
+    [ObservableProperty]
+    private bool _isActive;
 
     /// <summary>
     /// The gutter's text: 1..N, one per line, joined with newlines. Built once per load;

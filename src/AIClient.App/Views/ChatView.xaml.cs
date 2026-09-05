@@ -31,6 +31,10 @@ public partial class ChatView : UserControl
 
         DataContextChanged += OnDataContextChanged;
         Loaded += (_, _) => DraftBox.Focus();
+
+        // Choosing a model dismisses the flyout. The picker inside the popup is realised during
+        // InitializeComponent (its Child is declared inline), so the field is set by now.
+        ModelPicker.SelectionCommitted += (_, _) => ModelPopup.IsOpen = false;
     }
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -160,5 +164,16 @@ public partial class ChatView : UserControl
         menu.PlacementTarget = sender as UIElement;
         menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Top;
         menu.IsOpen = true;
+    }
+
+    /// <summary>
+    /// Opens the model flyout above the composer pill and focuses its filter, so typing narrows
+    /// the list immediately. The picker is the shell's shared instance, so a choice made here
+    /// reaches the title bar and Settings without any extra wiring in this view.
+    /// </summary>
+    private void OnModelPillClick(object sender, RoutedEventArgs e)
+    {
+        ModelPopup.IsOpen = true;
+        ModelPicker.FocusFilter();
     }
 }

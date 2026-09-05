@@ -20,6 +20,13 @@ public interface IAppThemeService
     /// <summary>The theme currently on screen. Never <see cref="ThemeMode.System"/>.</summary>
     ThemeMode EffectiveTheme { get; }
 
+    /// <summary>
+    /// Raised after the effective theme changes and the palette has been swapped - whether
+    /// the user switched, or Windows flipped underneath a System setting. Surfaces that cache
+    /// resolved brushes rather than binding to them (the canvas renderer) re-read here.
+    /// </summary>
+    event EventHandler? EffectiveThemeChanged;
+
     /// <summary>Cycles Light and Dark. Used by the command palette's Toggle Theme entry.</summary>
     Task ToggleAsync();
 }

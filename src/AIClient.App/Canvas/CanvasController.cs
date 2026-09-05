@@ -67,6 +67,9 @@ public sealed class CanvasController
 
     public string? PrimarySelectedNodeId { get; private set; }
 
+    /// <summary>The active canvas tool: the pointer selects, the hand pans on left-drag.</summary>
+    public CanvasTool ActiveTool { get; private set; } = CanvasTool.Select;
+
     public IReadOnlyCollection<string> SelectedNodeIds => _selectedNodes;
 
     /// <summary>Selection preview while a marquee is being dragged.</summary>
@@ -75,6 +78,9 @@ public sealed class CanvasController
     public event EventHandler? ViewportChanged;
 
     public event EventHandler? StateChanged;
+
+    /// <summary>Raised when the active tool changes, so the cursor and the chrome can follow.</summary>
+    public event EventHandler? ToolChanged;
 
     /// <summary>Raised with the delta to apply, or with a reset when history is discontinuous (load, restore, undo).</summary>
     public event EventHandler<SceneChangedEventArgs>? SceneChanged;
@@ -87,11 +93,15 @@ public sealed class CanvasController
     // ------------------------------------------------------------- snapshot
 
     /// <summary>Replaces the snapshot, publishing a diff when one is worth computing.</summary>
-    public void SetSnapshot(GraphSnapshot snapshot)
+    public void SetSnapshot(GraphSnapshot snapshot, bool forceReset = false)
     {
         // Discontinuity (undo, load, restore) is judged before the swap: once Snapshot
         // points at the new version, the old one is gone and the question is unanswerable.
-        var isReset = snapshot.Version < Snapshot.Version;
+        // A load carries its own reset flag, because its snapshot comes from a different
+        // document whose version counter is independent - the version comparison that
+        // catches an undo would miss it, and the old document would be left on screen
+        // layered under the new one.
+        var isReset = forceReset || snapshot.Version < Snapshot.Version;
         var delta = GraphProjection.Diff(Snapshot, snapshot);
 
         Snapshot = snapshot;
@@ -179,6 +189,20 @@ public sealed class CanvasController
         var offsetY = content.Top + content.Height / 2 - viewport.Height / (2 * zoom);
 
         return (zoom, offsetX, offsetY);
+    }
+
+    // ---------------------------------------------------------------- tool
+
+    /// <summary>Switches the active tool; idempotent, and quiet when nothing changes.</summary>
+    public void SetTool(CanvasTool tool)
+    {
+        if (ActiveTool == tool)
+        {
+            return;
+        }
+
+        ActiveTool = tool;
+        ToolChanged?.Invoke(this, EventArgs.Empty);
     }
 
     // ----------------------------------------------------------- selection
@@ -412,6 +436,12 @@ public enum SelectionMode
     Replace,
     Toggle,
     Add,
+}
+
+public enum CanvasTool
+{
+    Select,
+    Pan,
 }
 
 public sealed class SceneChangedEventArgs(GraphSnapshot snapshot, GraphProjection.Delta delta, bool isReset) : EventArgs

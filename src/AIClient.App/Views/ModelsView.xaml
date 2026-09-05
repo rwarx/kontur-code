@@ -28,7 +28,7 @@
             <StackPanel Orientation="Horizontal">
                 <kontur:KonturIcon Kind="Models" Width="14" Height="14"
                                    Foreground="{DynamicResource Brush.AccentText}" />
-                <TextBlock Text="Models" Style="{StaticResource Type.Section}" Margin="9,0,0,0"
+                <TextBlock Text="Providers" Style="{StaticResource Type.Section}" Margin="9,0,0,0"
                            VerticalAlignment="Center" />
                 <TextBlock Text="{Binding Providers.Count, StringFormat={}{0} providers}"
                            Style="{StaticResource Type.Metadata}" Margin="12,0,0,0" Opacity="0.6"

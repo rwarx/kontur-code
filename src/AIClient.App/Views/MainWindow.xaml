@@ -29,12 +29,14 @@
         <KeyBinding Key="P" Modifiers="Ctrl+Shift" Command="{Binding ToggleCommandPaletteCommand}" />
         <KeyBinding Key="B" Modifiers="Ctrl" Command="{Binding ToggleSidebarCommand}" />
         <KeyBinding Key="I" Modifiers="Ctrl" Command="{Binding AskAiAboutSelectionCommand}" />
+        <KeyBinding Key="Left" Modifiers="Alt" Command="{Binding GoBackCommand}" />
+        <KeyBinding Key="Right" Modifiers="Alt" Command="{Binding GoForwardCommand}" />
         <KeyBinding Key="Escape" Command="{Binding Chat.StopCommand}" />
     </ui:FluentWindow.InputBindings>
 
     <Grid>
         <Grid.RowDefinitions>
-            <!-- Title bar content: identity, workspace, model, AI state, search, palette. -->
+            <!-- Title bar content: identity, workspace, AI state, search, model. -->
             <RowDefinition Height="40" />
             <RowDefinition Height="*" MinHeight="240" />
             <RowDefinition Height="Auto" />
@@ -46,11 +48,16 @@
             an overlay whose container is deliberately transparent-null so the empty
             stretches keep dragging the window. The right padding reserves the caption
             buttons' width so nothing important is ever minimized by accident.
+
+            Every interactive control in this band sets WindowChrome.IsHitTestVisibleInChrome:
+            without it the caption region eats the click as a window-drag and the control
+            never fires. Only the buttons opt in, so the empty stretches still drag.
         -->
         <Grid Grid.Row="0" Background="{DynamicResource Brush.Surface1}">
             <ui:TitleBar Title="" Icon="" ShowMaximize="True" />
             <Grid>
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -70,6 +77,7 @@
                 <!-- Workspace chip: the folder everything on screen refers to. -->
                 <Button Grid.Column="1" Style="{StaticResource KcButtonGhost}" Margin="16,0,0,0"
                         Padding="9,4" MinHeight="26"
+                        WindowChrome.IsHitTestVisibleInChrome="True"
                         ToolTip="{Binding Workspace.WorkspaceRoot, FallbackValue='Open a workspace folder'}"
                         Command="{Binding Workspace.OpenWorkspaceCommand}">
                     <StackPanel Orientation="Horizontal">
@@ -94,10 +102,61 @@
                                TextTrimming="CharacterEllipsis" MaxWidth="220" VerticalAlignment="Center" />
                 </StackPanel>
 
-                <!-- Model chip + search + palette, ending before the caption buttons. -->
-                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                <!--
+                    VS Code-style command bar: back and forward walk the mode history, the
+                    field opens the palette (search + commands). Centered in the title row's
+                    stretch, so it reads as the window's focal control.
+                -->
+                <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                    <Button Style="{StaticResource KcButtonTool}" Width="26" Height="26"
+                            WindowChrome.IsHitTestVisibleInChrome="True"
+                            Command="{Binding GoBackCommand}" ToolTip="Go back (Alt+Left)">
+                        <kontur:KonturIcon Kind="ChevronLeft" Width="13" Height="13" GlyphThickness="1.6" />
+                    </Button>
+                    <Button Style="{StaticResource KcButtonTool}" Width="26" Height="26" Margin="1,0,0,0"
+                            WindowChrome.IsHitTestVisibleInChrome="True"
+                            Command="{Binding GoForwardCommand}" ToolTip="Go forward (Alt+Right)">
+                        <kontur:KonturIcon Kind="ChevronRight" Width="13" Height="13" GlyphThickness="1.6" />
+                    </Button>
+
+                    <Button Style="{StaticResource KcButtonGhost}" Padding="0" Margin="8,0,0,0"
+                            HorizontalContentAlignment="Stretch"
+                            WindowChrome.IsHitTestVisibleInChrome="True"
+                            Command="{Binding ToggleCommandPaletteCommand}"
+                            ToolTip="Search and commands (Ctrl+Shift+P)">
+                        <Border Background="{DynamicResource Brush.SurfaceSunken}"
+                                BorderBrush="{DynamicResource Brush.Border}"
+                                BorderThickness="1"
+                                CornerRadius="{StaticResource Radius.SM}"
+                                Width="360" Height="26" Padding="10,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <kontur:KonturIcon Grid.Column="0" Kind="Search" Width="13" Height="13"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource Brush.TextMuted}" />
+                                <TextBlock Grid.Column="1" Text="Search Kontur Code" Style="{StaticResource Type.Caption}"
+                                           Foreground="{DynamicResource Brush.TextSecondary}"
+                                           VerticalAlignment="Center" HorizontalAlignment="Center" />
+                                <Border Grid.Column="2" Background="{DynamicResource Brush.Surface3}"
+                                        CornerRadius="{StaticResource Radius.SM}" Padding="5,1" VerticalAlignment="Center">
+                                    <TextBlock Text="Ctrl+Shift+P" Style="{StaticResource Type.Metadata}"
+                                               Foreground="{DynamicResource Brush.TextMuted}" />
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </Button>
+                </StackPanel>
+
+                <!-- Model chip: the active model, ending before the caption buttons. -->
+                <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="ModelButton" Style="{StaticResource KcButtonGhost}" Padding="9,4" MinHeight="26"
-                            Margin="0,0,4,0" Click="OnModelButtonClick" ToolTip="Change model">
+                            Margin="0,0,4,0" WindowChrome.IsHitTestVisibleInChrome="True"
+                            Click="OnModelButtonClick" ToolTip="Change model">
                         <StackPanel Orientation="Horizontal">
                             <kontur:KonturIcon Kind="Models" Width="13" Height="13"
                                                Foreground="{DynamicResource Brush.AccentText}" />
@@ -107,11 +166,6 @@
                             <kontur:KonturIcon Kind="ChevronDown" Width="10" Height="10" GlyphThickness="1.8"
                                                Foreground="{DynamicResource Brush.TextMuted}" Margin="6,1,0,0" />
                         </StackPanel>
-                    </Button>
-
-                    <Button Style="{StaticResource KcButtonTool}" Command="{Binding ToggleCommandPaletteCommand}"
-                            ToolTip="Command palette (Ctrl+Shift+P)">
-                        <kontur:KonturIcon Kind="Command" Width="14" Height="14" />
                     </Button>
                 </StackPanel>
             </Grid>
@@ -139,7 +193,10 @@
                           Visibility="{Binding IsContextPanelVisible, Converter={StaticResource BoolToVisibility}}" />
 
             <views:ContextPanelView x:Name="ContextPanel" Grid.Column="4"
-                                    Visibility="{Binding IsContextPanelVisible, Converter={StaticResource BoolToVisibility}}" />
+                                    DataContext="{Binding Workspace.Context}"
+                                    Visibility="{Binding DataContext.IsContextPanelVisible,
+                                                         RelativeSource={RelativeSource AncestorType=Window},
+                                                         Converter={StaticResource BoolToVisibility}}" />
         </Grid>
 
         <views:StatusBarView Grid.Row="2" />

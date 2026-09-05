@@ -64,8 +64,8 @@ public sealed class GraphService : IGraphService
     /// <summary>The graph as it stands; the model rebuilds it after every applied change set.</summary>
     public GraphSnapshot Current => _model.Snapshot;
 
-    /// <summary>Raised after every change to <see cref="Current"/>, carrying the new snapshot.</summary>
-    public event EventHandler<GraphSnapshot>? SnapshotChanged;
+    /// <summary>Raised after every change to <see cref="Current"/>, carrying the new snapshot and whether it was a load.</summary>
+    public event EventHandler<GraphSnapshotChangedEventArgs>? SnapshotChanged;
 
     /// <summary>Raised after the timeline changes: an entry added, or history cleared by a load.</summary>
     public event EventHandler? TimelineChanged;
@@ -113,7 +113,7 @@ public sealed class GraphService : IGraphService
 
         if (result.Applied.Count > 0)
         {
-            SnapshotChanged?.Invoke(this, result.Snapshot);
+            SnapshotChanged?.Invoke(this, new GraphSnapshotChangedEventArgs(result.Snapshot, isReload: false));
         }
 
         TimelineChanged?.Invoke(this, EventArgs.Empty);
@@ -150,7 +150,7 @@ public sealed class GraphService : IGraphService
         RecordStep("Undo", $"Restored version {target.Version}: {target.Nodes.Count} nodes, {target.Edges.Count} edges.",
             GraphChangeOrigin.Undo, target);
 
-        SnapshotChanged?.Invoke(this, Current);
+        SnapshotChanged?.Invoke(this, new GraphSnapshotChangedEventArgs(Current, isReload: false));
         TimelineChanged?.Invoke(this, EventArgs.Empty);
 
         return Task.FromResult(new GraphMutationResult
@@ -184,7 +184,7 @@ public sealed class GraphService : IGraphService
         RecordStep("Redo", $"Restored version {target.Version}: {target.Nodes.Count} nodes, {target.Edges.Count} edges.",
             GraphChangeOrigin.Redo, target);
 
-        SnapshotChanged?.Invoke(this, Current);
+        SnapshotChanged?.Invoke(this, new GraphSnapshotChangedEventArgs(Current, isReload: false));
         TimelineChanged?.Invoke(this, EventArgs.Empty);
 
         return Task.FromResult(new GraphMutationResult
@@ -238,7 +238,7 @@ public sealed class GraphService : IGraphService
         _redo.Clear();
         _timeline.Clear();
 
-        SnapshotChanged?.Invoke(this, snapshot);
+        SnapshotChanged?.Invoke(this, new GraphSnapshotChangedEventArgs(snapshot, isReload: true));
         TimelineChanged?.Invoke(this, EventArgs.Empty);
 
         return snapshot;

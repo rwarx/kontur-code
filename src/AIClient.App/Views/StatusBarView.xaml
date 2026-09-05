@@ -76,7 +76,7 @@
                 <!-- The active model, as the picker last set it. -->
                 <TextBlock Text="{Binding Chat.SelectedModel.Name, FallbackValue='No model', TargetNullValue='No model'}"
                            Style="{StaticResource Type.Metadata}"
-                           ToolTip="{Binding Chat.SelectedModel.ProviderName, FallbackValue='Pick a model in the Models surface'}"
+                           ToolTip="{Binding Chat.SelectedModel.ProviderName, FallbackValue='Pick a model in the Providers surface'}"
                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="200" />
 
                 <Rectangle Width="1" Height="12" Fill="{DynamicResource Brush.BorderFaint}"

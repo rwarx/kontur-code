@@ -150,7 +150,7 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         new(PaletteCommand.SwitchToFiles, "Go to Files", "Workspace", null, "tree folder"),
         new(PaletteCommand.SwitchToCode, "Go to Code", "Workspace", null, "editor tabs"),
         new(PaletteCommand.SwitchToChat, "Go to Chat", "Workspace", null, "conversation"),
-        new(PaletteCommand.ShowModels, "Models", "Workspace", null, "provider catalogue"),
+        new(PaletteCommand.ShowModels, "Providers", "Workspace", null, "provider catalogue models"),
         new(PaletteCommand.ShowTasks, "Tasks & Agents", "Workspace", null, "activity tools"),
 
         new(PaletteCommand.OpenWorkspace, "Open Workspace Folder", "Graph", null, "folder project repository"),

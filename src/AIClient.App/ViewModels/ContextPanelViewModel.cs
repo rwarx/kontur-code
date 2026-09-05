@@ -108,7 +108,7 @@ public sealed partial class ContextPanelViewModel : ObservableObject
         Reinspect();
     }
 
-    private void OnGraphSnapshotChanged(object? sender, GraphSnapshot snapshot) => UiThread.Post(Reinspect);
+    private void OnGraphSnapshotChanged(object? sender, GraphSnapshotChangedEventArgs e) => UiThread.Post(Reinspect);
 
     private void OnTimelineChanged(object? sender, EventArgs e) => UiThread.Post(RefreshTimeline);
 
