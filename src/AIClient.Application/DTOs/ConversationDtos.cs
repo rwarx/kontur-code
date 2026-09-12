@@ -69,6 +69,17 @@ public sealed record MessageDto
     /// is still a complete message - see <see cref="Domain.Entities.Message.ToolSucceeded"/>.
     /// </summary>
     public bool? ToolSucceeded { get; init; }
+
+    /// <summary>
+    /// Whether compaction has folded this message into a later summary.
+    /// </summary>
+    /// <remarks>
+    /// Nothing sets this yet: compaction does not exist, the stored rows are the whole of
+    /// history, and the context build's filter on the flag is therefore a no-op. The property
+    /// is here so the filter has something true-shaped to read, and so the work that follows
+    /// is a mapping and a writer rather than a contract change.
+    /// </remarks>
+    public bool IsCompacted { get; init; }
 }
 
 /// <summary>An attachment as the UI sees it. <see cref="TextContent"/> is omitted in list views.</summary>
