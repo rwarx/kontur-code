@@ -29,6 +29,7 @@
         <KeyBinding Key="G" Modifiers="Ctrl" Command="{Binding ShowCanvasCommand}" />
         <KeyBinding Key="P" Modifiers="Ctrl+Shift" Command="{Binding ToggleCommandPaletteCommand}" />
         <KeyBinding Key="B" Modifiers="Ctrl" Command="{Binding ToggleSidebarCommand}" />
+        <KeyBinding Key="M" Modifiers="Ctrl" Command="{Binding Chat.ToggleVoiceInputCommand}" />
         <KeyBinding Key="Escape" Command="{Binding Chat.StopCommand}" />
     </ui:FluentWindow.InputBindings>
 

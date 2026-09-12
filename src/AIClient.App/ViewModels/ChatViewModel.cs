@@ -6,6 +6,7 @@ using AIClient.Application.Configuration;
 using AIClient.Application.DTOs;
 using AIClient.Application.Interfaces;
 using AIClient.Application.Markdown;
+using AIClient.Application.Services;
 using AIClient.Domain.Enums;
 using AIClient.Domain.Graph;
 using AIClient.Domain.Models;
@@ -94,6 +95,22 @@ public sealed partial class ChatViewModel : ObservableObject
     /// </remarks>
     private GraphSelection? _graphSelection;
 
+    /// <summary>The one microphone the pane dictates through; the engine behind it may vary.</summary>
+    private readonly ISpeechToTextService _speechToText;
+
+    /// <summary>
+    /// The draft's dictation ledger while a session is open, and null whenever it is not.
+    /// </summary>
+    /// <remarks>
+    /// All voice-driven writes to <see cref="Draft"/>, and only those, go through it - which is
+    /// what lets <see cref="OnDraftChanged"/> tell the user's keystrokes from the composer's
+    /// own echoes and re-anchor the session when the two get mixed.
+    /// </remarks>
+    private VoiceDraftComposer? _voiceComposer;
+
+    /// <summary>The draft as the composer last left it; the fingerprint of a voice write.</summary>
+    private string _lastVoiceDraft = string.Empty;
+
     [ObservableProperty]
     private Guid? _conversationId;
 
@@ -172,6 +189,16 @@ public sealed partial class ChatViewModel : ObservableObject
     /// </remarks>
     [ObservableProperty]
     private bool _isAgentMode;
+
+    /// <summary>True while dictation is live; the microphone button wears its recording look.</summary>
+    /// <remarks>
+    /// Not set by the button - set by <see cref="ISpeechToTextService.IsListeningChanged"/> -
+    /// because the truth about whether the machine is listening belongs to the engine that is
+    /// or is not, and a state the engine did not confirm is a recording mark that can lie.
+    /// </remarks>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(VoiceToolTip))]
+    private bool _isRecording;
 
     /// <summary>
     /// Which kind of agent run the next message starts.
@@ -264,6 +291,7 @@ public sealed partial class ChatViewModel : ObservableObject
         IConnectivityMonitor connectivity,
         AgentApprovalService approval,
         MarkdownParser markdownParser,
+        ISpeechToTextService speechToText,
         ILogger<ChatViewModel> logger)
     {
         _chatService = chatService;
@@ -276,6 +304,7 @@ public sealed partial class ChatViewModel : ObservableObject
         _dialogs = dialogs;
         _connectivity = connectivity;
         _markdownParser = markdownParser;
+        _speechToText = speechToText;
         _logger = logger;
 
         Approval = approval;
@@ -288,6 +317,21 @@ public sealed partial class ChatViewModel : ObservableObject
         // The folder is chosen in Settings, so the hint under the composer would otherwise go on
         // naming a folder the agent is no longer working in.
         _workspace.RootChanged += (_, _) => OnPropertyChanged(nameof(AgentHint));
+
+        // The engine calls from its own thread; every update below hops to the dispatcher
+        // before it touches bound state, which is the rule UiThread exists for.
+        _speechToText.IsListeningChanged += (_, _) => UiThread.Post(() => IsRecording = _speechToText.IsListening);
+        _speechToText.PartialTranscript += (_, e) => UiThread.Post(() => ApplyVoice(composer => composer.UpdatePartial(e.Text)));
+        _speechToText.FinalTranscript += (_, e) => UiThread.Post(() => ApplyVoice(composer => composer.AddFinal(e.Text)));
+        _speechToText.Failed += (_, e) => UiThread.Post(() =>
+        {
+            _logger.LogWarning("Dictation failed: {Message}", e.Message);
+
+            // The session is over whether the banner says so or not; dropping the ledger here
+            // is what keeps a dead session from composing into a draft nobody is dictating.
+            _voiceComposer = null;
+            BannerMessage = Localization.T("S.Chat.Voice.Failed", e.Message);
+        });
 
         ApplyRenderingSettings();
     }
@@ -302,6 +346,7 @@ public sealed partial class ChatViewModel : ObservableObject
         OnPropertyChanged(nameof(AgentHint));
         OnPropertyChanged(nameof(AgentButtonText));
         OnPropertyChanged(nameof(AgentModeSelection));
+        OnPropertyChanged(nameof(VoiceToolTip));
 
         // The hint depends on the setting and the sentence; both parts are re-read.
         ApplyRenderingSettings();
@@ -349,6 +394,14 @@ public sealed partial class ChatViewModel : ObservableObject
 
     public bool CanSend => !IsGenerating && (Draft.Trim().Length > 0 || PendingAttachments.Count > 0);
 
+    /// <summary>Whether this machine can dictate at all; the microphone button hides when not.</summary>
+    public bool IsSpeechAvailable => _speechToText.IsAvailable;
+
+    /// <summary>What the microphone button says on hover, which is whichever end it is on.</summary>
+    public string VoiceToolTip => IsRecording
+        ? Localization.T("S.Chat.Voice.Stop.ToolTip")
+        : Localization.T("S.Chat.Voice.Start.ToolTip");
+
     /// <summary>Raised when the transcript grows, so the view can scroll to the end.</summary>
     public event EventHandler? ScrollToEndRequested;
 
@@ -368,6 +421,13 @@ public sealed partial class ChatViewModel : ObservableObject
 
         try
         {
+            // Dictation belongs to the composer the user is leaving; carrying a live session
+            // across a conversation switch would pour the old chat's words into the new one.
+            if (IsRecording)
+            {
+                await StopDictationAsync().ConfigureAwait(true);
+            }
+
             var detail = await _conversations.GetAsync(id, cancellationToken).ConfigureAwait(true);
 
             if (detail is null)
@@ -412,6 +472,14 @@ public sealed partial class ChatViewModel : ObservableObject
     /// <summary>Resets the pane to an unsaved new chat. The row is created on first send.</summary>
     public void StartNewConversation()
     {
+        // Fire-and-forget because the reset below must not wait on an engine; the flush runs
+        // synchronously up to its first await, so the words land in the draft before the
+        // line after this has cleared it.
+        if (IsRecording)
+        {
+            _ = StopDictationAsync();
+        }
+
         CancelTurn();
 
         ConversationId = null;
@@ -592,6 +660,14 @@ public sealed partial class ChatViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanSend))]
     private async Task SendAsync()
     {
+        // A message sent while dictation is live ends the session first, flushing the words
+        // still being refined into the draft so this send carries them rather than cutting
+        // them off mid-sentence.
+        if (IsRecording)
+        {
+            await StopDictationAsync().ConfigureAwait(true);
+        }
+
         var text = Draft.Trim();
 
         if (text.Length == 0 && PendingAttachments.Count == 0)
@@ -668,6 +744,97 @@ public sealed partial class ChatViewModel : ObservableObject
     {
         _logger.LogInformation("Generation stopped by the user.");
         CancelTurn();
+    }
+
+    /// <summary>The microphone button: one control, both ends of the session.</summary>
+    [RelayCommand]
+    private async Task ToggleVoiceInputAsync()
+    {
+        if (IsRecording)
+        {
+            await StopDictationAsync().ConfigureAwait(true);
+            return;
+        }
+
+        if (!_speechToText.IsAvailable)
+        {
+            // Reachable only when the recognizer vanished mid-run; the button hides itself
+            // when the answer to IsAvailable was no from the start.
+            BannerMessage = Localization.T("S.Chat.Voice.Unavailable");
+            return;
+        }
+
+        // The draft as it stands is the base: dictation appends to it, never over it.
+        _voiceComposer = new VoiceDraftComposer(Draft);
+        _lastVoiceDraft = Draft;
+
+        try
+        {
+            await _speechToText.StartAsync().ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            _voiceComposer = null;
+        }
+        catch (Exception ex)
+        {
+            // The service reports its own failures through Failed; this catches the rare
+            // refusal that happened before it could - a disposed gate at shutdown, say.
+            _voiceComposer = null;
+            _logger.LogError(ex, "Starting dictation failed.");
+            BannerMessage = Localization.T("S.Chat.Voice.Failed", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Ends a dictation session, keeping what the user has been reading in the box.
+    /// </summary>
+    /// <remarks>
+    /// Called from three places on purpose: the microphone button, Send, and the conversation
+    /// switchers. All three mean the same thing - this session is over, the words in the box
+    /// stay - which is why the flush happens here and not at each call site.
+    /// </remarks>
+    private async Task StopDictationAsync()
+    {
+        // Flush before the engine stops: a guess still open at the moment of stopping is
+        // usually the last sentence the user spoke, and it has been on screen for a second
+        // or more by now - closing the session without committing it would drop words the
+        // user had every reason to believe were already theirs.
+        if (_voiceComposer is not null)
+        {
+            var composed = _voiceComposer.Flush();
+            _lastVoiceDraft = composed;
+            Draft = composed;
+            _voiceComposer = null;
+        }
+
+        try
+        {
+            await _speechToText.StopAsync().ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            // IsListeningChanged is the recording mark's only source of truth, and a stop
+            // that fails before the engine hears about it leaves the session the service's
+            // problem. Nothing here can make the mark honest again by force.
+            _logger.LogWarning(ex, "Stopping dictation failed.");
+        }
+    }
+
+    /// <summary>Puts a composed draft into the box, marking it as the composer's own work.</summary>
+    private void ApplyVoice(Func<VoiceDraftComposer, string> update)
+    {
+        if (_voiceComposer is null)
+        {
+            return;
+        }
+
+        var composed = update(_voiceComposer);
+
+        // The fingerprint is written before the draft, because the draft's own change
+        // notification is the thing that will read it.
+        _lastVoiceDraft = composed;
+        Draft = composed;
     }
 
     /// <summary>Re-answers an assistant message, discarding it and anything after it.</summary>
@@ -1415,6 +1582,16 @@ public sealed partial class ChatViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(CanSend));
         SendCommand.NotifyCanExecuteChanged();
+
+        // A write that did not come from the composer while dictation is live is the user
+        // typing over it. The words in the box are theirs now: the running guess re-anchors
+        // to the edited text instead of re-asserting what was there before the keystrokes.
+        if (IsRecording
+            && _voiceComposer is not null
+            && !string.Equals(value, _lastVoiceDraft, StringComparison.Ordinal))
+        {
+            _lastVoiceDraft = _voiceComposer.Rebase(value);
+        }
     }
 
     partial void OnSelectedModelChanged(ModelInfo? value)

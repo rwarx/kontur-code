@@ -818,6 +818,7 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
                         <ui:Button Grid.Column="0"
@@ -946,8 +947,37 @@
                                  PreviewKeyDown="OnDraftKeyDown"
                                  SpellCheck.IsEnabled="True" />
 
-                        <!-- Send and Stop swap: only one is ever meaningful. -->
+                        <!--
+                            Dictation. One control for both ends of the session, the way Send and
+                            Stop are one: a microphone while the machine is idle, a recording mark
+                            while it is listening, and the words arrive in the box as they are
+                            heard. Hidden entirely where Windows has no recognizer to drive.
+                        -->
                         <ui:Button Grid.Column="3"
+                                   Appearance="Secondary"
+                                   Background="Transparent"
+                                   BorderThickness="0"
+                                   VerticalAlignment="Bottom"
+                                   Margin="0,0,2,0"
+                                   ToolTip="{Binding VoiceToolTip}"
+                                   Command="{Binding ToggleVoiceInputCommand}"
+                                   Visibility="{Binding IsSpeechAvailable, Converter={StaticResource BoolToVisibility}}">
+                            <ui:Button.Style>
+                                <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                    <Setter Property="Icon" Value="{ui:SymbolIcon Mic24}" />
+                                    <Style.Triggers>
+                                        <!-- The one state worth seeing from across the room: the machine is listening. -->
+                                        <DataTrigger Binding="{Binding IsRecording}" Value="True">
+                                            <Setter Property="Icon" Value="{ui:SymbolIcon Record24}" />
+                                            <Setter Property="Appearance" Value="Danger" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:Button.Style>
+                        </ui:Button>
+
+                        <!-- Send and Stop swap: only one is ever meaningful. -->
+                        <ui:Button Grid.Column="4"
                                    Appearance="Primary"
                                    Icon="{ui:SymbolIcon Send24}"
                                    ToolTip="{DynamicResource S.Chat.Send.ToolTip}"
@@ -956,7 +986,7 @@
                                    Command="{Binding SendCommand}"
                                    Visibility="{Binding IsGenerating, Converter={StaticResource InverseBoolToVisibility}}" />
 
-                        <ui:Button Grid.Column="3"
+                        <ui:Button Grid.Column="4"
                                    Appearance="Danger"
                                    Icon="{ui:SymbolIcon Stop24}"
                                    ToolTip="{DynamicResource S.Settings.Shortcut.Stop}"
@@ -975,7 +1005,16 @@
 
                     <TextBlock Grid.Column="0"
                                Style="{StaticResource SubtleText}"
-                               Text="{Binding InputHint}" />
+                               Text="{Binding InputHint}"
+                               Visibility="{Binding IsRecording, Converter={StaticResource InverseBoolToVisibility}}" />
+
+                    <!-- What the microphone is doing replaces what Enter does, for as long as it is doing it. -->
+                    <TextBlock Grid.Column="0"
+                               Style="{StaticResource SubtleText}"
+                               Text="{DynamicResource S.Chat.Voice.Listening}"
+                               Foreground="{StaticResource ApprovalAccentBrush}"
+                               Margin="0,0,12,0"
+                               Visibility="{Binding IsRecording, Converter={StaticResource BoolToVisibility}}" />
 
                     <!-- What the next message will do, and where, while it is still possible not to send. -->
                     <TextBlock Grid.Column="1"

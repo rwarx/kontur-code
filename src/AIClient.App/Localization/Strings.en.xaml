@@ -79,6 +79,11 @@
     <sys:String x:Key="S.Chat.RemoveAttachment.ToolTip">Remove attachment</sys:String>
     <sys:String x:Key="S.Chat.Attach.ToolTip">Attach a file</sys:String>
     <sys:String x:Key="S.Chat.Send.ToolTip">Send (Enter)</sys:String>
+    <sys:String x:Key="S.Chat.Voice.Start.ToolTip">Dictate (Ctrl+M)</sys:String>
+    <sys:String x:Key="S.Chat.Voice.Stop.ToolTip">Stop dictation</sys:String>
+    <sys:String x:Key="S.Chat.Voice.Listening">Listening…</sys:String>
+    <sys:String x:Key="S.Chat.Voice.Unavailable">Speech recognition is not available on this system.</sys:String>
+    <sys:String x:Key="S.Chat.Voice.Failed">Dictation failed: {0}</sys:String>
     <sys:String x:Key="S.Chat.ShowResult.ToolTip">Show what this returned</sys:String>
     <sys:String x:Key="S.Tool.Risk.Write">changed files</sys:String>
     <sys:String x:Key="S.Tool.Risk.Execute">ran a program</sys:String>

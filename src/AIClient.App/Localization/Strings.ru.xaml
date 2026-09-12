@@ -75,6 +75,11 @@
     <sys:String x:Key="S.Chat.RemoveAttachment.ToolTip">Убрать вложение</sys:String>
     <sys:String x:Key="S.Chat.Attach.ToolTip">Прикрепить файл</sys:String>
     <sys:String x:Key="S.Chat.Send.ToolTip">Отправить (Enter)</sys:String>
+    <sys:String x:Key="S.Chat.Voice.Start.ToolTip">Продиктовать (Ctrl+M)</sys:String>
+    <sys:String x:Key="S.Chat.Voice.Stop.ToolTip">Остановить диктовку</sys:String>
+    <sys:String x:Key="S.Chat.Voice.Listening">Слушаю…</sys:String>
+    <sys:String x:Key="S.Chat.Voice.Unavailable">Распознавание речи недоступно на этой системе.</sys:String>
+    <sys:String x:Key="S.Chat.Voice.Failed">Ошибка диктовки: {0}</sys:String>
     <sys:String x:Key="S.Chat.ShowResult.ToolTip">Показать, что вернул вызов</sys:String>
     <sys:String x:Key="S.Tool.Risk.Write">меняет файлы</sys:String>
     <sys:String x:Key="S.Tool.Risk.Execute">запускает программу</sys:String>
