@@ -30,4 +30,25 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
 
+  <!--
+    Inter, bundled. A developer tool is read at 11-13px all day; the app owns its face
+    instead of trusting whatever Segoe build the host machine has. OFL licence included
+    beside the files. WPF composes weights from the family name, so one Resource pattern
+    covers Regular/Medium/SemiBold/Bold plus the italic.
+  -->
+  <ItemGroup>
+    <Resource Include="Fonts\Inter-*.ttf" />
+    <None Include="Fonts\OFL-Inter.txt" />
+  </ItemGroup>
+
+  <!-- The project's own brand: the logo every brand plate shows, and the compiled
+       application icon Explorer and the taskbar display. -->
+  <ItemGroup>
+    <Resource Include="Assets\logo.png" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+  </PropertyGroup>
+
 </Project>

@@ -1,24 +1,29 @@
 # AI Client
 
-A native Windows desktop client for large language models. One window, your own API keys, your
-conversations in a local SQLite file.
+A native Windows desktop LLM client evolving into a spatial AI development environment. One window,
+your own API keys, your conversations in a local SQLite file.
 
-This is the first stage of a longer plan. The architecture is the one an AI-assisted IDE will
-need - a domain that knows nothing about HTTP, a UI that cannot reach a provider, streaming that
-runs end to end as `IAsyncEnumerable<T>` - and the feature set is a workspace plus an agent that can
-work in a folder you choose: chat, sessions, models, providers, settings, local storage, and a tool
-loop that reads and edits files under your supervision. There is no editor and no repository
-awareness yet. Those are later stages, and nothing here forecloses them.
+The architecture is the one an AI-assisted IDE needs — a domain that knows nothing about HTTP, a UI
+that cannot reach a provider, streaming that runs end to end as `IAsyncEnumerable<T>` — and the
+feature set is a workspace, an agent, a graph canvas, and a tool loop that reads and edits files
+under your supervision. Repository awareness and a code editor are later stages.
 
 ## What it does
 
 - **Streaming chat.** Tokens appear as they arrive. Stop mid-answer and the partial text is kept,
   not discarded. Regenerate replaces the answer in place, optionally on a different model.
-- **Agent mode.** One button in the composer picks what the next message is - a plan, a plan to be
-  drawn, a build, or nothing - and sends it to a tool loop instead of straight to the model. It starts
+- **Agent mode.** One button in the composer picks what the next message is — a plan, a plan to be
+  drawn, a build, or nothing — and sends it to a tool loop instead of straight to the model. It starts
   on plan: the build can list, read, search, write, edit, move and delete files under one folder you
   nominate, and asks before every change; a plan reads and writes nothing. See
   [Agent mode](#agent-mode).
+- **Graph canvas.** A spatial view of your project: files, folders, modules, services, interfaces,
+  and plans appear as nodes on an infinite canvas. Drag, zoom, pan, select, and connect. The graph
+  is persisted per workspace and survives restarts. Plans from the agent are drawn directly onto the
+  canvas as node+edge sets, ready to be confirmed or rejected.
+- **Workspace indexer.** Your folder is scanned and mapped to graph nodes automatically — code files,
+  views, data, tests, external references — with containment and dependency edges. The layout
+  preserves your canvas arrangement across refreshes.
 - **Markdown and code.** Headings, lists, tables, quotes and fenced code rendered as WPF content
   rather than HTML in a browser control, with syntax highlighting for the common languages.
 - **Sessions.** Create, rename, pin, search and delete conversations. Titles are generated from
@@ -114,19 +119,19 @@ was, so coming back to the agent returns to the mode last chosen.
 | Mode | Can | Cannot |
 | --- | --- | --- |
 | **Plan** | Read the folder, and record a plan with `submit_plan` | Write, move, delete or run anything |
-| **Plan + canvas** | The same, and hands the plan over as parts and dependencies rather than as prose, so it can be drawn | The same |
+| **Plan + canvas** | The same, and hands the plan over as parts and dependencies to be drawn on the graph canvas | The same |
 | **Build** | Everything in the table below, asking first wherever it says so | Record a plan - that is what the other two are for |
 
 The mode is enforced rather than suggested. The tools a mode does not allow are left out of the
-request, and a call for one that arrives anyway is refused before its arguments are read - the offer
+request, and a call for one that arrives anyway is refused before its arguments are read — the offer
 is a courtesy, the mode is the rule. A refusal is a sentence the model can act on rather than an
 error, so a planning run that reached for `write_file` is told to finish the plan instead of the run
 ending.
 
-The canvas is not in this build yet, so **Plan + canvas** records the same structured plan and the
-model is told, in as many words, that there is nowhere to draw it and it should write the plan out
-instead. That is the whole difference: when the canvas lands, one registration line turns the drawing
-on and nothing else about the mode changes.
+**Plan + canvas** records a structured plan and hands it to `CanvasPlanSink`, which builds a
+`GraphChangeSet` (plan node + part nodes + edges) and asks you to confirm before drawing it on the
+canvas. Once confirmed, the plan is part of the graph — undoable, persisted, and visible alongside
+your workspace nodes.
 
 **Build** is the only mode that needs a folder, and choosing it without one asks which folder to use.
 That folder is the whole of the agent's reach - it is remembered between sessions, shown under the
@@ -270,10 +275,10 @@ rewrite. Nothing about the choice reaches past the App layer: the theme service 
 ## Project layout
 
 ```text
-src/AIClient.Domain          Entities, enums, provider and storage contracts. No dependencies.
-src/AIClient.Application     Services and the contracts the UI binds to. No HTTP, no SQL.
-src/AIClient.Infrastructure  EF Core, SQLite, providers, DPAPI, file logging.
-src/AIClient.App             WPF: windows, views, view models, converters, behaviours.
+src/AIClient.Domain          Entities, enums, graph model, provider and storage contracts. No dependencies.
+src/AIClient.Application     Services, agent tools, graph service, markdown parser. No HTTP, no SQL.
+src/AIClient.Infrastructure  EF Core, SQLite, providers, DPAPI, workspace, file logging.
+src/AIClient.App             WPF: windows, views, view models, canvas, converters, behaviours.
 tests/AIClient.Tests         The suite above.
 ```
 
@@ -289,7 +294,6 @@ adding an agent from having to be threaded through the UI, and is what a future 
 
 No editor, no file tree, no repository awareness, no MCP, no image input, no plugins. The agent can
 read files, change them and run the programs you have allowed, but there is no shell and no way for
-it to ask for one. There is no canvas either: **Plan + canvas** is the mode and the structured plan
-it produces, and drawing that plan is the next stage rather than part of this one. Multiple agents,
-background runs and a diff-review pane are later stages too - the layering is the reason they can
-arrive without a rewrite, but none of it is here yet, and the feature list above is the whole of it.
+it to ask for one. Multiple agents, background runs and a diff-review pane are later stages — the
+layering is the reason they can arrive without a rewrite, but none of it is here yet, and the
+feature list above is the whole of it.

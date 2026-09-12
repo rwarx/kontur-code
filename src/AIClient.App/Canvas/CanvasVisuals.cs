@@ -73,6 +73,17 @@ public sealed class EdgeVisual
     /// <summary>Sampled points along the curve, for distance-based hit-testing.</summary>
     public Point[] Samples { get; set; } = [];
 
+    /// <summary>
+    /// The world rectangle the edge can occupy: the two endpoint cards unioned and inflated by
+    /// the widest possible bow and the label height.
+    /// </summary>
+    /// <remarks>
+    /// Kept here, and maintained by the scene whenever an endpoint moves, so that viewport
+    /// culling is one rectangle test per edge. Recomputing it during culling would mean two
+    /// dictionary lookups and a <see cref="Rect.Union(Rect, Rect)"/> per edge on every pan.
+    /// </remarks>
+    public Rect Hull { get; set; } = Rect.Empty;
+
     public EdgeRenderState State { get; set; } = EdgeRenderState.Default;
 
     public bool IsDirty { get; set; } = true;

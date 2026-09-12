@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore AIClient.slnx
+
+      - name: Build (warnings as errors)
+        run: dotnet build AIClient.slnx --no-restore -warnaserror
+
+      - name: Test
+        run: dotnet test AIClient.slnx --no-build --logger "trx;LogFileName=test-results.trx" -- Results/TestResults.trx
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/TestResults/*.trx'
+
+  architecture:
+    name: Architecture Tests
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore AIClient.slnx
+
+      - name: Build
+        run: dotnet build AIClient.slnx --no-restore
+
+      - name: Verify Domain has no WPF references
+        run: |
+          $refs = dotnet list src/AIClient.Domain/AIClient.Domain.csproj reference
+          if ($refs -match "PresentationCore|PresentationFramework|WindowsBase|WPF-UI|CommunityToolkit.Mvvm") {
+            Write-Error "Domain layer has WPF/UI references — layering violation"
+            exit 1
+          }
+          Write-Host "Domain layer: OK (no WPF references)"
+
+      - name: Verify Application has no WPF references
+        run: |
+          $refs = dotnet list src/AIClient.Application/AIClient.Application.csproj reference
+          if ($refs -match "PresentationCore|PresentationFramework|WindowsBase|WPF-UI|CommunityToolkit.Mvvm") {
+            Write-Error "Application layer has WPF/UI references — layering violation"
+            exit 1
+          }
+          Write-Host "Application layer: OK (no WPF references)"
+
+  audit:
+    name: Package Audit
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Check for vulnerable packages
+        run: dotnet list package --vulnerable --include-transitive
+        continue-on-error: true
+
+      - name: Check for outdated packages
+        run: dotnet list package --outdated
+        continue-on-error: true

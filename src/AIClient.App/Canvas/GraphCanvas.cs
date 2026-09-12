@@ -27,8 +27,9 @@ namespace AIClient.App.Canvas;
 /// <para>
 /// <b>Input model.</b> Left-drag on empty space is a marquee; drag on a node drags the
 /// selection. Pan is middle-drag, space-drag, or drag with the left button while the
-/// hand tool is engaged; the wheel zooms to the cursor. This split keeps selection and
-/// navigation from fighting over the same gesture, which is the classic canvas annoyance.
+/// hand tool is engaged, and the surface follows the pointer one pixel for one pixel at
+/// any zoom; the wheel zooms to the cursor. This split keeps selection and navigation
+/// from fighting over the same gesture, which is the classic canvas annoyance.
 /// </para>
 /// </remarks>
 public class GraphCanvas : FrameworkElement
@@ -50,21 +51,51 @@ public class GraphCanvas : FrameworkElement
 
     private const double MinZoom = 0.06;
     private const double MaxZoom = 3.5;
-    private const double WheelZoomStep = 1.12;
+
+    /// <summary>Roughly a fifth per notch, and smooth for a fast scroll rather than stepped.</summary>
+    /// <remarks>
+    /// Raised to the wheel's own delta rather than applied once per event: a high-resolution
+    /// wheel sends many small deltas, and a fixed step per event would zoom such a mouse in
+    /// several times as fast as a notched one. This is the previous interface's constant.
+    /// </remarks>
+    private const double ZoomPerWheelUnit = 1.0015;
+
     private const double DragThreshold = 3.0;
 
     private CanvasController? _controller;
     private readonly CanvasScene _scene = new();
+
+    // World space. One transform for the camera, two layers under it so an edge can never
+    // draw over a card: the old renderer got that guarantee from two sequential ItemsControls,
+    // and a single children collection in culling order cannot give it.
     private readonly ContainerVisual _content = new();
+    private readonly ContainerVisual _edgeLayer = new();
+    private readonly ContainerVisual _nodeLayer = new();
+    private readonly MatrixTransform _view = new();
+
+    // Screen space: the surface colour, the dot grid over it, the marquee over everything.
     private readonly DrawingVisual _gridVisual = new();
+    private readonly DrawingVisual _dotVisual = new();
     private readonly DrawingVisual _overlayVisual = new();
+
+    // The dot field is a tiled brush, so panning and zooming it is two transform writes
+    // rather than a redraw of a few thousand rectangles.
+    private readonly ScaleTransform _dotScale = new(1, 1);
+    private readonly TranslateTransform _dotTranslate = new(0, 0);
+    private readonly DrawingBrush _dotBrush;
+
     private readonly HashSet<string> _attachedNodes = new(StringComparer.Ordinal);
     private readonly HashSet<string> _attachedEdges = new(StringComparer.Ordinal);
-    private readonly HashSet<string> _visibleEdgeIds = new(StringComparer.Ordinal);
 
-    // The zoom the attached visuals were last baked at. Pen widths are zoom-compensated,
-    // so a change here means every attached visual must be re-rendered, not just moved.
-    private double _lastRenderZoom = double.NaN;
+    // Scratch buffers for culling and dragging. A viewport change happens on every wheel
+    // notch and every mouse-move of a pan, so the pass that runs then allocates nothing.
+    private readonly HashSet<string> _wantedNodes = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _wantedEdges = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _relatedEdges = new(StringComparer.Ordinal);
+    private readonly List<string> _detach = [];
+    private readonly Dictionary<string, Point> _previewPositions = new(StringComparer.Ordinal);
+
+    private Pen? _marqueePen;
 
     private Point _pointerDownPosition;
     private Point _pointerLastPosition;
@@ -83,7 +114,19 @@ public class GraphCanvas : FrameworkElement
         SnapsToDevicePixels = false;
         Cursor = Cursors.Arrow;
 
+        _dotBrush = BuildDotBrush();
+
+        // A single aliased pixel per tile rather than a sub-pixel circle: an ellipse of
+        // radius 0.9 has no whole-pixel form, so it rasterises into a soft diamond that
+        // changes shape as the surface pans - a background that shimmers.
+        RenderOptions.SetEdgeMode(_dotVisual, EdgeMode.Aliased);
+
+        _content.Children.Add(_edgeLayer);
+        _content.Children.Add(_nodeLayer);
+        _content.Transform = _view;
+
         AddVisualChild(_gridVisual);
+        AddVisualChild(_dotVisual);
         AddVisualChild(_content);
         AddVisualChild(_overlayVisual);
 
@@ -122,43 +165,45 @@ public class GraphCanvas : FrameworkElement
         _scene.Reset(_controller.Snapshot);
         _attachedNodes.Clear();
         _attachedEdges.Clear();
-        _visibleEdgeIds.Clear();
         SynchronizeCulling();
         ApplySelectionStates();
         RenderVisible();
     }
 
-    protected override int VisualChildrenCount => 3;
+    protected override int VisualChildrenCount => 4;
 
     protected override Visual GetVisualChild(int index) => index switch
     {
         0 => _gridVisual,
-        1 => _content,
-        2 => _overlayVisual,
+        1 => _dotVisual,
+        2 => _content,
+        3 => _overlayVisual,
         _ => throw new ArgumentOutOfRangeException(nameof(index)),
     };
 
     // -------------------------------------------------------------- viewport
 
+    /// <summary>
+    /// The camera moved. Nothing here re-records a drawing: the world is one transform, the
+    /// dot field is a brush transform, and culling only attaches and detaches visuals that
+    /// were already drawn.
+    /// </summary>
     private void OnViewportChanged(object? sender, EventArgs e)
     {
         ApplyViewportTransform();
-        RenderGrid();
+        UpdateDotViewport();
         SynchronizeCulling();
-
-        // Pen widths are baked per-zoom: a world-space pen of width w/zoom renders at a
-        // constant w screen pixels, so a zoom change makes every already-drawn visual stale
-        // (edges thin to sub-pixel and tear when zooming out). Panning leaves zoom alone, so
-        // only the visuals just revealed by culling - still dirty from creation - need work,
-        // which RenderVisible handles by skipping the clean ones.
-        if (_controller is not null && Math.Abs(_controller.Zoom - _lastRenderZoom) > 0.0001)
-        {
-            MarkAttachedDirty();
-            _lastRenderZoom = _controller.Zoom;
-        }
-
         RenderVisible();
         RenderOverlay();
+
+        // Zooming with the wheel is legal mid-drag, and culling can pull in an edge that was
+        // off screen when the drag began. Such an edge would otherwise be drawn against the
+        // committed positions while its card sits at the preview one - a link with one end
+        // adrift.
+        if (_isNodeDragActive)
+        {
+            RefreshDraggedVisuals();
+        }
     }
 
     private void OnStateChanged(object? sender, EventArgs e)
@@ -173,7 +218,7 @@ public class GraphCanvas : FrameworkElement
     private void OnToolChanged(object? sender, EventArgs e)
     {
         // The tool decides the resting cursor; a live pan or marquee overrides it per gesture.
-        Cursor = _controller?.ActiveTool == CanvasTool.Pan ? Cursors.ScrollAll : Cursors.Arrow;
+        Cursor = RestingCursor();
     }
 
     private void OnSceneChanged(object? sender, SceneChangedEventArgs e)
@@ -188,7 +233,8 @@ public class GraphCanvas : FrameworkElement
             _scene.Reset(e.Snapshot);
             _attachedNodes.Clear();
             _attachedEdges.Clear();
-            _visibleEdgeIds.Clear();
+            _edgeLayer.Children.Clear();
+            _nodeLayer.Children.Clear();
         }
         else
         {
@@ -207,24 +253,20 @@ public class GraphCanvas : FrameworkElement
             return;
         }
 
-        var view = _controller.View;
-        _content.Transform = new MatrixTransform(view);
+        // One long-lived transform, written rather than replaced: a new MatrixTransform per
+        // mouse-move is a new DependencyObject the composition has to adopt on every frame
+        // of a pan.
+        _view.Matrix = _controller.View;
     }
 
     // ------------------------------------------------------------ grid layer
 
     /// <summary>
-    /// The grid is drawn in screen space: it must stay pixel-aligned whatever the zoom,
-    /// and panning it is a translation of the drawing, not a redraw of the world.
+    /// The surface colour behind everything. Recorded on resize and on a theme change, and at
+    /// no other time - it does not depend on the camera.
     /// </summary>
-    private void RenderGrid()
+    private void RenderSurface()
     {
-        if (_controller is null)
-        {
-            return;
-        }
-
-        var view = _controller.View;
         var size = RenderSize;
 
         if (size.Width < 1 || size.Height < 1)
@@ -233,68 +275,91 @@ public class GraphCanvas : FrameworkElement
         }
 
         using var context = _gridVisual.RenderOpen();
-
         context.DrawRectangle(Brush("Brush.CanvasBackground") ?? Brushes.Transparent, null, new Rect(0, 0, size.Width, size.Height));
+    }
 
-        // Subtle radial wash: the canvas reads as a lit surface rather than a flat void,
-        // without a gradient per node. One brush, centred on the viewport.
-        var centre = new Point(size.Width / 2, size.Height / 2);
-        var radius = Math.Max(size.Width, size.Height) * 0.75;
+    /// <summary>
+    /// The dot grid: one rectangle filled with a tiled brush, recorded on resize only.
+    /// </summary>
+    /// <remarks>
+    /// The dots are anchored to the world by the brush's own transform, which is the same pan
+    /// and scale the cards get. Drawing them as individual rectangles - one
+    /// <c>DrawRectangle</c> per dot, a few thousand of them, re-recorded on every wheel notch
+    /// and every mouse-move of a pan - is what made the canvas stutter and the edges tear:
+    /// re-recording a visual mid-gesture drops the frame that was being composed.
+    /// </remarks>
+    private void RenderDots()
+    {
+        var size = RenderSize;
 
-        var wash = new RadialGradientBrush(
-            Color.FromArgb(16, 56, 201, 165),
-            Color.FromArgb(0, 56, 201, 165))
+        if (size.Width < 1 || size.Height < 1)
         {
-            Center = centre,
-            GradientOrigin = centre,
-            RadiusX = radius,
-            RadiusY = radius,
-        };
+            return;
+        }
 
-        context.DrawRectangle(wash, null, new Rect(0, 0, size.Width, size.Height));
+        using var context = _dotVisual.RenderOpen();
+        context.DrawRectangle(_dotBrush, null, new Rect(0, 0, size.Width, size.Height));
+    }
 
-        // Dots at the minor grid spacing; spacing doubles while it would fall under ~10
-        // screen pixels, so zooming out never produces a moiré field.
+    /// <summary>
+    /// Moves the dot field with the camera: two transform writes and an opacity, no redraw.
+    /// </summary>
+    /// <remarks>
+    /// Opacity follows the zoom - values above one clamp - which fades the grid out as the
+    /// camera pulls back and the dots would otherwise close into a wash.
+    /// </remarks>
+    private void UpdateDotViewport()
+    {
+        if (_controller is null)
+        {
+            return;
+        }
+
         var zoom = _controller.Zoom;
-        var spacing = 24.0 * zoom;
+        var view = _controller.View;
 
-        while (spacing < 10)
+        _dotScale.ScaleX = zoom;
+        _dotScale.ScaleY = zoom;
+        _dotTranslate.X = view.OffsetX;
+        _dotTranslate.Y = view.OffsetY;
+        _dotVisual.Opacity = Math.Clamp(zoom, 0, 1);
+    }
+
+    /// <summary>The tiled dot, built once: a 24-unit tile carrying a single pixel at its centre.</summary>
+    private DrawingBrush BuildDotBrush()
+    {
+        var geometry = new RectangleGeometry(new Rect(12, 12, 1, 1));
+        geometry.Freeze();
+
+        var dot = new SolidColorBrush(Color.FromArgb(0x33, 0x80, 0x80, 0x80));
+        dot.Freeze();
+
+        var drawing = new GeometryDrawing(dot, null, geometry);
+        drawing.Freeze();
+
+        var transform = new TransformGroup();
+        transform.Children.Add(_dotScale);
+        transform.Children.Add(_dotTranslate);
+
+        // Not frozen, and cannot be: the transform is written on every camera move. Freezing
+        // the parts that never change is what keeps the write cheap.
+        return new DrawingBrush(drawing)
         {
-            spacing *= 2;
-        }
-
-        var dotBrush = Brush("Brush.CanvasGrid") ?? Brushes.Gray;
-        var origin = new Point(
-            (-view.OffsetX * zoom) % spacing,
-            (-view.OffsetY * zoom) % spacing);
-
-        if (origin.X < 0)
-        {
-            origin.X += spacing;
-        }
-
-        if (origin.Y < 0)
-        {
-            origin.Y += spacing;
-        }
-
-        var dot = new Rect(0, 0, 1, 1);
-
-        for (var x = origin.X; x < size.Width; x += spacing)
-        {
-            for (var y = origin.Y; y < size.Height; y += spacing)
-            {
-                dot.X = x;
-                dot.Y = y;
-                context.DrawRectangle(dotBrush, null, dot);
-            }
-        }
+            TileMode = TileMode.Tile,
+            ViewportUnits = BrushMappingMode.Absolute,
+            Viewport = new Rect(0, 0, 24, 24),
+            Transform = transform,
+        };
     }
 
     private Brush? Brush(string key) => TryFindResource(key) as Brush;
 
     // ------------------------------------------------------------- culling
 
+    /// <summary>
+    /// Brings the attached set in line with the viewport. Runs on every camera move, so it
+    /// allocates nothing and touches no drawing.
+    /// </summary>
     private void SynchronizeCulling()
     {
         if (_controller is null)
@@ -303,23 +368,37 @@ public class GraphCanvas : FrameworkElement
         }
 
         var worldRect = _controller.VisibleWorldRect(RenderSize);
-        var nodeIds = _scene.Index.Query(worldRect);
 
-        var wantedNodes = new HashSet<string>(nodeIds, StringComparer.Ordinal);
+        _wantedNodes.Clear();
+
+        foreach (var id in _scene.Index.Query(worldRect))
+        {
+            _wantedNodes.Add(id);
+        }
 
         // Remove first: the VisualCollection churns less when additions outnumber removals.
-        foreach (var id in _attachedNodes.Where(id => !wantedNodes.Contains(id)).ToArray())
+        _detach.Clear();
+
+        foreach (var id in _attachedNodes)
+        {
+            if (!_wantedNodes.Contains(id))
+            {
+                _detach.Add(id);
+            }
+        }
+
+        foreach (var id in _detach)
         {
             if (_scene.FindNode(id) is { IsAttached: true } visual)
             {
-                _content.Children.Remove(visual.Visual);
+                _nodeLayer.Children.Remove(visual.Visual);
                 visual.IsAttached = false;
             }
 
             _attachedNodes.Remove(id);
         }
 
-        foreach (var id in wantedNodes)
+        foreach (var id in _wantedNodes)
         {
             if (_attachedNodes.Contains(id))
             {
@@ -328,54 +407,47 @@ public class GraphCanvas : FrameworkElement
 
             if (_scene.FindNode(id) is { IsAttached: false } visual)
             {
-                _content.Children.Add(visual.Visual);
+                _nodeLayer.Children.Add(visual.Visual);
                 visual.IsAttached = true;
                 _attachedNodes.Add(id);
             }
         }
 
-        // Edges are culled by the union rectangle of their endpoints rather than their
-        // curve bounds: the curve can leave the segment's hull, and pulling one extra
-        // edge into the tree is cheaper than computing a bezier hull per edge.
-        _visibleEdgeIds.Clear();
+        // Edges are culled by the cached hull of their endpoints rather than their curve
+        // bounds: the hull is maintained by the scene whenever a node moves, so this pass is
+        // a rectangle test per edge and nothing more.
+        _wantedEdges.Clear();
 
-        var candidates = new HashSet<string>(StringComparer.Ordinal);
-
-        foreach (var edgeId in _scene.EdgeIds())
+        foreach (var visual in _scene.AllEdgeVisuals())
         {
-            if (_scene.FindEdge(edgeId) is not { } edge)
+            if (!visual.Hull.IsEmpty && visual.Hull.IntersectsWith(worldRect))
             {
-                continue;
-            }
-
-            var sourceRect = _scene.NodeBounds(edge.SourceId);
-            var targetRect = _scene.NodeBounds(edge.TargetId);
-
-            if (sourceRect.IsEmpty || targetRect.IsEmpty)
-            {
-                continue;
-            }
-
-            var hull = Rect.Union(sourceRect, targetRect);
-
-            if (hull.IntersectsWith(worldRect))
-            {
-                candidates.Add(edgeId);
+                _wantedEdges.Add(visual.Edge.Id);
             }
         }
 
-        foreach (var id in _attachedEdges.Where(id => !candidates.Contains(id)).ToArray())
+        _detach.Clear();
+
+        foreach (var id in _attachedEdges)
+        {
+            if (!_wantedEdges.Contains(id))
+            {
+                _detach.Add(id);
+            }
+        }
+
+        foreach (var id in _detach)
         {
             if (_scene.FindEdge(id) is { IsAttached: true } visual)
             {
-                _content.Children.Remove(visual.Visual);
+                _edgeLayer.Children.Remove(visual.Visual);
                 visual.IsAttached = false;
             }
 
             _attachedEdges.Remove(id);
         }
 
-        foreach (var id in candidates)
+        foreach (var id in _wantedEdges)
         {
             if (_attachedEdges.Contains(id))
             {
@@ -384,18 +456,14 @@ public class GraphCanvas : FrameworkElement
 
             if (_scene.FindEdge(id) is { IsAttached: false } visual)
             {
-                _content.Children.Add(visual.Visual);
+                _edgeLayer.Children.Add(visual.Visual);
                 visual.IsAttached = true;
                 _attachedEdges.Add(id);
-                _visibleEdgeIds.Add(id);
-            }
-            else if (_scene.FindEdge(id) is { IsAttached: true })
-            {
-                _visibleEdgeIds.Add(id);
             }
         }
     }
 
+    /// <summary>Draws whatever is attached and dirty; a clean visual costs one branch.</summary>
     private void RenderVisible()
     {
         if (_controller is null)
@@ -403,13 +471,11 @@ public class GraphCanvas : FrameworkElement
             return;
         }
 
-        var zoom = _controller.Zoom;
-
         foreach (var id in _attachedNodes)
         {
             if (_scene.FindNode(id) is { } visual)
             {
-                _scene.RenderNode(visual, zoom);
+                _scene.RenderNode(visual);
             }
         }
 
@@ -417,30 +483,7 @@ public class GraphCanvas : FrameworkElement
         {
             if (_scene.FindEdge(id) is { } visual)
             {
-                _scene.RenderEdge(visual, _controller.Snapshot, zoom);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Marks every attached visual dirty so the next <see cref="RenderVisible"/> rebakes
-    /// it. Used on zoom, where the baked pen widths are zoom-relative and go stale.
-    /// </summary>
-    private void MarkAttachedDirty()
-    {
-        foreach (var id in _attachedNodes)
-        {
-            if (_scene.FindNode(id) is { } visual)
-            {
-                visual.IsDirty = true;
-            }
-        }
-
-        foreach (var id in _attachedEdges)
-        {
-            if (_scene.FindEdge(id) is { } visual)
-            {
-                visual.IsDirty = true;
+                _scene.RenderEdge(visual, _controller.Snapshot);
             }
         }
     }
@@ -455,13 +498,16 @@ public class GraphCanvas : FrameworkElement
         var selection = _controller.SelectedNodeIds;
         var hasSelection = selection.Count > 0;
         var hover = _controller.HoverNodeId;
-        var relatedEdges = new HashSet<string>(StringComparer.Ordinal);
+
+        // Reused: hover is part of this state, so the pass runs on plain mouse motion over the
+        // canvas and must not allocate a set per frame.
+        _relatedEdges.Clear();
 
         if (hasSelection)
         {
             foreach (var edge in _scene.EdgesIncidentTo(selection))
             {
-                relatedEdges.Add(edge);
+                _relatedEdges.Add(edge);
             }
         }
 
@@ -500,7 +546,7 @@ public class GraphCanvas : FrameworkElement
             {
                 state |= EdgeRenderState.Selected;
             }
-            else if (relatedEdges.Contains(visual.Edge.Id))
+            else if (_relatedEdges.Contains(visual.Edge.Id))
             {
                 state |= EdgeRenderState.Related;
             }
@@ -519,6 +565,10 @@ public class GraphCanvas : FrameworkElement
 
     // ------------------------------------------------------------- overlay
 
+    /// <summary>
+    /// The marquee, in screen space. Recorded only while a marquee gesture is live; the rest of
+    /// the time this visual holds an empty drawing.
+    /// </summary>
     private void RenderOverlay()
     {
         using var context = _overlayVisual.RenderOpen();
@@ -531,16 +581,29 @@ public class GraphCanvas : FrameworkElement
         // The marquee is drawn in screen space: it is a viewport gesture, not a world one.
         if (_isMarqueeActive && _currentMarquee.Width > 1 && _currentMarquee.Height > 1)
         {
-            var stroke = Brush("Brush.MarqueeStroke") ?? Brushes.Gray;
             var fill = Brush("Brush.MarqueeFill") ?? Brushes.Transparent;
 
-            var pen = new Pen(stroke, 1)
-            {
-                DashStyle = DashStyles.Dash,
-            };
+            // Built once and frozen: this runs on every mouse-move of the gesture, and a fresh
+            // unfrozen Pen per frame is a fresh DependencyObject plus a fresh DashStyle.
+            _marqueePen ??= FrozenPen(Brush("Brush.MarqueeStroke") ?? Brushes.Gray, 1, DashStyles.Dash);
 
-            context.DrawRectangle(fill, pen, _currentMarquee);
+            context.DrawRectangle(fill, _marqueePen, _currentMarquee);
         }
+    }
+
+    private static Pen FrozenPen(Brush brush, double thickness, DashStyle? dashStyle = null)
+    {
+        var pen = new Pen(brush, thickness);
+
+        if (dashStyle is not null)
+        {
+            pen.DashStyle = dashStyle;
+            pen.DashCap = PenLineCap.Flat;
+        }
+
+        pen.Freeze();
+
+        return pen;
     }
 
     // --------------------------------------------------------------- input
@@ -549,6 +612,23 @@ public class GraphCanvas : FrameworkElement
     {
         if (_controller is null)
         {
+            return;
+        }
+
+        // The hand tool owns the left button outright: no hit test, no double-click, no
+        // selection. Someone who reached for the hand does not want a card to follow the
+        // pointer because the drag began a few pixels too far to the left - that is the
+        // whole reason the tool exists, and it is why this branch comes first.
+        if (_controller.ActiveTool == CanvasTool.Pan || _isSpacePanning)
+        {
+            Focus();
+            CaptureMouse();
+            _pointerDownPosition = e.GetPosition(this);
+            _pointerLastPosition = _pointerDownPosition;
+            _dragMoved = false;
+            _isPanActive = true;
+            Cursor = Cursors.SizeAll;
+            e.Handled = true;
             return;
         }
 
@@ -580,16 +660,7 @@ public class GraphCanvas : FrameworkElement
         _dragMoved = false;
 
         var world = _controller.ScreenToWorld(_pointerDownPosition);
-
-        var hitEdge = _scene.HitEdge(world, [.. _visibleEdgeIds], _controller.Zoom);
-
-        if (_isSpacePanning || _controller.ActiveTool == CanvasTool.Pan)
-        {
-            _isPanActive = true;
-            Cursor = Cursors.ScrollAll;
-            e.Handled = true;
-            return;
-        }
+        var hitEdge = _scene.HitEdge(world, _attachedEdges, _controller.Zoom);
 
         if (_scene.Index.HitNode(world) is { } nodeId)
         {
@@ -647,7 +718,10 @@ public class GraphCanvas : FrameworkElement
 
         if (_isPanActive)
         {
-            _controller.PanBy(new Vector(-delta.X, -delta.Y));
+            // The pointer's own delta, unnegated: the surface goes where the hand goes. The
+            // previous interface panned this way (its camera added the raw delta to its pan),
+            // and inverting it makes a hand tool behave like a scrollbar.
+            _controller.PanBy(delta);
             e.Handled = true;
             return;
         }
@@ -676,19 +750,19 @@ public class GraphCanvas : FrameworkElement
             return;
         }
 
-        // Idle motion: hover feedback.
-        var world = _controller.ScreenToWorld(position);
-        var hover = _scene.Index.HitNode(world);
-        _controller.SetHover(hover);
+        // Idle motion: hover feedback. Nothing on the surface answers a left click while the
+        // hand is engaged, so nothing lights up as though it would - and skipping the hit
+        // test is free.
+        if (_controller.ActiveTool == CanvasTool.Pan || _isSpacePanning)
+        {
+            _controller.SetHover(null);
+            Cursor = Cursors.SizeAll;
+            return;
+        }
 
-        if (_controller.ActiveTool == CanvasTool.Pan)
-        {
-            Cursor = Cursors.ScrollAll;
-        }
-        else
-        {
-            Cursor = hover is null ? Cursors.Arrow : Cursors.Hand;
-        }
+        var hover = _scene.Index.HitNode(_controller.ScreenToWorld(position));
+        _controller.SetHover(hover);
+        Cursor = hover is null ? Cursors.Arrow : Cursors.Hand;
     }
 
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
@@ -697,8 +771,6 @@ public class GraphCanvas : FrameworkElement
         {
             return;
         }
-
-        ReleaseMouseCapture();
 
         if (_isNodeDragActive && _dragMoved)
         {
@@ -722,7 +794,12 @@ public class GraphCanvas : FrameworkElement
         _currentMarquee = Rect.Empty;
         _controller.SetLiveMarquee(null, null);
         RenderOverlay();
-        Cursor = Cursors.Arrow;
+        Cursor = RestingCursor();
+
+        // Released last, and deliberately: letting go raises LostMouseCapture, which aborts
+        // whatever gesture is still running. By this line none is, so the abort is a no-op
+        // rather than something that would throw away the move just committed above.
+        ReleaseMouseCapture();
 
         e.Handled = true;
     }
@@ -752,22 +829,24 @@ public class GraphCanvas : FrameworkElement
 
         Focus();
         var position = e.GetPosition(this);
-        _controller.ZoomAt(position, e.Delta > 0 ? WheelZoomStep : 1 / WheelZoomStep);
+        _controller.ZoomAt(position, Math.Pow(ZoomPerWheelUnit, e.Delta));
         e.Handled = true;
     }
 
     protected override void OnMouseDown(MouseButtonEventArgs e)
     {
-        // The middle button pans. UIElement routes it through OnMouseDown (there is no
-        // OnMouseMiddleButton override to take), so it is claimed here and never reaches
-        // the marquee/drag logic that only speaks left.
+        // The middle button pans whatever tool is chosen. UIElement routes it through
+        // OnMouseDown (there is no OnMouseMiddleButton override to take), so it is claimed
+        // here and never reaches the marquee/drag logic that only speaks left. The right
+        // button is not a second pan the way it was in the previous interface: this surface
+        // has a context menu, and the two would be fighting over the same press.
         if (e.ChangedButton == MouseButton.Middle && _controller is not null)
         {
             CaptureMouse();
             _pointerDownPosition = e.GetPosition(this);
             _pointerLastPosition = _pointerDownPosition;
             _isPanActive = true;
-            Cursor = Cursors.ScrollAll;
+            Cursor = Cursors.SizeAll;
             e.Handled = true;
             return;
         }
@@ -780,7 +859,7 @@ public class GraphCanvas : FrameworkElement
         if (e.ChangedButton == MouseButton.Middle && _isPanActive)
         {
             _isPanActive = false;
-            Cursor = Cursors.Arrow;
+            Cursor = RestingCursor();
             ReleaseMouseCapture();
             e.Handled = true;
             return;
@@ -788,6 +867,53 @@ public class GraphCanvas : FrameworkElement
 
         base.OnMouseUp(e);
     }
+
+    /// <summary>
+    /// Capture can be taken away mid-gesture - another window grabs it, a dialog opens,
+    /// Alt+Tab. The MouseUp that would have ended the gesture then never arrives, so without
+    /// this the canvas would go on panning or dragging under a button that is no longer down.
+    /// </summary>
+    protected override void OnLostMouseCapture(MouseEventArgs e)
+    {
+        if (_controller is not null && (_isPanActive || _isNodeDragActive || _isMarqueeActive))
+        {
+            // A drag cut short is forgotten rather than committed: the button was never
+            // released, so the user never said where the cards should land.
+            if (_isNodeDragActive)
+            {
+                _isNodeDragActive = false;
+                _controller.CancelNudge();
+                RefreshDraggedVisuals();
+            }
+
+            _isPanActive = false;
+            _isMarqueeActive = false;
+            _currentMarquee = Rect.Empty;
+            _controller.SetLiveMarquee(null, null);
+            RenderOverlay();
+            Cursor = RestingCursor();
+        }
+
+        base.OnLostMouseCapture(e);
+    }
+
+    protected override void OnMouseLeave(MouseEventArgs e)
+    {
+        // A card left lit after the pointer has gone reads as selected. Gestures are exempt:
+        // a captured drag keeps receiving moves out here, and its subject stays hovered.
+        if (_controller is not null && !_isPanActive && !_isNodeDragActive && !_isMarqueeActive)
+        {
+            _controller.SetHover(null);
+        }
+
+        base.OnMouseLeave(e);
+    }
+
+    /// <summary>The cursor between gestures: the hand tool's, or the plain arrow.</summary>
+    private Cursor RestingCursor() =>
+        _controller?.ActiveTool == CanvasTool.Pan || _isSpacePanning
+            ? Cursors.SizeAll
+            : Cursors.Arrow;
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
@@ -800,7 +926,7 @@ public class GraphCanvas : FrameworkElement
             || e.Key == Key.Space)
         {
             _isSpacePanning = true;
-            Cursor = Cursors.ScrollAll;
+            Cursor = Cursors.SizeAll;
             e.Handled = true;
             return;
         }
@@ -856,16 +982,47 @@ public class GraphCanvas : FrameworkElement
 
     private void OnPreviewKeyUp(object sender, KeyEventArgs e)
     {
-        if (e.Key is Key.Space or Key.System && e.SystemKey == Key.Space)
+        // Spelled out rather than folded into one pattern: `is Key.Space or Key.System && ...`
+        // binds the pattern first, so a plain space release failed the test and left the
+        // canvas in pan mode - the left button panning instead of selecting - for good.
+        if (e.Key == Key.Space || (e.Key == Key.System && e.SystemKey == Key.Space))
         {
             _isSpacePanning = false;
-            Cursor = Cursors.Arrow;
+
+            // A pan already under way keeps its cursor until the button comes up.
+            if (!_isPanActive)
+            {
+                Cursor = RestingCursor();
+            }
         }
     }
 
+    /// <summary>
+    /// Space-panning is a held key, and a key held across a focus change never reports its
+    /// release here - the mode would outlive the gesture that asked for it.
+    /// </summary>
+    protected override void OnLostKeyboardFocus(KeyboardFocusChangedEventArgs e)
+    {
+        if (_isSpacePanning)
+        {
+            _isSpacePanning = false;
+
+            if (!_isPanActive)
+            {
+                Cursor = RestingCursor();
+            }
+        }
+
+        base.OnLostKeyboardFocus(e);
+    }
+
     /// <summary>Re-renders visuals for nodes being dragged: their incident edges follow them.</summary>
-    /// <remarks>Drag positions are preview offsets over the snapshot; the graph is only
-    /// written on release, so a cancelled drag snaps back by simply forgetting them.</remarks>
+    /// <remarks>
+    /// <para>Drag positions are preview offsets over the snapshot; the graph is only written on
+    /// release, so a cancelled drag snaps back by simply forgetting them.</para>
+    /// <para>This runs on every mouse-move of a drag, so it allocates nothing: the preview map is
+    /// a reused buffer and a node's transform is written rather than replaced.</para>
+    /// </remarks>
     private void RefreshDraggedVisuals()
     {
         if (_controller is null)
@@ -873,7 +1030,7 @@ public class GraphCanvas : FrameworkElement
             return;
         }
 
-        var preview = new Dictionary<string, Point>();
+        _previewPositions.Clear();
 
         foreach (var id in _controller.SelectedNodeIds)
         {
@@ -883,22 +1040,36 @@ public class GraphCanvas : FrameworkElement
             }
 
             var offset = _controller.PreviewOffset(id);
+            var x = visual.Node.X + offset.X;
+            var y = visual.Node.Y + offset.Y;
 
-            visual.Visual.Transform = new TranslateTransform(visual.Node.X + offset.X, visual.Node.Y + offset.Y);
-            preview[id] = new Point(visual.Node.X + offset.X, visual.Node.Y + offset.Y);
+            if (visual.Visual.Transform is TranslateTransform translate)
+            {
+                translate.X = x;
+                translate.Y = y;
+            }
+            else
+            {
+                visual.Visual.Transform = new TranslateTransform(x, y);
+            }
+
+            _previewPositions[id] = new Point(x, y);
         }
 
-        foreach (var edgeId in _visibleEdgeIds)
+        // Every attached edge is walked, not only the ones that were attached this pass: an
+        // edge whose endpoint is being dragged has to keep its ends on the cards, and missing
+        // one is exactly what made the links tear away mid-drag.
+        foreach (var edgeId in _attachedEdges)
         {
             if (_scene.FindEdge(edgeId) is not { IsAttached: true } edgeVisual)
             {
                 continue;
             }
 
-            if (_controller.SelectedNodeIds.Contains(edgeVisual.SourceId)
-                || _controller.SelectedNodeIds.Contains(edgeVisual.TargetId))
+            if (_previewPositions.ContainsKey(edgeVisual.SourceId)
+                || _previewPositions.ContainsKey(edgeVisual.TargetId))
             {
-                _scene.RenderEdge(edgeVisual, _controller.Snapshot, _controller.Zoom, preview);
+                _scene.RenderEdge(edgeVisual, _controller.Snapshot, _previewPositions);
             }
         }
     }
@@ -915,20 +1086,30 @@ public class GraphCanvas : FrameworkElement
     private void OnUnloaded(object? sender, RoutedEventArgs e)
     {
         // Visuals stay alive in the scene; only the tree attachment is dropped, so coming
-        // back to canvas mode is attach-and-go.
-        foreach (var id in _attachedNodes.Concat(_attachedEdges).ToArray())
+        // back to canvas mode is attach-and-go. The two layers themselves are permanent
+        // children of the world root and are emptied rather than removed.
+        _edgeLayer.Children.Clear();
+        _nodeLayer.Children.Clear();
+
+        foreach (var visual in _scene.AllNodeVisuals())
         {
-            _content.Children.Clear();
-            _attachedNodes.Clear();
-            _attachedEdges.Clear();
-            _visibleEdgeIds.Clear();
-            break;
+            visual.IsAttached = false;
         }
+
+        foreach (var visual in _scene.AllEdgeVisuals())
+        {
+            visual.IsAttached = false;
+        }
+
+        _attachedNodes.Clear();
+        _attachedEdges.Clear();
     }
 
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        RenderGrid();
+        RenderSurface();
+        RenderDots();
+        UpdateDotViewport();
         SynchronizeCulling();
 
         // A resize reveals nodes that culling had dropped; without this they attach blank
@@ -941,7 +1122,14 @@ public class GraphCanvas : FrameworkElement
     {
         var palette = CanvasPalette.FromResources(this);
         _scene.SetPalette(palette, VisualTreeHelper.GetDpi(this).PixelsPerDip);
-        RenderGrid();
+
+        // Dropped rather than rebuilt: the marquee is only ever pending during a gesture, and
+        // the next RenderOverlay resolves it against the new theme.
+        _marqueePen = null;
+
+        RenderSurface();
+        RenderDots();
+        UpdateDotViewport();
         RenderVisible();
     }
 }

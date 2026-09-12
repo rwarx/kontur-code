@@ -3,8 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:kontur="clr-namespace:AIClient.App.Controls"
-             xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+              xmlns:kontur="clr-namespace:AIClient.App.Controls"
+              xmlns:motion="clr-namespace:AIClient.App.Controls"
+              xmlns:vm="clr-namespace:AIClient.App.ViewModels"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:ContextPanelViewModel}"
              Background="{DynamicResource Brush.Surface1}"
@@ -90,7 +91,12 @@
                     </StackPanel>
 
                     <!-- Timeline: the graph's history, newest first, undo attached. -->
-                    <TextBlock Text="TIMELINE" Style="{StaticResource Type.Metadata}" Margin="12,8,0,4" Opacity="0.7" />
+                    <StackPanel Orientation="Horizontal" Margin="12,10,0,4">
+                        <kontur:KonturIcon Kind="History" Width="11" Height="11"
+                                           Foreground="{DynamicResource Brush.TextMuted}"
+                                           VerticalAlignment="Center" />
+                        <TextBlock Text="Timeline" Style="{StaticResource Type.Overline}" Margin="6,0,0,0" />
+                    </StackPanel>
                     <ItemsControl ItemsSource="{Binding Timeline}" Margin="8,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -186,7 +192,12 @@
                     </StackPanel>
 
                     <!-- Relations. -->
-                    <TextBlock Text="RELATIONS" Style="{StaticResource Type.Metadata}" Margin="12,10,0,4" Opacity="0.7" />
+                    <StackPanel Orientation="Horizontal" Margin="12,10,0,4">
+                        <kontur:KonturIcon Kind="Link" Width="11" Height="11"
+                                           Foreground="{DynamicResource Brush.TextMuted}"
+                                           VerticalAlignment="Center" />
+                        <TextBlock Text="Relations" Style="{StaticResource Type.Overline}" Margin="6,0,0,0" />
+                    </StackPanel>
                     <ItemsControl ItemsSource="{Binding Relations}" Margin="8,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -212,7 +223,12 @@
                     </ItemsControl>
 
                     <!-- AI actions on this node. -->
-                    <TextBlock Text="AI" Style="{StaticResource Type.Metadata}" Margin="12,10,0,4" Opacity="0.7" />
+                    <StackPanel Orientation="Horizontal" Margin="12,10,0,4">
+                        <kontur:KonturIcon Kind="Sparkle" Width="11" Height="11"
+                                           Foreground="{DynamicResource Brush.TextMuted}"
+                                           VerticalAlignment="Center" />
+                        <TextBlock Text="AI" Style="{StaticResource Type.Overline}" Margin="6,0,0,0" />
+                    </StackPanel>
                     <StackPanel Margin="8,0,8,10">
                         <Button Style="{StaticResource KcButtonGhost}" Padding="10,6" Margin="0,1"
                                 HorizontalContentAlignment="Left" Command="{Binding AskExplainCommand}">
@@ -328,6 +344,7 @@
                                        Style="{StaticResource Type.Section}" Margin="10,0,0,0" />
                             <Ellipse Width="7" Height="7" Margin="8,2,0,0" VerticalAlignment="Center"
                                      Fill="{DynamicResource Brush.Running}"
+                                     motion:Motion.Pulse="True"
                                      Visibility="{Binding IsAiWorking, Converter={StaticResource BoolToVisibility}}" />
                         </StackPanel>
                         <TextBlock Text="{Binding AiModelName}" Style="{StaticResource Type.Metadata}"

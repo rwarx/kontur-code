@@ -2,12 +2,11 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using AIClient.App.ViewModels;
 
 namespace AIClient.App.Behaviors;
 
 /// <summary>
-/// Connects a <see cref="PasswordBox"/> to a <see cref="ProviderSettingsViewModel"/> without
+/// Connects a <see cref="PasswordBox"/> to an <see cref="IApiKeyEntry"/> row without
 /// binding the password.
 /// </summary>
 /// <remarks>
@@ -18,10 +17,10 @@ namespace AIClient.App.Behaviors;
 /// engine's value cache, and within reach of any automation client.
 /// </para>
 /// <para>
-/// So the value moves one way only - box to ViewModel, on each keystroke - and the box is
-/// emptied the moment the ViewModel clears its own copy, which it does immediately after
-/// Save and on Cancel. Both Settings and the first-run wizard use this, so the rule has one
-/// implementation rather than two that can drift apart.
+/// So the value moves one way only - box to row, on each keystroke - and the box is emptied
+/// the moment the row clears its own copy, which it does immediately after Save and on
+/// Cancel. Settings and the Models page both use this, so the rule has one implementation
+/// rather than two that can drift apart.
 /// </para>
 /// </remarks>
 public static class ApiKeyBox
@@ -74,7 +73,7 @@ public static class ApiKeyBox
 
     private static void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (sender is not PasswordBox box || box.DataContext is not ProviderSettingsViewModel row)
+        if (sender is not PasswordBox box || box.DataContext is not IApiKeyEntry row)
         {
             return;
         }
@@ -131,7 +130,7 @@ public static class ApiKeyBox
         }
     }
 
-    private static ProviderSettingsViewModel? Row(PasswordBox box) =>
+    private static IApiKeyEntry? Row(PasswordBox box) =>
         (box.GetValue(BindingStateProperty) as BoxState)?.Row;
 
     private static void Detach(PasswordBox box)
@@ -144,16 +143,16 @@ public static class ApiKeyBox
     }
 
     /// <summary>
-    /// Holds the box-to-row pairing and mirrors the ViewModel clearing its copy of the key
-    /// back into the control, so the plaintext does not outlive the Save that consumed it.
+    /// Holds the box-to-row pairing and mirrors the row clearing its copy of the key back
+    /// into the control, so the plaintext does not outlive the Save that consumed it.
     /// </summary>
-    private sealed class BoxState(PasswordBox box, ProviderSettingsViewModel row)
+    private sealed class BoxState(PasswordBox box, IApiKeyEntry row)
     {
-        public ProviderSettingsViewModel Row { get; } = row;
+        public IApiKeyEntry Row { get; } = row;
 
         public void OnRowChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(ProviderSettingsViewModel.ApiKeyInput) &&
+            if (e.PropertyName == nameof(IApiKeyEntry.ApiKeyInput) &&
                 Row.ApiKeyInput.Length == 0 &&
                 box.SecurePassword.Length > 0)
             {

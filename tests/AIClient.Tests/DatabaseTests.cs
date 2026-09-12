@@ -244,7 +244,9 @@ public sealed class DatabaseTests : IAsyncLifetime
         {
             var providers = await first.Providers.OrderBy(p => p.SortOrder).ToListAsync();
 
-            Assert.Equal(["openrouter", "nvidia"], providers.Select(p => p.Id));
+            Assert.Equal(
+                ["openrouter", "openai", "anthropic", "nvidia", "groq", "xai", "mistral", "deepseek"],
+                providers.Select(p => p.Id));
             Assert.All(providers, p => Assert.True(p.IsEnabled));
         }
 
@@ -252,7 +254,7 @@ public sealed class DatabaseTests : IAsyncLifetime
         await new DatabaseInitializer(_db, NullLogger<DatabaseInitializer>.Instance).InitializeAsync();
 
         await using var second = _db.CreateDbContext();
-        Assert.Equal(2, await second.Providers.CountAsync());
+        Assert.Equal(8, await second.Providers.CountAsync());
     }
 
     private static Model NewModel(string providerId, string modelId, string name, string? surrogate = null) =>

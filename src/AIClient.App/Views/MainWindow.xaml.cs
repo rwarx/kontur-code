@@ -47,9 +47,9 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         ModelPicker.SelectionCommitted += OnModelSelectionCommitted;
         CommandPalette.Dismissed += OnCommandPaletteDismissed;
 
-        // The sidebar starts expanded; the first sync makes the rail's width follow the
+        // The panels start expanded; the first sync makes the column widths follow the
         // view model in both directions from here on.
-        ApplySidebarState();
+        ApplyPanelLayout();
 
         Loaded += OnLoaded;
         Closed += OnClosed;
@@ -83,29 +83,52 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     }
 
     /// <summary>
-    /// Sidebar width is a <see cref="GridLength"/>, which bindings cannot write as a
-    /// simple double; the shell translates the view model's collapse state here.
+    /// Panel widths are <see cref="GridLength"/> values, which bindings cannot write as
+    /// simple doubles; the shell translates the view model's visibility state here. The
+    /// palette's visibility is here for a different reason: it is the one overlay whose
+    /// silent failure to appear is indistinguishable from a dead button, so it is set
+    /// outright rather than bound through the window's DataContext.
     /// </summary>
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(MainViewModel.IsSidebarCollapsed)
-            or nameof(MainViewModel.IsSidebarVisible))
+            or nameof(MainViewModel.IsSidebarVisible)
+            or nameof(MainViewModel.IsContextPanelVisible))
         {
-            ApplySidebarState();
+            ApplyPanelLayout();
+        }
+
+        if (e.PropertyName is nameof(MainViewModel.IsCommandPaletteOpen))
+        {
+            // The palette focuses its own query box when it becomes visible, so setting
+            // this is the whole of opening it.
+            CommandPalette.Visibility = ViewModel.IsCommandPaletteOpen
+                ? Visibility.Visible
+                : Visibility.Collapsed;
         }
     }
 
-    private void ApplySidebarState()
+    private void ApplyPanelLayout()
     {
-        SidebarColumn.MinWidth = ViewModel.IsSidebarCollapsed ? 48 : 232;
-        SidebarColumn.MaxWidth = ViewModel.IsSidebarCollapsed ? 48 : 420;
-        SidebarColumn.Width = new GridLength(ViewModel.IsSidebarCollapsed ? 48 : 232);
+        var sidebarWidth = !ViewModel.IsSidebarVisible
+            ? 0
+            : ViewModel.IsSidebarCollapsed ? 48 : 232;
 
-        // Collapsing to the rail keeps the splitter's 6px from lying about what can move.
+        SidebarColumn.MinWidth = sidebarWidth;
+        SidebarColumn.MaxWidth = !ViewModel.IsSidebarVisible
+            ? 0
+            : ViewModel.IsSidebarCollapsed ? 48 : 420;
+        SidebarColumn.Width = new GridLength(sidebarWidth);
+
+        // A hidden panel must give its space back to the editor, not leave an empty strip.
+        // The splitter is explicitly zeroed for the same reason.
+        var contextWidth = ViewModel.IsContextPanelVisible ? 320 : 0;
         ContextSplitterColumn.Width = ViewModel.IsContextPanelVisible
             ? new GridLength(6)
             : new GridLength(0);
-        ContextColumn.MinWidth = 280;
+        ContextColumn.MinWidth = ViewModel.IsContextPanelVisible ? 280 : 0;
+        ContextColumn.MaxWidth = ViewModel.IsContextPanelVisible ? 480 : 0;
+        ContextColumn.Width = new GridLength(contextWidth);
     }
 
     /// <summary>Ctrl+K, or the palette's Search entry.</summary>

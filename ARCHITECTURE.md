@@ -622,10 +622,6 @@ rather than a rewrite, and it is worth naming where.
 - **An editor.** The agent already reads and writes through `IWorkspaceService`, so a document surface
   would share the sandbox rather than open files itself, and `ContextBuilder` already accepts a source
   that is not a chat message.
-- **A canvas.** `submit_plan` already returns the plan as parts, dependencies and steps rather than as
-  prose, and `IAgentPlanSink` already exists to receive it. A drawing surface is a host that implements
-  that interface, registers itself over `TranscriptPlanSink`, and answers `AgentPlanAcceptance.DrawnOn`;
-  `AgentMode.PlanCanvas` and the prompt that produces the parts do not change.
 - **A different shell.** `UseWPF` is set in exactly one project, so the WPF assemblies are not even
   referenced by the other three, and WPF-UI reaches no further than App with the theme service behind
   `IAppThemeService`. Domain and Application could not touch a UI type if they tried - plain `net10.0`
@@ -638,3 +634,78 @@ The one thing that would be a rewrite is a UI that reached a provider directly. 
 [`DependencyInjection.cs`](src/AIClient.Infrastructure/DependencyInjection.cs) is the only
 Infrastructure file the App project names, and why deleting it should break nothing under
 `ViewModels`.
+
+## Graph and canvas
+
+The graph is a spatial representation of a workspace: files, folders, modules, services, interfaces,
+plans and tasks are nodes; containment, dependency and plan edges connect them. The canvas is the
+infinite drawing surface that renders the graph.
+
+### Domain layer
+
+All types are immutable records in `AIClient.Domain.Graph`:
+
+- **`GraphNode`** — one node: `Id`, `Kind` (14 kinds: `File`, `Folder`, `Module`, `Service`,
+  `Interface`, `Data`, `View`, `Test`, `Plan`, `Task`, `Agent`, `Model`, `External`, `Note`),
+  `Title`, `Subtitle`, `Path`, position (`X`, `Y`), size (`Width`, `Height`).
+- **`GraphEdge`** — one directed edge: `SourceId`, `TargetId`, `Kind` (`Contains`, `Depends`,
+  `Calls`, `Implements`, `Relates`, `Plans`), optional `Label`.
+- **`GraphSnapshot`** — immutable, persistable whole-graph state. O(1) lookup indexes for nodes,
+  edges, neighbours. Equality by content.
+- **`GraphChangeSet`** — a titled bundle of `GraphChange` records with an `Origin` tag (`User`,
+  `Agent`, `Indexer`, `Layout`, `Undo`, `Redo`).
+- **`GraphChange`** — closed hierarchy: `AddNode`, `UpdateNode`, `MoveNode`, `RemoveNode`,
+  `AddEdge`, `UpdateEdge`, `RemoveEdge`. Each is a single-purpose record.
+- **`GraphModel`** — the sole mutator. Applies change sets best-effort, rebuilds snapshot after
+  each apply. `Restore` replaces everything wholesale (undo/load).
+
+### Application layer
+
+- **`GraphService`** — owns state, history (100-entry undo/redo stacks), and persistence.
+  `ApplyAsync` pushes pre-snapshot to undo, clears redo, records timeline entry, fires events.
+  `UndoAsync`/`RedoAsync` restore snapshots. `SaveAsync`/`LoadAsync` persist via `IGraphStore`.
+- **`WorkspaceGraphIndexer`** — maps the workspace folder to graph nodes. Diff-based: adds new
+  files, removes gone ones, keeps positions of existing nodes. Kind inference from file extension
+  and naming conventions. Scoped removal (plan nodes are untouched).
+- **`GraphContextSource`** — serializes the current graph selection into text for the AI context.
+
+### Infrastructure layer
+
+- **`JsonGraphStore`** — atomic file persistence per workspace. JSON under
+  `%APPDATA%\AIClient\graphs\`.
+
+### App layer (canvas)
+
+The canvas uses `DrawingVisual` retained visuals, not WPF `ItemsControl`:
+
+- **`GraphCanvas`** — `FrameworkElement` composing the visual tree: `MatrixTransform` root with
+  edge and node `ContainerVisual` layers. Handles all pointer input (select, pan, zoom, marquee).
+  Viewport culling: only attaches visuals for nodes/edges on screen.
+- **`CanvasController`** — pure interaction state (viewport, selection, hover, drag). No WPF
+  dependency. Diffs snapshots via `GraphProjection` and fires `SceneChanged`.
+- **`CanvasScene`** — render model. Maintains `NodeVisual`/`EdgeVisual` dictionaries. Applies
+  deltas from `GraphProjection`. Draws nodes as rounded-rect cards with kind-colour strips.
+- **`SpatialIndex`** — uniform-grid (256-unit buckets). O(1) hit-testing and range queries.
+- **`GraphProjection`** — diffs two snapshots in one pass: added/removed/moved/changed nodes and
+  edges. The scene applies this delta cheaply.
+- **`CanvasPalette`** — resolved from WPF theme resources. Brushes per node kind, icon
+  geometries, typefaces.
+- **`CanvasMinimap`** — miniature of the whole graph with viewport rectangle.
+
+### Plan pipeline
+
+```text
+AgentService.PlanCanvas → SubmitPlanTool → AgentPlan → CanvasPlanSink → GraphChangeSet
+  → user confirms → GraphService.ApplyAsync → SnapshotChanged → Canvas redraw
+```
+
+1. `SubmitPlanTool` validates the plan JSON (caps: 50 steps, 80 parts, 25 risks), builds
+   `AgentPlan`, calls `IAgentPlanSink.AcceptAsync`.
+2. `CanvasPlanSink` builds a `GraphChangeSet`: one `Plan` node, one node per part, `Plans` edges,
+   `Depends` edges between parts.
+3. Asks the user on the UI thread: "Draw this plan on the canvas?"
+4. If accepted: `GraphService.ApplyAsync(changeSet)` then `SaveAsync` immediately.
+5. The canvas receives `SnapshotChanged` → `Controller.SetSnapshot` → `Scene.Apply(delta)`.
+
+The plan goes through the same path as any user edit: undoable, persisted, timeline-counted. The
+user always has the final say.

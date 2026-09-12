@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:kontur="clr-namespace:AIClient.App.Controls"
+             xmlns:motion="clr-namespace:AIClient.App.Controls"
              xmlns:vm="clr-namespace:AIClient.App.ViewModels"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:CommandPaletteViewModel}"
@@ -13,21 +14,27 @@
         The palette is an overlay, not a window: a separate Window steals activation, drops
         the Mica backdrop and flickers on open. A scrim over the shell dismisses on click
         and keeps the app looking like one surface.
+
+        Opening is one orchestrated moment - the panel settles from 2% large while the
+        scrim the shell draws beneath it does its work - and then the palette is still.
     -->
-    <Grid Background="#66000000" MouseLeftButtonDown="OnScrimClicked">
+    <Grid Background="{DynamicResource Brush.Scrim}"
+          MouseLeftButtonDown="OnScrimClicked"
+          motion:Motion.Show="Fade">
 
         <Border MaxWidth="620"
                 MaxHeight="440"
                 Margin="0,110,0,0"
                 VerticalAlignment="Top"
                 HorizontalAlignment="Center"
-                CornerRadius="10"
-                Background="{DynamicResource ApplicationBackgroundBrush}"
-                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                CornerRadius="{StaticResource Radius.LG}"
+                Background="{DynamicResource Brush.Surface3}"
+                BorderBrush="{DynamicResource Brush.BorderStrong}"
                 BorderThickness="1"
-                MouseLeftButtonDown="OnPanelClicked">
+                MouseLeftButtonDown="OnPanelClicked"
+                motion:Motion.Show="Settle">
             <Border.Effect>
-                <DropShadowEffect BlurRadius="28" ShadowDepth="6" Opacity="0.35" Direction="270" />
+                <DropShadowEffect BlurRadius="28" ShadowDepth="6" Opacity="0.45" Direction="270" />
             </Border.Effect>
 
             <Grid>
@@ -37,14 +44,27 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <ui:TextBox x:Name="QueryBox"
-                            Grid.Row="0"
-                            Margin="10"
-                            FontSize="15"
-                            PlaceholderText="Type a command…"
-                            Icon="{ui:SymbolIcon Search24}"
-                            PreviewKeyDown="OnQueryKeyDown"
-                            Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" />
+                <Border Grid.Row="0" BorderBrush="{DynamicResource Brush.BorderFaint}" BorderThickness="0,0,0,1"
+                        Margin="8,8,8,0" Padding="0,0,0,8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <kontur:KonturIcon Grid.Column="0" Kind="Search" Width="15" Height="15"
+                                           Foreground="{DynamicResource Brush.TextMuted}"
+                                           VerticalAlignment="Center" Margin="8,0,0,0" />
+                        <TextBox Grid.Column="1"
+                                 x:Name="QueryBox"
+                                 Style="{StaticResource KcInputBare}"
+                                 FontSize="15"
+                                 Padding="9,2"
+                                 MinHeight="30"
+                                 VerticalContentAlignment="Center"
+                                 PreviewKeyDown="OnQueryKeyDown"
+                                 Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" />
+                    </Grid>
+                </Border>
 
                 <ListBox x:Name="EntryList"
                          Grid.Row="1"
@@ -62,10 +82,11 @@
                             <GroupStyle.HeaderTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding Name}"
-                                               FontSize="11"
+                                               Style="{StaticResource Type.Metadata}"
+                                               TextOptions.TextFormattingMode="Display"
                                                FontWeight="SemiBold"
                                                Margin="10,10,0,4"
-                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                               Foreground="{DynamicResource Brush.TextMuted}" />
                                 </DataTemplate>
                             </GroupStyle.HeaderTemplate>
                         </GroupStyle>
@@ -81,13 +102,14 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Grid>
-                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
-                                <Border Style="{StaticResource Badge}"
-                                        HorizontalAlignment="Right"
-                                        Padding="6,2"
+                                <TextBlock Text="{Binding Title}" Style="{StaticResource Type.Caption}"
+                                           Foreground="{DynamicResource Brush.TextPrimary}"
+                                           VerticalAlignment="Center" />
+                                <Border HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Style="{StaticResource Type.Keycap}"
                                         Visibility="{Binding Shortcut, Converter={StaticResource StringToVisibility}}">
-                                    <TextBlock Style="{StaticResource BadgeText}"
-                                               FontFamily="{StaticResource CodeFont}"
+                                    <TextBlock Style="{StaticResource Type.KeycapText}"
                                                Text="{Binding Shortcut}" />
                                 </Border>
                             </Grid>
@@ -107,9 +129,8 @@
                 <Border Grid.Row="2"
                         Padding="12,7"
                         BorderThickness="0,1,0,0"
-                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
-                    <TextBlock Style="{StaticResource SubtleText}"
-                               FontSize="11"
+                        BorderBrush="{DynamicResource Brush.BorderFaint}">
+                    <TextBlock Style="{StaticResource Type.Metadata}"
                                Text="↑↓ to navigate · Enter to run · Esc to close" />
                 </Border>
             </Grid>

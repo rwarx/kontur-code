@@ -23,20 +23,53 @@ namespace AIClient.App.Canvas;
 /// re-rendered at the composed size.
 /// </para>
 /// <para>
-/// <b>Pens.</b> Hairline widths are divided by zoom so they render as whole pixels at any
-/// magnification: a 1px border should be a 1px border, not a blurry half-pixel.
+/// <b>Pens are zoom-independent.</b> Every width here is a world-space constant, exactly as
+/// it was when the cards were <c>Border</c>s and the edges were <c>Path</c>s under a
+/// <c>ScaleTransform</c>: a stroke thickens with the zoom and nothing has to be re-recorded
+/// when the camera moves. Dividing widths by zoom - the obvious way to keep a hairline one
+/// device pixel wide - makes every drawing a function of the zoom, so a single wheel notch
+/// invalidates the whole scene and the canvas stutters and tears while it rebuilds. The
+/// crispness is not worth that, so pens are built once per palette and frozen.
 /// </para>
 /// </remarks>
 public sealed class CanvasScene
 {
-    private const double TitleFontSize = 12.5;
-    private const double MetaFontSize = 10.5;
-    private const double IconSize = 14;
-    private const double IconPadding = 11;
-    private const double TextPadding = 8;
-    private const double NodeRadius = 5;
+    // Card metrics, taken from the retained-mode template this renderer replaced so the
+    // cards read identically: 8px corner, a 1px neutral border, the kind's colour as a 3px
+    // strip on the left, 12px of breathing room, 13/11px title and subtitle.
+    private const double TitleFontSize = 13;
+    private const double MetaFontSize = 11;
+    private const double MetaGap = 3;
+    private const double GlyphSize = 12;
+    private const double GlyphGap = 7;
+    private const double ContentPadding = 12;
+    private const double KindStripWidth = 3;
+    private const double CardBorderWidth = 1;
+    private const double NodeRadius = 8;
+
+    // The selection halo sat outside the card as its own 2px border, inflated by 3, so the
+    // card's own edge could stay a single pixel. A centred pen reproduces that ring when its
+    // geometry sits half a stroke inside the outer edge.
+    private const double HaloInflate = 2;
+    private const double HaloWidth = 2;
+
+    // Edges: thin by decree, a little thicker when they matter.
+    private const double EdgeWidth = 1.2;
+    private const double EdgeHighlightWidth = 1.8;
+
+    /// <summary>Shortest horizontal pull on a control point, so short edges still curve a little.</summary>
+    private const double MinCurve = 24;
+
+    /// <summary>Longest pull, so a very wide edge does not bow across half the canvas.</summary>
+    private const double MaxCurve = 120;
+
+    private const double ArrowLength = 9;
+    private const double ArrowHalfWidth = 4;
+
+    private const double EdgeLabelWidth = 80;
+    private const double EdgeLabelFontSize = 10;
+
     private const double EdgeHitRadius = 7;
-    private const double NodeMinWidth = 96;
 
     private readonly Dictionary<string, NodeVisual> _nodes = new(StringComparer.Ordinal);
     private readonly Dictionary<string, EdgeVisual> _edges = new(StringComparer.Ordinal);
@@ -44,6 +77,7 @@ public sealed class CanvasScene
 
     private CanvasPalette _palette = new()
     {
+        Background = Brushes.Transparent,
         NodeBody = Brushes.Transparent,
         NodeBodyHover = Brushes.Transparent,
         NodeBodySelected = Brushes.Transparent,
@@ -60,6 +94,20 @@ public sealed class CanvasScene
     };
 
     private double _pixelsPerDip = 1.0;
+
+    // Every pen the renderer uses, built once per palette and frozen. Nothing here depends
+    // on the zoom, so a camera move never invalidates them.
+    private readonly Dictionary<GraphNodeKind, Pen> _iconPens = [];
+    private Pen _nodeBorderPen = null!;
+    private Pen _nodeBorderSelectedPen = null!;
+    private Pen _haloPen = null!;
+    private Pen _edgePen = null!;
+    private Pen _edgeHighlightPen = null!;
+    private Pen _edgeDimPen = null!;
+    private Brush _dimScrim = null!;
+    private Brush _edgeLabelPlate = null!;
+
+    public CanvasScene() => RebuildPens();
 
     public int NodeCount => _nodes.Count;
 
@@ -189,6 +237,7 @@ public sealed class CanvasScene
     {
         _palette = palette;
         _pixelsPerDip = pixelsPerDip;
+        RebuildPens();
 
         foreach (var visual in _nodes.Values)
         {
@@ -218,10 +267,70 @@ public sealed class CanvasScene
         }
     }
 
+    /// <summary>
+    /// Rebuilds the frozen pen cache from the current palette.
+    /// </summary>
+    /// <remarks>
+    /// Freezing matters more here than anywhere else in the app: a frozen pen skips change
+    /// notification and can be shared by every visual, and these are handed to a
+    /// <see cref="DrawingContext"/> hundreds of times per redraw.
+    /// </remarks>
+    private void RebuildPens()
+    {
+        _nodeBorderPen = Frozen(new Pen(_palette.NodeBorder, CardBorderWidth) { LineJoin = PenLineJoin.Round });
+        _nodeBorderSelectedPen = Frozen(new Pen(_palette.NodeBorderSelected, CardBorderWidth) { LineJoin = PenLineJoin.Round });
+        _haloPen = Frozen(new Pen(_palette.SelectionGlow, HaloWidth) { LineJoin = PenLineJoin.Round });
+
+        _edgePen = Frozen(EdgePen(_palette.Edge, EdgeWidth));
+        _edgeHighlightPen = Frozen(EdgePen(_palette.EdgeSelected, EdgeHighlightWidth));
+        _edgeDimPen = Frozen(EdgePen(_palette.EdgeDimmed, EdgeWidth));
+
+        var scrim = new SolidColorBrush(Color.FromArgb(140, 12, 13, 15));
+        scrim.Freeze();
+        _dimScrim = scrim;
+
+        // The label plate is the canvas surface itself, so the curve it covers disappears
+        // under it instead of showing through the text.
+        _edgeLabelPlate = _palette.Background;
+
+        _iconPens.Clear();
+
+        foreach (var (kind, brush) in _palette.KindStrokes)
+        {
+            // The icon geometries are authored on a 16px grid and drawn scaled down, so the
+            // stroke has to be divided by that scale to come out at 1.5 world units.
+            var pen = new Pen(brush, 1.5 / (GlyphSize / 16))
+            {
+                StartLineCap = PenLineCap.Round,
+                EndLineCap = PenLineCap.Round,
+                LineJoin = PenLineJoin.Round,
+            };
+
+            _iconPens[kind] = Frozen(pen);
+        }
+
+        static Pen EdgePen(Brush brush, double width) => new(brush, width)
+        {
+            LineJoin = PenLineJoin.Round,
+            StartLineCap = PenLineCap.Round,
+            EndLineCap = PenLineCap.Round,
+        };
+
+        static Pen Frozen(Pen pen)
+        {
+            pen.Freeze();
+            return pen;
+        }
+    }
+
     // ------------------------------------------------------------ rendering
 
     /// <summary>Draws one node visual if dirty. Callers drive this per-culled-visual.</summary>
-    public void RenderNode(NodeVisual nodeVisual, double zoom)
+    /// <remarks>
+    /// Nothing in here reads the zoom: the drawing is world-space content under one transform,
+    /// so a card is recorded when its data or its state changes and at no other time.
+    /// </remarks>
+    public void RenderNode(NodeVisual nodeVisual)
     {
         if (!nodeVisual.IsDirty)
         {
@@ -236,113 +345,124 @@ public sealed class CanvasScene
 
         using var context = nodeVisual.Visual.RenderOpen();
 
-        // The rounded body. Fill is a state wash, border is the node's kind stroke.
+        // The card. Fill is a state wash; the border stays neutral whatever the kind, so a
+        // canvas of two hundred cards does not turn into a paint chart - the kind speaks
+        // through the strip and the glyph instead.
         var bodyBrush = state.HasFlag(NodeRenderState.Selected) ? palette.NodeBodySelected
             : state.HasFlag(NodeRenderState.Hovered) ? palette.NodeBodyHover
             : palette.NodeBody;
 
-        var borderBrush = state.HasFlag(NodeRenderState.Selected) ? palette.NodeBorderSelected
-            : palette.KindStrokes.TryGetValue(node.Kind, out var kindStroke) ? kindStroke
+        var kindBrush = palette.KindStrokes.TryGetValue(node.Kind, out var kindStroke)
+            ? kindStroke
             : palette.NodeBorder;
-
-        // Hairlines stay hairlines: the visual tree scales by zoom below this drawing.
-        var borderPen = new Pen(borderBrush, 1 / Math.Max(zoom, 0.05));
-        borderPen.LineJoin = PenLineJoin.Round;
 
         var bodyRect = new Rect(-node.Width / 2, -node.Height / 2, node.Width, node.Height);
 
-        // Selection glow: two concentric strokes rather than a bitmap effect. Bitmap
-        // effects force software rendering; strokes cost nothing and read as a glow at
-        // low alpha. This is one of the four sanctioned glow sites in the product.
+        // Selection halo: a ring outside the card, so the card's own edge can stay a single
+        // pixel. One of the four sanctioned glow sites in the product.
         if (state.HasFlag(NodeRenderState.Selected))
         {
-            // Rect.Inflate is an instance mutator on a struct: take copies, grow them.
-            var glowRect = bodyRect;
-            glowRect.Inflate(3, 3);
+            // Rect.Inflate is an instance mutator on a struct: take a copy, grow it.
+            var haloRect = bodyRect;
+            haloRect.Inflate(HaloInflate, HaloInflate);
 
-            var outerGlowRect = bodyRect;
-            outerGlowRect.Inflate(6, 6);
-
-            var glowPen = new Pen(palette.SelectionGlow, 1.5 / Math.Max(zoom, 0.05))
-            {
-                LineJoin = PenLineJoin.Round,
-            };
-
-            var outerPen = new Pen(Translucent(palette.SelectionGlow, 64), 1.5 / Math.Max(zoom, 0.05))
-            {
-                LineJoin = PenLineJoin.Round,
-            };
-
-            context.DrawRoundedRectangle(null, glowPen, glowRect, NodeRadius + 3, NodeRadius + 3);
-            context.DrawRoundedRectangle(null, outerPen, outerGlowRect, NodeRadius + 6, NodeRadius + 6);
+            context.DrawRoundedRectangle(
+                null, _haloPen, haloRect, NodeRadius + HaloInflate, NodeRadius + HaloInflate);
         }
 
+        var borderPen = state.HasFlag(NodeRenderState.Selected) ? _nodeBorderSelectedPen : _nodeBorderPen;
         context.DrawRoundedRectangle(bodyBrush, borderPen, bodyRect, NodeRadius, NodeRadius);
 
-        // Kind icon, top-left, in the kind's stroke colour.
-        var iconTop = -node.Height / 2 + 9;
-        var iconLeft = -node.Width / 2 + IconPadding;
+        // The kind strip, clipped to the card so it follows the rounded left corners exactly
+        // the way a Border with a 8,0,0,8 radius did.
+        var inner = bodyRect;
+        inner.Inflate(-CardBorderWidth, -CardBorderWidth);
 
-        if (palette.KindIcons.TryGetValue(node.Kind, out var icon))
+        var clip = new RectangleGeometry(inner, NodeRadius - CardBorderWidth, NodeRadius - CardBorderWidth);
+        clip.Freeze();
+
+        context.PushClip(clip);
+        context.DrawRectangle(kindBrush, null, new Rect(inner.X, inner.Y, KindStripWidth, inner.Height));
+        context.Pop();
+
+        DrawNodeContent(context, node, inner);
+
+        // Dimming: a translucent scrim over the whole card rather than a second set of
+        // colours. One rect, no text re-render.
+        if (state.HasFlag(NodeRenderState.Dimmed))
         {
-            var scale = IconSize / 16;
+            context.DrawRoundedRectangle(_dimScrim, null, bodyRect, NodeRadius, NodeRadius);
+        }
+    }
 
-            var iconPen = new Pen(borderBrush, 1.5 / scale / Math.Max(zoom, 0.05));
-            iconPen.StartLineCap = PenLineCap.Round;
-            iconPen.EndLineCap = PenLineCap.Round;
-            iconPen.LineJoin = PenLineJoin.Round;
+    /// <summary>
+    /// The glyph, title and subtitle: one row of icon plus title, one row of metadata under
+    /// it, the pair vertically centred in the card the way the template's centred grid was.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="FormattedText"/> is the most expensive thing this renderer builds, which is
+    /// the whole reason the node visual is recorded on change rather than per frame.
+    /// </remarks>
+    private void DrawNodeContent(DrawingContext context, GraphNode node, Rect inner)
+    {
+        var palette = _palette;
+        var contentLeft = inner.X + KindStripWidth + ContentPadding;
+        var textLeft = contentLeft + GlyphSize + GlyphGap;
+        var textWidth = inner.Right - ContentPadding - textLeft;
+
+        if (textWidth < 8)
+        {
+            return;
+        }
+
+        var title = Text(FitText(node.Title, textWidth), palette.NodeTitleFace, TitleFontSize, palette.NodeTitle);
+
+        var meta = node.Subtitle ?? node.Kind.ToString().ToLowerInvariant();
+        var subtitle = string.IsNullOrEmpty(meta)
+            ? null
+            : Text(FitText(meta, textWidth), palette.NodeMetaFace, MetaFontSize, palette.NodeMeta);
+
+        var blockHeight = title.Height + (subtitle is null ? 0 : MetaGap + subtitle.Height);
+
+        // A card too short for both lines keeps the title, which is what a centred grid in a
+        // clipping border came to anyway.
+        if (subtitle is not null && blockHeight > inner.Height)
+        {
+            subtitle = null;
+            blockHeight = title.Height;
+        }
+
+        var top = inner.Y + ((inner.Height - blockHeight) / 2);
+
+        if (palette.KindIcons.TryGetValue(node.Kind, out var icon)
+            && _iconPens.TryGetValue(node.Kind, out var iconPen))
+        {
+            var scale = GlyphSize / 16;
 
             // The shared icon geometries are frozen, so the transform is pushed on the
             // context rather than baked into the geometry - mutating a frozen geometry
             // throws, and pushing a transform costs nothing.
-            var matrix = new Matrix(scale, 0, 0, scale, iconLeft - 1, iconTop - 1);
-
-            context.PushTransform(new MatrixTransform(matrix));
+            context.PushTransform(new MatrixTransform(
+                scale, 0, 0, scale, contentLeft, top + ((title.Height - GlyphSize) / 2)));
             context.DrawGeometry(null, iconPen, icon);
             context.Pop();
         }
 
-        // Title. Bold, primary; measured once and cached per render - FormattedText is
-        // the single most expensive thing here and it is only rebuilt when the node's
-        // content changes, never for moves.
-        var titleTop = iconTop - 2;
-        var title = new FormattedText(
-            FitText(node.Title, node.Width - IconPadding * 2 - TextPadding),
+        context.DrawText(title, new Point(textLeft, top));
+
+        if (subtitle is not null)
+        {
+            context.DrawText(subtitle, new Point(textLeft, top + title.Height + MetaGap));
+        }
+
+        FormattedText Text(string value, Typeface face, double size, Brush brush) => new(
+            value,
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
-            palette.NodeTitleFace,
-            TitleFontSize,
-            palette.NodeTitle,
+            face,
+            size,
+            brush,
             _pixelsPerDip);
-
-        context.DrawText(title, new Point(iconLeft + IconSize + 4, titleTop));
-
-        // Subtitle/metadata line: kind name, or the path when there is one.
-        var meta = node.Subtitle ?? node.Kind.ToString().ToLowerInvariant();
-        var metaTop = titleTop + TitleFontSize + 4;
-
-        if (node.Height >= 48 && !string.IsNullOrEmpty(meta))
-        {
-            var metaText = new FormattedText(
-                FitText(meta, node.Width - IconPadding * 2 - 8),
-                System.Globalization.CultureInfo.InvariantCulture,
-                FlowDirection.LeftToRight,
-                palette.NodeMetaFace,
-                MetaFontSize,
-                palette.NodeMeta,
-                _pixelsPerDip);
-
-            context.DrawText(metaText, new Point(iconLeft + IconSize + 4, metaTop));
-        }
-
-        // Dimming: a translucent scrim over the whole node, rather than redrawing the
-        // node in different colours. One rect, no text re-render.
-        if (state.HasFlag(NodeRenderState.Dimmed))
-        {
-            var scrim = new SolidColorBrush(Color.FromArgb(140, 12, 13, 15));
-            scrim.Freeze();
-            context.DrawRoundedRectangle(scrim, null, bodyRect, NodeRadius, NodeRadius);
-        }
     }
 
     /// <summary>Draws one edge visual if dirty.</summary>
@@ -350,10 +470,17 @@ public sealed class CanvasScene
     public void RenderEdge(
         EdgeVisual edgeVisual,
         GraphSnapshot snapshot,
-        double zoom,
         IReadOnlyDictionary<string, Point>? previewPositions = null)
     {
-        // Edges follow dragged nodes live, so during a drag they are always stale.
+        // A drag is the one case where an edge is stale without anything having marked it so:
+        // its endpoints are moving under a preview the graph has not been told about yet.
+        // Every other call is a no-op unless something actually changed, which is what keeps
+        // panning and zooming free of work.
+        if (!edgeVisual.IsDirty && previewPositions is null)
+        {
+            return;
+        }
+
         edgeVisual.IsDirty = false;
 
         if (!snapshot.TryGetNode(edgeVisual.SourceId, out var source)
@@ -364,7 +491,6 @@ public sealed class CanvasScene
         }
 
         var state = edgeVisual.State;
-        var palette = _palette;
 
         // A dragged node's centre comes from the preview; its rectangle still uses the
         // snapshot size, which is correct because drags do not resize.
@@ -376,47 +502,63 @@ public sealed class CanvasScene
             ? previewTarget
             : new Point(target.X, target.Y);
 
-        var curve = BuildCurve(sourceCentre, targetCentre, source, target);
+        var shape = BuildShape(sourceCentre, targetCentre, source, target);
+        var highlighted = state.HasFlag(EdgeRenderState.Selected) || state.HasFlag(EdgeRenderState.Related);
 
-        edgeVisual.Curve = curve;
-        edgeVisual.Samples = SampleCurve(curve);
+        edgeVisual.Curve = shape.Curve;
+        edgeVisual.Samples = SampleCurve(shape.Curve);
 
         using var context = edgeVisual.Visual.RenderOpen();
 
-        var brush = state.HasFlag(EdgeRenderState.Selected) ? palette.EdgeSelected
-            : state.HasFlag(EdgeRenderState.Related) ? palette.EdgeSelected
-            : state.HasFlag(EdgeRenderState.Dimmed) ? palette.EdgeDimmed
-            : palette.Edge;
+        var pen = highlighted ? _edgeHighlightPen
+            : state.HasFlag(EdgeRenderState.Dimmed) ? _edgeDimPen
+            : _edgePen;
 
-        var width = state.HasFlag(EdgeRenderState.Selected) || state.HasFlag(EdgeRenderState.Related)
-            ? 1.6 / Math.Max(zoom, 0.05)
-            : 0.9 / Math.Max(zoom, 0.05);
+        context.DrawGeometry(null, pen, shape.Curve);
+        context.DrawGeometry(pen.Brush, null, shape.Arrow);
 
-        var pen = new Pen(brush, width);
-        pen.LineJoin = PenLineJoin.Round;
-        pen.StartLineCap = PenLineCap.Round;
-        pen.EndLineCap = PenLineCap.Round;
-
-        context.DrawGeometry(null, pen, curve);
-
-        // Related edges get a soft halo, the same one-trick glow as selected nodes.
-        if (state.HasFlag(EdgeRenderState.Related) || state.HasFlag(EdgeRenderState.Selected))
+        // The kind, on a plate over the curve's midpoint, and only while the edge is one the
+        // selection is about: a canvas that labels every relation is unreadable.
+        if (highlighted)
         {
-            var halo = new Pen(Translucent(palette.EdgeSelected, 46), 4 / Math.Max(zoom, 0.05))
-            {
-                StartLineCap = PenLineCap.Round,
-                EndLineCap = PenLineCap.Round,
-            };
-
-            context.DrawGeometry(null, halo, curve);
-        }
-
-        // Arrowhead at the target, drawn only while zoomed in enough for it to read.
-        if (zoom >= 0.45)
-        {
-            DrawArrowHead(context, brush, curve, source, target, 1 / Math.Max(zoom, 0.05));
+            DrawEdgeLabel(context, edgeVisual.Edge, shape.Label);
         }
     }
+
+    /// <summary>The edge's kind on a small plate, centred on the curve.</summary>
+    private void DrawEdgeLabel(DrawingContext context, GraphEdge edge, Point topLeft)
+    {
+        var text = new FormattedText(
+            string.IsNullOrWhiteSpace(edge.Label) ? EdgeKindLabel(edge.Kind) : edge.Label,
+            System.Globalization.CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            _palette.NodeMetaFace,
+            EdgeLabelFontSize,
+            _palette.NodeMeta,
+            _pixelsPerDip)
+        {
+            MaxTextWidth = EdgeLabelWidth - 8,
+            MaxLineCount = 1,
+            Trimming = TextTrimming.CharacterEllipsis,
+        };
+
+        var plate = new Rect(topLeft.X, topLeft.Y, EdgeLabelWidth, text.Height + 2);
+
+        context.DrawRoundedRectangle(_edgeLabelPlate, null, plate, 3, 3);
+        context.DrawText(text, new Point(topLeft.X + ((EdgeLabelWidth - text.WidthIncludingTrailingWhitespace) / 2), topLeft.Y + 1));
+    }
+
+    /// <summary>The relationship in a form worth showing a person.</summary>
+    private static string EdgeKindLabel(GraphEdgeKind kind) => kind switch
+    {
+        GraphEdgeKind.Contains => "Contains",
+        GraphEdgeKind.Depends => "Depends On",
+        GraphEdgeKind.Calls => "Calls",
+        GraphEdgeKind.Implements => "Implements",
+        GraphEdgeKind.Relates => "Relates To",
+        GraphEdgeKind.Plans => "Plans",
+        _ => kind.ToString(),
+    };
 
     // ---------------------------------------------------------- hit testing
 
@@ -505,13 +647,50 @@ public sealed class CanvasScene
             SourceId = edge.SourceId,
             TargetId = edge.TargetId,
             IsDirty = true,
+            Hull = HullOf(edge.SourceId, edge.TargetId),
         };
 
         return visual;
     }
 
+    /// <summary>
+    /// Where an edge between two nodes can possibly land: both cards, plus the room the bow
+    /// and the label need.
+    /// </summary>
+    /// <remarks>
+    /// The curve leaves the hull of the two cards - a control point is pulled up to
+    /// <see cref="MaxCurve"/> sideways, and the label sits above the midpoint - so the union is
+    /// inflated rather than used as-is. Overestimating costs one extra edge in the visual tree;
+    /// underestimating makes an edge vanish while its endpoints are still on screen.
+    /// </remarks>
+    private Rect HullOf(string sourceId, string targetId)
+    {
+        var source = NodeBounds(sourceId);
+        var target = NodeBounds(targetId);
+
+        if (source.IsEmpty || target.IsEmpty)
+        {
+            return Rect.Empty;
+        }
+
+        var hull = Rect.Union(source, target);
+        hull.Inflate(MaxCurve, EdgeLabelFontSize + 24);
+
+        return hull;
+    }
+
     private static void PositionNode(NodeVisual visual, GraphNode node)
     {
+        // Mutated in place rather than replaced: a drag writes this on every mouse move, and a
+        // fresh Transform per move is a fresh unfrozen DependencyObject the render thread has
+        // to pick up.
+        if (visual.Visual.Transform is TranslateTransform translate)
+        {
+            translate.X = node.X;
+            translate.Y = node.Y;
+            return;
+        }
+
         visual.Visual.Transform = new TranslateTransform(node.X, node.Y);
     }
 
@@ -520,70 +699,84 @@ public sealed class CanvasScene
         foreach (var edge in EdgesOf(nodeId))
         {
             edge.IsDirty = true;
+            edge.Hull = HullOf(edge.SourceId, edge.TargetId);
         }
     }
 
     /// <summary>
-    /// A gentle cubic curve between two nodes, endpoints pulled to the nodes' boundaries so
-    /// lines visibly terminate at shapes rather than centres.
+    /// Everything one edge draws, computed together because it all falls out of the same four
+    /// points.
     /// </summary>
-    private static PathGeometry BuildCurve(Point sourceCentre, Point targetCentre, GraphNode source, GraphNode target)
+    private readonly record struct EdgeShape(PathGeometry Curve, Geometry Arrow, Point Label);
+
+    /// <summary>
+    /// The curve, its arrowhead and where its label sits.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// There are no ports and no sockets. An edge leaves the side of the card that faces the
+    /// other card and the control points pull horizontally, so a relation reads as
+    /// "AuthService depends on UserRepository" rather than as a wire routed between an output
+    /// and an input. Anything else - a ray from centre to centre, control points on the
+    /// perpendicular - produces a curve that doubles back on itself the moment a dependency
+    /// points leftwards.
+    /// </para>
+    /// <para>
+    /// The node positions arrive here as centres; the card rectangle is derived from the
+    /// centre and the size, which is the only difference from the retained-mode version this
+    /// reproduces (there a card's X/Y were its top-left corner).
+    /// </para>
+    /// </remarks>
+    private static EdgeShape BuildShape(Point sourceCentre, Point targetCentre, GraphNode source, GraphNode target)
     {
-        var start = sourceCentre;
-        var end = targetCentre;
+        var leftToRight = targetCentre.X >= sourceCentre.X;
 
-        var direction = end - start;
+        var startX = leftToRight ? sourceCentre.X + (source.Width / 2) : sourceCentre.X - (source.Width / 2);
+        var endX = leftToRight ? targetCentre.X - (target.Width / 2) : targetCentre.X + (target.Width / 2);
+        var startY = sourceCentre.Y;
+        var endY = targetCentre.Y;
 
-        if (direction.Length < 0.001)
-        {
-            var degenerate = new PathGeometry();
-            degenerate.Figures.Add(new PathFigure(start, [new LineSegment(end, true)], false));
-            return degenerate;
-        }
+        var pull = Math.Clamp(Math.Abs(endX - startX) * 0.5, MinCurve, MaxCurve);
+        var direction = leftToRight ? 1 : -1;
 
-        start = PushToBoundary(start, direction, source);
-        end = PushToBoundary(end, -direction, target);
+        var start = new Point(startX, startY);
+        var end = new Point(endX, endY);
+        var control1 = new Point(startX + (pull * direction), startY);
+        var control2 = new Point(endX - (pull * direction), endY);
 
-        // The control points sit on the perpendicular, a fraction of the distance out:
-        // enough curve that parallel edges never overlap, not enough to look looped.
-        var unit = direction / direction.Length;
-        var perpendicular = new Vector(-unit.Y, unit.X);
-        var bow = Math.Min(direction.Length * 0.14, 60) * (CurveSide(source, target) ? 1 : -1);
+        var figure = new PathFigure(start, [new BezierSegment(control1, control2, end, true)], false);
 
-        var control1 = start + unit * (direction.Length * 0.3) + perpendicular * bow;
-        var control2 = end - unit * (direction.Length * 0.3) + perpendicular * bow;
+        var curve = new PathGeometry();
+        curve.Figures.Add(figure);
+        curve.Freeze();
+
+        // The cubic at t = 0.5 reduces to this weighted average - cheap, and exact enough to
+        // hang a label on. The offsets centre an 80-wide plate above the curve.
+        var label = new Point(
+            ((start.X + (3 * control1.X) + (3 * control2.X) + end.X) / 8) - (EdgeLabelWidth / 2),
+            ((start.Y + (3 * control1.Y) + (3 * control2.Y) + end.Y) / 8) - 18);
+
+        return new EdgeShape(curve, BuildArrow(end, direction), label);
+    }
+
+    /// <summary>A filled triangle at the target end, pointing the way the relationship reads.</summary>
+    private static Geometry BuildArrow(Point tip, int direction)
+    {
+        var back = tip.X - (ArrowLength * direction);
 
         var figure = new PathFigure(
-            start,
-            [new BezierSegment(control1, control2, end, true)],
-            false);
+            tip,
+            [
+                new LineSegment(new Point(back, tip.Y - ArrowHalfWidth), false),
+                new LineSegment(new Point(back, tip.Y + ArrowHalfWidth), false),
+            ],
+            true);
 
         var geometry = new PathGeometry();
         geometry.Figures.Add(figure);
         geometry.Freeze();
 
         return geometry;
-    }
-
-    /// <summary>Curves bow alternately so A→B and B→A do not lie on top of each other.</summary>
-    private static bool CurveSide(GraphNode a, GraphNode b) =>
-        string.Compare(a.Id, b.Id, StringComparison.Ordinal) > 0;
-
-    /// <summary>Pulls a centre point out to where the ray leaves the node's rectangle.</summary>
-    private static Point PushToBoundary(Point centre, Vector direction, GraphNode node)
-    {
-        var halfWidth = node.Width / 2;
-        var halfHeight = node.Height / 2;
-
-        var dx = direction.X;
-        var dy = direction.Y;
-
-        var xScale = Math.Abs(dx) < 0.0001 ? double.PositiveInfinity : halfWidth / Math.Abs(dx);
-        var yScale = Math.Abs(dy) < 0.0001 ? double.PositiveInfinity : halfHeight / Math.Abs(dy);
-
-        var scale = Math.Min(xScale, yScale);
-
-        return centre + direction * scale;
     }
 
     private static Point[] SampleCurve(PathGeometry curve)
@@ -611,70 +804,6 @@ public sealed class CanvasScene
         }
 
         return [.. points];
-    }
-
-    private static void DrawArrowHead(
-        DrawingContext context,
-        Brush brush,
-        PathGeometry curve,
-        GraphNode source,
-        GraphNode target,
-        double penWidth)
-    {
-        // A short tangent at the curve's end gives the arrow its direction.
-        var end = new Point(target.X, target.Y);
-        var direction = new Point(source.X, source.Y) - end;
-
-        var length = direction.Length;
-
-        if (length < 0.001)
-        {
-            return;
-        }
-
-        var unit = new Vector(direction.X / length, direction.Y / length);
-
-        // Pull back so the arrow tip sits at the boundary.
-        var halfWidth = target.Width / 2;
-        var halfHeight = target.Height / 2;
-        var xScale = Math.Abs(unit.X) < 0.0001 ? double.PositiveInfinity : halfWidth / Math.Abs(unit.X);
-        var yScale = Math.Abs(unit.Y) < 0.0001 ? double.PositiveInfinity : halfHeight / Math.Abs(unit.Y);
-        var scale = Math.Min(xScale, yScale);
-
-        var tip = end + unit * scale;
-        var size = 5.5;
-
-        var perpendicular = new Vector(-unit.Y, unit.X);
-
-        var left = tip - unit * size + perpendicular * (size * 0.45);
-        var right = tip - unit * size - perpendicular * (size * 0.45);
-
-        var arrow = new StreamGeometry();
-
-        using (var stream = arrow.Open())
-        {
-            stream.BeginFigure(tip, true, true);
-            stream.LineTo(left, true, false);
-            stream.LineTo(right, true, false);
-        }
-
-        arrow.Freeze();
-
-        context.DrawGeometry(brush, null, arrow);
-    }
-
-    /// <summary>A copy of a palette brush at reduced opacity, for halo strokes.</summary>
-    /// <remarks>Pens have no opacity, and freezing is what makes these cheap to reuse within a render pass.</remarks>
-    private static Brush Translucent(Brush source, byte alpha)
-    {
-        if (source is SolidColorBrush solid)
-        {
-            var faded = new SolidColorBrush(Color.FromArgb(alpha, solid.Color.R, solid.Color.G, solid.Color.B));
-            faded.Freeze();
-            return faded;
-        }
-
-        return source;
     }
 
     private static string FitText(string text, double availableWidth)

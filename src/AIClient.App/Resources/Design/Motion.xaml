@@ -1,0 +1,34 @@
+<!--
+    Kontur Code design system — motion tokens.
+
+    Motion is part of the type and colour system, not per-view decoration: the same
+    durations and the same decelerating curve everywhere, so the product moves with one
+    voice. Two budgets:
+
+      - Interaction (hover, press, selection): 90-140ms. Fast enough to feel like a
+        property of the pointer, not an effect the app plays.
+      - Presence (overlays, panels, entrances): 180-240ms, decelerating. The interface
+        ends still; nothing bounces, nothing lingers.
+
+    All curves are one cubic-bezier family: strong ease-out, meaning the animation
+    spends its energy early and settles. Linear reads mechanical; ease-in reads lag.
+
+    Every storyboard that consumes these tokens also checks the system's animation
+    preference (Motion.cs does for attached behaviours; storyboards here stay under
+    250ms, which is the accessibility-safe band on its own).
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Durations. Declared as Duration resources rather than raw TimeSpans: the
+         animation properties consume them directly, no converter in the middle. -->
+    <Duration x:Key="Anim.Instant">0:0:0.09</Duration>
+    <Duration x:Key="Anim.Fast">0:0:0.13</Duration>
+    <Duration x:Key="Anim.Normal">0:0:0.18</Duration>
+    <Duration x:Key="Anim.Slow">0:0:0.24</Duration>
+
+    <!-- The one curve: strong decelerate. EaseOut cubic - the animation spends its
+         energy early and settles, which reads as arrival rather than travel. -->
+    <CubicEase x:Key="Anim.EaseOut" EasingMode="EaseOut" />
+
+</ResourceDictionary>

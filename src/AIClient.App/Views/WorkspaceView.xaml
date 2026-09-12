@@ -3,9 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:views="clr-namespace:AIClient.App.Views"
-             xmlns:kontur="clr-namespace:AIClient.App.Controls"
-             xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+              xmlns:views="clr-namespace:AIClient.App.Views"
+              xmlns:kontur="clr-namespace:AIClient.App.Controls"
+              xmlns:motion="clr-namespace:AIClient.App.Controls"
+              xmlns:vm="clr-namespace:AIClient.App.ViewModels"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
              Background="{DynamicResource Brush.Surface0}"
@@ -65,26 +66,31 @@
             </Grid>
         </Border>
 
-        <!-- The modes. All alive; exactly one visible. -->
+        <!-- The modes. All alive; exactly one visible. Each arrives with the same quiet
+             fade, so a mode switch is a change of content rather than a jump cut. -->
         <Grid Grid.Row="2">
             <views:CanvasView x:Name="CanvasPane"
                               DataContext="{Binding Workspace}"
+                              motion:Motion.Show="Fade"
                               Visibility="{Binding Mode, Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Canvas}" />
 
             <views:GraphOutlineView x:Name="OutlinePane"
                                     DataContext="{Binding Workspace.Outline}"
+                                    motion:Motion.Show="Fade"
                                     Visibility="{Binding DataContext.Workspace.Mode,
                                                          RelativeSource={RelativeSource AncestorType=UserControl},
                                                          Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Graph}" />
 
             <views:FilesView x:Name="FilesPane"
                              DataContext="{Binding Workspace.Files}"
+                             motion:Motion.Show="Fade"
                              Visibility="{Binding DataContext.Workspace.Mode,
                                                   RelativeSource={RelativeSource AncestorType=UserControl},
                                                   Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Files}" />
 
             <views:CodeView x:Name="CodePane"
                             DataContext="{Binding Workspace.Code}"
+                            motion:Motion.Show="Fade"
                             Visibility="{Binding DataContext.Workspace.Mode,
                                                  RelativeSource={RelativeSource AncestorType=UserControl},
                                                  Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Code}" />
@@ -92,18 +98,21 @@
             <!-- The conversation: the existing chat surface, unchanged in behaviour. -->
             <views:ChatView x:Name="ChatPane"
                             DataContext="{Binding Chat}"
+                            motion:Motion.Show="Fade"
                             Visibility="{Binding DataContext.Workspace.Mode,
                                                  RelativeSource={RelativeSource AncestorType=UserControl},
                                                  Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Chat}" />
 
             <views:ModelsView x:Name="ModelsPane"
                               DataContext="{Binding ModelsPage}"
+                              motion:Motion.Show="Fade"
                               Visibility="{Binding DataContext.Workspace.Mode,
                                                    RelativeSource={RelativeSource AncestorType=UserControl},
                                                    Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Models}" />
 
             <views:TasksView x:Name="TasksPane"
                              DataContext="{Binding Tasks}"
+                             motion:Motion.Show="Fade"
                              Visibility="{Binding DataContext.Workspace.Mode,
                                                   RelativeSource={RelativeSource AncestorType=UserControl},
                                                   Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Tasks}" />
@@ -111,6 +120,7 @@
             <!-- Settings: the existing settings surface, as a full workspace mode. -->
             <views:SettingsView x:Name="SettingsPane"
                                 DataContext="{Binding Settings}"
+                                motion:Motion.Show="Fade"
                                 Visibility="{Binding DataContext.Workspace.Mode,
                                                      RelativeSource={RelativeSource AncestorType=UserControl},
                                                      Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Settings}" />

@@ -276,4 +276,138 @@ public static class WireFixtures
     /// </remarks>
     private static string Sse(params string[] frames) =>
         string.Concat(frames.Select(frame => $"data: {frame}\n\n"));
+
+    // ==================================================================
+    // Standard OpenAI-compatible catalogues (OpenAI, xAI, DeepSeek list ids alone;
+    // Groq adds windows; Mistral adds capabilities).
+    // ==================================================================
+
+    /// <summary>The id-and-owner shape OpenAI, xAI and DeepSeek serve.</summary>
+    public const string IdOnlyCatalogue = """
+    {
+      "object": "list",
+      "data": [
+        { "id": "gpt-4.1-mini", "object": "model", "owned_by": "system" },
+        { "id": "gpt-4o", "object": "model", "owned_by": "system" },
+        { "id": "some-unknown-model", "object": "model", "owned_by": "system" },
+        { "id": "", "object": "model", "owned_by": "system" }
+      ]
+    }
+    """;
+
+    /// <summary>Groq's catalogue, which publishes per-model context windows.</summary>
+    public const string GroqCatalogue = """
+    {
+      "object": "list",
+      "data": [
+        {
+          "id": "llama-3.3-70b-versatile",
+          "object": "model",
+          "context_window": 131072,
+          "max_completion_tokens": 32768
+        },
+        {
+          "id": "meta-llama/llama-4-scout-17b-16e-instruct",
+          "object": "model",
+          "context_window": 131072
+        }
+      ]
+    }
+    """;
+
+    /// <summary>Mistral's catalogue, which carries a capabilities object per entry.</summary>
+    public const string MistralCatalogue = """
+    {
+      "object": "list",
+      "data": [
+        {
+          "id": "mistral-large-latest",
+          "name": "Mistral Large",
+          "max_context_length": 131072,
+          "capabilities": { "completion_chat": true, "function_calling": true, "vision": false }
+        },
+        {
+          "id": "pixtral-large-latest",
+          "name": "Pixtral Large",
+          "max_context_length": 131072,
+          "capabilities": { "completion_chat": true, "function_calling": true, "vision": true }
+        },
+        {
+          "id": "mistral-embed",
+          "name": "Mistral Embed",
+          "capabilities": { "completion_chat": false, "function_calling": false, "vision": false }
+        }
+      ]
+    }
+    """;
+
+    // ==================================================================
+    // Anthropic Messages API.
+    // ==================================================================
+
+    public const string AnthropicCatalogue = """
+    {
+      "data": [
+        { "id": "claude-sonnet-4-5", "display_name": "Claude Sonnet 4.5", "type": "model" },
+        { "id": "claude-haiku-4-5", "display_name": "Claude Haiku 4.5", "type": "model" },
+        { "id": "", "display_name": "Broken", "type": "model" }
+      ],
+      "has_more": false
+    }
+    """;
+
+    /// <summary>A plain text answer, streamed the named-event way.</summary>
+    public static readonly string AnthropicTextStream = Sse(
+        """{"type":"message_start","message":{"usage":{"input_tokens":25,"output_tokens":1}}}""",
+        """{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}""",
+        """{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}""",
+        """{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":" there."}}""",
+        """{"type":"content_block_stop","index":0}""",
+        """{"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":9}}""",
+        """{"type":"message_stop"}""");
+
+    /// <summary>Thinking text interleaved with the answer, as extended-thinking models emit.</summary>
+    public static readonly string AnthropicThinkingStream = Sse(
+        """{"type":"message_start","message":{"usage":{"input_tokens":30,"output_tokens":1}}}""",
+        """{"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":""}}""",
+        """{"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"Let me think."}}""",
+        """{"type":"content_block_stop","index":0}""",
+        """{"type":"content_block_start","index":1,"content_block":{"type":"text","text":""}}""",
+        """{"type":"content_block_delta","index":1,"delta":{"type":"text_delta","text":"The answer."}}""",
+        """{"type":"content_block_stop","index":1}""",
+        """{"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":20}}""",
+        """{"type":"message_stop"}""");
+
+    /// <summary>
+    /// One tool call: the opening frame names it, the argument JSON arrives as
+    /// <c>input_json_delta</c> fragments, the stop reason says <c>tool_use</c>.
+    /// </summary>
+    public static readonly string AnthropicToolUseStream = Sse(
+        """{"type":"message_start","message":{"usage":{"input_tokens":110,"output_tokens":2}}}""",
+        """{"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01","name":"read_file"}}""",
+        """{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\"path\":"}}""",
+        """{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"\"src/App.cs\"}"}}""",
+        """{"type":"content_block_stop","index":0}""",
+        """{"type":"message_delta","delta":{"stop_reason":"tool_use"},"usage":{"output_tokens":16}}""",
+        """{"type":"message_stop"}""");
+
+    /// <summary>The non-streaming Messages response shape, with a tool_use block.</summary>
+    public const string AnthropicNonStreamingToolUse = """
+    {
+      "id": "msg_01",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        { "type": "text", "text": "Reading the file." },
+        { "type": "tool_use", "id": "toolu_whole", "name": "list_files", "input": { "path": "." } }
+      ],
+      "stop_reason": "tool_use",
+      "usage": { "input_tokens": 88, "output_tokens": 14 }
+    }
+    """;
+
+    /// <summary>Anthropic's rejected-key body, which is not the OpenAI shape.</summary>
+    public const string AnthropicUnauthorizedBody = """
+    { "type": "error", "error": { "type": "authentication_error", "message": "invalid x-api-key" } }
+    """;
 }

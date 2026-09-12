@@ -517,6 +517,12 @@ public sealed partial class ChatViewModel : ObservableObject
         }
     }
 
+    /// <summary>Clears the composer's transient notice. The notice bar has no close event of
+    /// its own - the design-system notice is a Border, not a control with an IsOpen - so the
+    /// dismiss gesture is the view model's, exactly as it was on the bar's own button.</summary>
+    [RelayCommand]
+    private void DismissBanner() => BannerMessage = null;
+
     [RelayCommand]
     private static void BeginEdit(MessageViewModel? message)
     {

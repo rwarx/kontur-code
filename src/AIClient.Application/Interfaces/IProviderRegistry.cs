@@ -13,7 +13,33 @@ public interface IProviderRegistry
     Task<IReadOnlyList<ProviderInfo>> GetProvidersAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Resolves a provider implementation by id. Null when the id is unknown.</summary>
+    /// <remarks>
+    /// Built-ins resolve from the compiled set; user-defined providers resolve from the
+    /// store loaded at startup and kept in step by <see cref="AddCustomProviderAsync"/> and
+    /// <see cref="RemoveCustomProviderAsync"/>.
+    /// </remarks>
     IAIProvider? GetProvider(string providerId);
+
+    /// <summary>
+    /// Warms the custom-provider cache from the database. Called once at startup, after
+    /// migrations; before it runs, only built-in providers resolve.
+    /// </summary>
+    Task LoadCustomProvidersAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Adds a user-defined OpenAI-compatible provider and returns its info row.
+    /// </summary>
+    /// <exception cref="ArgumentException">The name or base URL is not usable.</exception>
+    Task<ProviderInfo> AddCustomProviderAsync(
+        string name,
+        string baseUrl,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Removes a user-defined provider, its cached models and its stored key. Built-in
+    /// ids are refused.
+    /// </summary>
+    Task RemoveCustomProviderAsync(string providerId, CancellationToken cancellationToken = default);
 
     /// <summary>Cached models for one provider, read from the database rather than the network.</summary>
     Task<IReadOnlyList<ModelInfo>> GetModelsAsync(string providerId, CancellationToken cancellationToken = default);
@@ -63,8 +89,11 @@ public sealed record ProviderInfo
     public int CachedModelCount { get; init; }
     public DateTimeOffset? ModelsRefreshedAt { get; init; }
 
-    /// <summary>Where the user gets a key. Shown as a link in Settings.</summary>
+    /// <summary>Where the user gets a key. Shown as a link in Settings. Null for custom providers.</summary>
     public string? ApiKeyUrl { get; init; }
+
+    /// <summary>True when the user defined this provider themselves and can remove it.</summary>
+    public bool IsCustom { get; init; }
 }
 
 /// <summary>A model as the picker sees it.</summary>

@@ -17,6 +17,9 @@ namespace AIClient.App.Canvas;
 /// </remarks>
 public sealed class CanvasPalette
 {
+    /// <summary>The surface behind everything - also what an edge label sits on so the curve does not read through it.</summary>
+    public required Brush Background { get; init; }
+
     public required Brush NodeBody { get; init; }
     public required Brush NodeBodyHover { get; init; }
     public required Brush NodeBodySelected { get; init; }
@@ -86,6 +89,7 @@ public sealed class CanvasPalette
 
         return new CanvasPalette
         {
+            Background = Brush("Brush.CanvasBackground", Brushes.Transparent),
             NodeBody = Brush("Brush.NodeBody", Brushes.Transparent),
             NodeBodyHover = Brush("Brush.NodeBodyHover", Brushes.Transparent),
             NodeBodySelected = Brush("Brush.NodeBodySelected", Brushes.Transparent),

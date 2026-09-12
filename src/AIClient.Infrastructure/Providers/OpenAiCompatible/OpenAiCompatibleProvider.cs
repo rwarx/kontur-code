@@ -621,4 +621,73 @@ public abstract class OpenAiCompatibleProvider : IAIProvider
         // A price of exactly zero means "free", which is worth showing; null means unknown.
         return perToken is { } value2 ? value2 * 1_000_000m : null;
     }
+
+    /// <summary>
+    /// Enumerates the <c>data</c> array of an OpenAI-shaped catalogue response. Nearly every
+    /// OpenAI-compatible backend lists models this way; only the per-entry fields differ.
+    /// </summary>
+    protected static IEnumerable<JsonElement> ReadDataArray(JsonDocument document)
+    {
+        if (document.RootElement.ValueKind == JsonValueKind.Object &&
+            document.RootElement.TryGetProperty("data", out var data) &&
+            data.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in data.EnumerateArray())
+            {
+                yield return item;
+            }
+        }
+    }
+
+    /// <summary>Turns <c>deepseek-chat</c> into <c>Deepseek Chat</c> for catalogues that list ids alone.</summary>
+    /// <remarks>
+    /// The raw id stays the request identifier; this is only what the picker renders when
+    /// the provider publishes no display name of its own.
+    /// </remarks>
+    protected static string HumaniseModelId(string modelId)
+    {
+        var slash = modelId.IndexOf('/');
+        var name = slash > 0 ? modelId[(slash + 1)..] : modelId;
+
+        var words = name.Split(['-', '_'], StringSplitOptions.RemoveEmptyEntries);
+        var parts = new List<string>(words.Length);
+
+        foreach (var word in words)
+        {
+            if (word.Length == 0)
+            {
+                continue;
+            }
+
+            parts.Add(char.IsDigit(word[0])
+                ? word.ToUpperInvariant()
+                : char.ToUpperInvariant(word[0]) + word[1..]);
+        }
+
+        return string.Join(' ', parts);
+    }
+
+    /// <summary>Sorts a parsed catalogue by display name, the order the picker shows.</summary>
+    protected static void SortByName(List<AIModelDescriptor> models) =>
+        models.Sort(static (x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Longest-prefix lookup over a known-facts table: the most specific entry wins.</summary>
+    protected static int? LongestPrefixLookup(
+        string modelId,
+        IReadOnlyDictionary<string, int> table)
+    {
+        var bestLength = 0;
+        int? best = null;
+
+        foreach (var (prefix, window) in table)
+        {
+            if (prefix.Length > bestLength && modelId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                bestLength = prefix.Length;
+                best = window;
+            }
+        }
+
+        return best;
+    }
 }

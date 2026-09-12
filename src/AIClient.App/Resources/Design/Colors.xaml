@@ -25,8 +25,8 @@
     <SolidColorBrush x:Key="Brush.Surface3" Color="#2E2F33" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.SurfaceHover" Color="#35363B" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.SurfacePressed" Color="#3C3D43" po:Freeze="True" />
-    <!-- Where selection is a state, not a colour statement: an accent-tinted dark. -->
-    <SolidColorBrush x:Key="Brush.SurfaceSelected" Color="#1B322A" po:Freeze="True" />
+    <!-- Where selection is a state, not a colour statement: a neutral raised tint. -->
+    <SolidColorBrush x:Key="Brush.SurfaceSelected" Color="#2B2D32" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.SurfaceSunken" Color="#141517" po:Freeze="True" />
 
     <!-- Structure. Faint separates content inside one surface; Border separates surfaces. -->
@@ -40,17 +40,25 @@
     <SolidColorBrush x:Key="Brush.TextPrimary" Color="#E8EAEE" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.TextSecondary" Color="#A1A4AB" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.TextMuted" Color="#6E7178" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.TextOnAccent" Color="#062A22" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.TextOnAccent" Color="#17181B" po:Freeze="True" />
 
-    <!-- Accent. Teal, cool and technical; the one hue the product is allowed to be loud
-         with, and only in the places listed in the design audit: selection, activity,
-         AI, focus. -->
+    <!-- The brand plate: the small rounded square the logo sits on. The logo itself is
+         white, so its plate stays dark in BOTH themes - it is the one deliberately
+         theme-independent surface in the app, which is what makes the mark recognisable
+         in both. -->
+    <SolidColorBrush x:Key="Brush.LogoPlate" Color="#202126" po:Freeze="True" />
 
-    <SolidColorBrush x:Key="Brush.Accent" Color="#38C9A5" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.AccentText" Color="#7FE6C8" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.AccentSoft" Color="#14271F" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.AccentBorder" Color="#2E6E5D" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.AccentHover" Color="#4ADBB6" po:Freeze="True" />
+    <!-- Accent. Monochrome white: the one voice the product is loud with, and only in
+         the places the design audit lists - selection, activity, AI, focus. White needs
+         no hue to carry those, which is what keeps every panel calm. Hover dims rather
+         than brightens - white cannot get brighter, and the inverse reads the same way
+         a physical key does when pressed. -->
+
+    <SolidColorBrush x:Key="Brush.Accent" Color="#FFFFFF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.AccentText" Color="#FFFFFF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.AccentSoft" Color="#2A2C31" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.AccentBorder" Color="#B9BEC6" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.AccentHover" Color="#D8DBDF" po:Freeze="True" />
 
     <!-- Semantics -->
 
@@ -68,8 +76,8 @@
     <SolidColorBrush x:Key="Brush.CanvasBackground" Color="#121315" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.CanvasGrid" Color="#1E1F22" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.CanvasGridMajor" Color="#26272A" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.MarqueeStroke" Color="#38C9A5" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.MarqueeFill" Color="#12271F" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.MarqueeStroke" Color="#FFFFFF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.MarqueeFill" Color="#232428" po:Freeze="True" />
 
     <!-- Nodes. A body wash plus a per-kind stroke. Strokes are muted on purpose: at 500
          visible nodes, saturated borders turn the canvas into confetti; kinds need to be
@@ -77,24 +85,24 @@
 
     <SolidColorBrush x:Key="Brush.NodeBody" Color="#232427" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.NodeBodyHover" Color="#2A2B2F" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.NodeBodySelected" Color="#1B322A" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.NodeBodySelected" Color="#2B2D32" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.NodeBorder" Color="#33343A" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.NodeBorderSelected" Color="#38C9A5" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.NodeBorderSelected" Color="#FFFFFF" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.NodeTitle" Color="#E8EAEE" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.NodeMeta" Color="#8A93A0" po:Freeze="True" />
 
     <SolidColorBrush x:Key="Brush.Node.File" Color="#8B94A0" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.Folder" Color="#B58A5C" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.Node.Module" Color="#6BB8A8" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.Node.Service" Color="#38C9A5" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Node.Module" Color="#8B95A3" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Node.Service" Color="#E4E7EB" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.Interface" Color="#55C0D6" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.Data" Color="#C98B5C" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.View" Color="#9C86C9" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.Node.Test" Color="#8FC05A" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Node.Test" Color="#7B93C9" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.Plan" Color="#E0B04F" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.Task" Color="#C0C7D0" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.Agent" Color="#D98B6B" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.Node.Model" Color="#8FD3C8" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Node.Model" Color="#A7B2C0" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.External" Color="#6E7681" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.Note" Color="#A8B0BA" po:Freeze="True" />
 
@@ -102,13 +110,16 @@
 
     <SolidColorBrush x:Key="Brush.Edge" Color="#39404B" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.EdgeHover" Color="#5A6472" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.EdgeSelected" Color="#38C9A5" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.EdgeSelected" Color="#FFFFFF" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.EdgeDimmed" Color="#23282F" po:Freeze="True" />
 
     <!-- Overlay scrims and palette surfaces -->
 
     <SolidColorBrush x:Key="Brush.Scrim" Color="#66000000" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.OverlayBackground" Color="#26272A" po:Freeze="True" />
+    <!-- Floating chrome over the canvas itself (toolbar, minimap, chips): the panel colour
+         at 80% so the space reads through, without a blur the renderer would pay for. -->
+    <SolidColorBrush x:Key="Brush.OverlayPanel" Color="#CC1F2022" po:Freeze="True" />
 
     <!--
         Legacy aliases. Settings, the first-run wizard and the markdown templates were

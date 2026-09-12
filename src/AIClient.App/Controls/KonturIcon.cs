@@ -26,8 +26,12 @@ namespace AIClient.App.Controls;
 /// </remarks>
 public class KonturIcon : Control
 {
-    /// <summary>Default stroke weight at the 16px design size; thinner reads faint, heavier reads loud.</summary>
-    public const double DefaultGlyphThickness = 1.5;
+    /// <summary>
+    /// Default stroke weight at the 24px design grid. The set is Iconsax Linear, drawn on
+    /// the 24-grid like Lucide and the morphicons library; 2.25 units render as 1.5px at
+    /// the 16px box, which is the weight the interface is tuned to.
+    /// </summary>
+    public const double DefaultGlyphThickness = 2.25;
 
     /// <summary>Standard rendered size; matches the design grid the drawings were made for.</summary>
     public const double DefaultSize = 16;

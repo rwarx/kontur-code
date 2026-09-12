@@ -3,28 +3,62 @@
 
     A developer tool is read, not glanced at. Sizes stay small and dense on purpose:
     the largest thing on any screen is content, never chrome. Every style pins
-    TextFormattingMode to Display - at 11-13px, Ideal mode renders soft grey mush on
+    TextFormattingMode to Display — at 11–13px, Ideal mode renders soft grey mush on
     100% DPI displays, and this interface lives at exactly those sizes.
+
+    The ramp has six rungs and two faces. Interface text is Segoe UI Variable (Windows
+    11's UI face, degrading to Segoe UI on 10); everything that names a thing in the
+    machine's vocabulary — code, tool names, keycaps, paths — is Cascadia Code, the
+    terminal face Windows ships for exactly this. Two faces, clearly distinct roles,
+    no third voice to keep the page honest.
 -->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=System.Runtime">
 
-    <!-- Family. "Segoe UI Variable Text" is the Windows 11 UI face and degrades
-         gracefully to Segoe UI on 10; both render well at small sizes. -->
-    <FontFamily x:Key="Font.Interface">Segoe UI Variable Text, Segoe UI, Inter, System UI</FontFamily>
-    <FontFamily x:Key="Font.Mono">Cascadia Code, Consolas, Courier New</FontFamily>
+    <!--
+        The keycap style composes the radius token, and a StaticResource resolves at parse
+        time against THIS dictionary's chain only - the sibling dictionaries merged alongside
+        this one elsewhere are invisible here. Spacing must be merged directly or the first
+        style application fails with "UnsetValue is not a valid value for CornerRadius".
+    -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/Resources/Design/Spacing.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- Family. Inter is bundled with the app (Fonts/, OFL) and referenced by pack URI -
+         the interface reads the same on every machine, not on whatever Segoe build the
+         host ships. System faces follow as graceful degradation if the resource lookup
+         ever misses. -->
+    <FontFamily x:Key="Font.Interface">pack://application:,,,/AIClient;component/Fonts/#Inter, Segoe UI Variable Text, Segoe UI</FontFamily>
+    <FontFamily x:Key="Font.InterfaceDisplay">pack://application:,,,/AIClient;component/Fonts/#Inter, Segoe UI Variable Display, Segoe UI</FontFamily>
+    <FontFamily x:Key="Font.Mono">Cascadia Code, Cascadia Mono, Consolas, Courier New</FontFamily>
 
     <!-- Sizes -->
+    <sys:Double x:Key="Size.Display">22</sys:Double>
     <sys:Double x:Key="Size.Title">15</sys:Double>
     <sys:Double x:Key="Size.Section">13</sys:Double>
     <sys:Double x:Key="Size.Body">13</sys:Double>
     <sys:Double x:Key="Size.Caption">12</sys:Double>
     <sys:Double x:Key="Size.Metadata">11</sys:Double>
+    <sys:Double x:Key="Size.Overline">10.5</sys:Double>
     <sys:Double x:Key="Size.Code">12.5</sys:Double>
+    <sys:Double x:Key="Size.Keycap">10.5</sys:Double>
 
-    <!-- Styles. Kept as TextBlock styles AND mirrored as setters-only resources so
-         non-TextBlock hosts (buttons, list items) can compose them inline. -->
+    <!--
+        Styles. Kept as TextBlock styles AND mirrored as setters-only resources so
+        non-TextBlock hosts (buttons, list items) can compose them inline.
+    -->
+
+    <!-- Display: the one large voice, spent on the first-run welcome and empty states. -->
+    <Style x:Key="Type.Display" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.InterfaceDisplay}" />
+        <Setter Property="FontSize" Value="{StaticResource Size.Display}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+    </Style>
 
     <Style x:Key="Type.Title" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource Font.Interface}" />
@@ -77,8 +111,50 @@
         <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
     </Style>
 
+    <!-- Overline: the section label above grouped content (WORKSPACE, SESSIONS,
+         TIMELINE). Small-caps rhythm without fake letter-spacing: semibold at 10.5,
+         muted, and quiet enough that the label never outranks what it names. -->
+    <Style x:Key="Type.Overline" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Interface}" />
+        <Setter Property="FontSize" Value="{StaticResource Size.Overline}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+    </Style>
+
     <Style x:Key="Type.Accent" TargetType="TextBlock" BasedOn="{StaticResource Type.Metadata}">
         <Setter Property="Foreground" Value="{DynamicResource Brush.AccentText}" />
+    </Style>
+
+    <!-- Code inline: tool names, file names, short paths inside interface prose.
+         One step down from code blocks because it sits on 12px leading, not 19. -->
+    <Style x:Key="Type.CodeInline" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
+        <Setter Property="FontSize" Value="{StaticResource Size.Metadata}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+    </Style>
+
+    <!--
+        Keycap: a shortcut rendered as the key it names. The padding and radius live in
+        the style so every hint in the product (palette footer, tooltips, empty states)
+        gets the same key without each view restating the geometry.
+    -->
+    <Style x:Key="Type.Keycap" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface3}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.SM}" />
+        <Setter Property="Padding" Value="5,1.5" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+
+    <Style x:Key="Type.KeycapText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
+        <Setter Property="FontSize" Value="{StaticResource Size.Keycap}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
     </Style>
 
 </ResourceDictionary>

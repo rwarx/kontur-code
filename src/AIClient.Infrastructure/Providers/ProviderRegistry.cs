@@ -3,6 +3,7 @@ using AIClient.Domain.Entities;
 using AIClient.Domain.Enums;
 using AIClient.Domain.Interfaces;
 using AIClient.Infrastructure.Database;
+using AIClient.Infrastructure.Providers.Anthropic;
 using AIClient.Infrastructure.Providers.OpenAiCompatible;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -28,6 +29,7 @@ public sealed class ProviderRegistry : IProviderRegistry
 {
     private readonly IDbContextFactory<AIClientDbContext> _contextFactory;
     private readonly ISecureStorage _secureStorage;
+    private readonly CustomProviderStore _customs;
     private readonly ILogger<ProviderRegistry> _logger;
     private readonly Dictionary<string, IAIProvider> _providers;
     private readonly Dictionary<string, ProviderStatus> _status = new(StringComparer.OrdinalIgnoreCase);
@@ -36,11 +38,13 @@ public sealed class ProviderRegistry : IProviderRegistry
     public ProviderRegistry(
         IDbContextFactory<AIClientDbContext> contextFactory,
         ISecureStorage secureStorage,
+        CustomProviderStore customs,
         IEnumerable<IAIProvider> providers,
         ILogger<ProviderRegistry> logger)
     {
         _contextFactory = contextFactory;
         _secureStorage = secureStorage;
+        _customs = customs;
         _logger = logger;
         _providers = providers.ToDictionary(p => p.Id, StringComparer.OrdinalIgnoreCase);
     }
@@ -48,7 +52,47 @@ public sealed class ProviderRegistry : IProviderRegistry
     public event EventHandler<string>? ModelsChanged;
 
     public IAIProvider? GetProvider(string providerId) =>
-        _providers.GetValueOrDefault(providerId);
+        _providers.GetValueOrDefault(providerId) ?? _customs.Resolve(providerId);
+
+    /// <inheritdoc />
+    public Task LoadCustomProvidersAsync(CancellationToken cancellationToken = default) =>
+        _customs.LoadAsync(cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<ProviderInfo> AddCustomProviderAsync(
+        string name,
+        string baseUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var provider = await _customs.AddAsync(name, baseUrl, cancellationToken).ConfigureAwait(false);
+
+        SetStatus(provider.Id, ConnectionState.NotConfigured, null);
+        ModelsChanged?.Invoke(this, provider.Id);
+
+        // The row is already current - it was just written - so no round trip is needed.
+        return new ProviderInfo
+        {
+            Id = provider.Id,
+            Name = provider.DisplayName,
+            IsEnabled = true,
+            HasApiKey = false,
+            ConnectionState = ConnectionState.NotConfigured,
+            CachedModelCount = 0,
+            IsCustom = true,
+        };
+    }
+
+    /// <inheritdoc />
+    public async Task RemoveCustomProviderAsync(
+        string providerId,
+        CancellationToken cancellationToken = default)
+    {
+        await _customs.RemoveAsync(providerId, cancellationToken).ConfigureAwait(false);
+        _status.Remove(providerId);
+
+        // Picker and Settings both drop the vanished provider's rows.
+        ModelsChanged?.Invoke(this, providerId);
+    }
 
     public async Task<IReadOnlyList<ProviderInfo>> GetProvidersAsync(CancellationToken cancellationToken = default)
     {
@@ -90,6 +134,7 @@ public sealed class ProviderRegistry : IProviderRegistry
                 CachedModelCount = row.ModelCount,
                 ModelsRefreshedAt = row.ModelsRefreshedAt,
                 ApiKeyUrl = ResolveApiKeyUrl(row.Id),
+                IsCustom = CustomProviderStore.IsCustomId(row.Id),
             });
         }
 
@@ -338,6 +383,12 @@ public sealed class ProviderRegistry : IProviderRegistry
     {
         OpenRouterProvider.ProviderId => OpenRouterProvider.ApiKeyUrl,
         NvidiaProvider.ProviderId => NvidiaProvider.ApiKeyUrl,
+        OpenAiProvider.ProviderId => OpenAiProvider.ApiKeyUrl,
+        AnthropicProvider.ProviderId => AnthropicProvider.ApiKeyUrl,
+        GroqProvider.ProviderId => GroqProvider.ApiKeyUrl,
+        XaiProvider.ProviderId => XaiProvider.ApiKeyUrl,
+        MistralProvider.ProviderId => MistralProvider.ApiKeyUrl,
+        DeepSeekProvider.ProviderId => DeepSeekProvider.ApiKeyUrl,
         _ => null,
     };
 

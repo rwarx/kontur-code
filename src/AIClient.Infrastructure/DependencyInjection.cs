@@ -6,10 +6,13 @@ using AIClient.Application.Services.Tools;
 using AIClient.Domain.Interfaces;
 using AIClient.Infrastructure.Configuration;
 using AIClient.Infrastructure.Database;
+using AIClient.Infrastructure.Git;
 using AIClient.Infrastructure.Graph;
 using AIClient.Infrastructure.Http;
 using AIClient.Infrastructure.Processes;
+using AIClient.Infrastructure.Agent;
 using AIClient.Infrastructure.Providers;
+using AIClient.Infrastructure.Providers.Anthropic;
 using AIClient.Infrastructure.Providers.OpenAiCompatible;
 using AIClient.Infrastructure.Repositories;
 using AIClient.Infrastructure.SecureStorage;
@@ -77,12 +80,29 @@ public static class DependencyInjection
         // without one provider's configuration affecting another.
         services.AddHttpClient(OpenRouterProvider.ProviderId, ConfigureStreamingClient);
         services.AddHttpClient(NvidiaProvider.ProviderId, ConfigureStreamingClient);
+        services.AddHttpClient(OpenAiProvider.ProviderId, ConfigureStreamingClient);
+        services.AddHttpClient(AnthropicProvider.ProviderId, ConfigureStreamingClient);
+        services.AddHttpClient(GroqProvider.ProviderId, ConfigureStreamingClient);
+        services.AddHttpClient(XaiProvider.ProviderId, ConfigureStreamingClient);
+        services.AddHttpClient(MistralProvider.ProviderId, ConfigureStreamingClient);
+        services.AddHttpClient(DeepSeekProvider.ProviderId, ConfigureStreamingClient);
+        // Every user-defined provider shares one client; they differ in their base URL,
+        // which is a per-instance property, not a client-level one.
+        services.AddHttpClient("custom", ConfigureStreamingClient);
 
         // Registered as IAIProvider so ProviderRegistry receives all of them by injecting
         // IEnumerable<IAIProvider>. Adding a provider is one line here and nothing else.
         services.AddSingleton<IAIProvider, OpenRouterProvider>();
         services.AddSingleton<IAIProvider, NvidiaProvider>();
+        services.AddSingleton<IAIProvider, OpenAiProvider>();
+        services.AddSingleton<IAIProvider, AnthropicProvider>();
+        services.AddSingleton<IAIProvider, GroqProvider>();
+        services.AddSingleton<IAIProvider, XaiProvider>();
+        services.AddSingleton<IAIProvider, MistralProvider>();
+        services.AddSingleton<IAIProvider, DeepSeekProvider>();
 
+        // The runtime store behind user-defined providers; the registry resolves through it.
+        services.AddSingleton<CustomProviderStore>();
         services.AddSingleton<IProviderRegistry, ProviderRegistry>();
 
         // Singleton because it subscribes to OS-wide notifications: one subscription for the
@@ -145,6 +165,13 @@ public static class DependencyInjection
         services.AddSingleton<WorkspaceGraphIndexer>();
         services.AddSingleton<GraphContextSource>();
 
+        // Git: first-class module for repository operations. Registered as IGitService so
+        // the agent tools and any future consumers use the interface, not the implementation.
+        services.AddSingleton<IGitService, GitService>();
+
+        // Agent run checkpoints: persists run state for resumption after crash/restart.
+        services.AddSingleton<IAgentRunStore, JsonAgentRunStore>();
+
         services.AddSingleton<IAgentService, AgentService>();
     }
 
@@ -176,6 +203,13 @@ public static class DependencyInjection
         // Belongs to the planning modes and is withheld from a build, which AgentModePolicy decides
         // from the marker interface it implements rather than from where it sits in this list.
         services.AddSingleton<IAgentTool, SubmitPlanTool>();
+
+        // Git tools: first-class repository operations rather than shell commands.
+        services.AddSingleton<IAgentTool, GitStatusTool>();
+        services.AddSingleton<IAgentTool, GitDiffTool>();
+        services.AddSingleton<IAgentTool, GitCommitTool>();
+        services.AddSingleton<IAgentTool, GitCheckoutTool>();
+        services.AddSingleton<IAgentTool, GitRevertTool>();
 
         services.AddSingleton<IAgentToolRegistry, AgentToolRegistry>();
     }

@@ -41,11 +41,10 @@ dotnet publish src/AIClient.App -c Release -r win-x64 --self-contained false
 `--self-contained true` also works and produces something that runs on a machine with no .NET
 installed, at the cost of about 70 MB.
 
-Warnings are not errors, with one exception: `WarningsAsErrors` is set to `nullable` in
-[Directory.Build.props](Directory.Build.props), so a nullability warning fails the build. That is
-deliberate - the codebase is fully annotated and a new `CS8618` is a real defect, whereas an
-analyzer suggestion usually is not. `EnforceCodeStyleInBuild` is on, so `.editorconfig` violations
-surface as build warnings rather than only in the IDE.
+Warnings are not errors, with one exception: `TreatWarningsAsErrors` is set to `true` in
+[Directory.Build.props](Directory.Build.props), so any warning fails the build. That is deliberate —
+the codebase is fully annotated and a new warning is a real defect. `EnforceCodeStyleInBuild` is on,
+so `.editorconfig` violations surface as build warnings rather than only in the IDE.
 
 ## Where the app writes
 
@@ -266,6 +265,52 @@ Four things to know before writing one:
 To inspect the schema, open `%APPDATA%\AIClient\aiclient.db` with any SQLite browser. The app holds no
 long-lived connection - a context per operation through `IDbContextFactory<T>` - so reading it while
 the app runs is safe.
+
+## Graph and canvas
+
+The graph is a spatial representation of the workspace. It lives in four layers:
+
+- **Domain** (`AIClient.Domain.Graph`): `GraphNode`, `GraphEdge`, `GraphSnapshot`, `GraphChangeSet`,
+  `GraphChange` (closed hierarchy), `GraphModel` (mutator).
+- **Application** (`AIClient.Application.Graph`): `GraphService` (undo/redo/timeline, 100-entry history),
+  `WorkspaceGraphIndexer` (diff-based workspace-to-graph mapping), `GraphContextSource`.
+- **Infrastructure** (`AIClient.Infrastructure.Graph`): `JsonGraphStore` (atomic file persistence per
+  workspace under `%APPDATA%\AIClient\graphs\`).
+- **App** (`AIClient.App.Canvas`): `GraphCanvas` (DrawingVisual rendering), `CanvasController`,
+  `CanvasScene`, `SpatialIndex` (uniform-grid), `GraphProjection` (snapshot diffing).
+
+The canvas uses `DrawingVisual` retained visuals, not `ItemsControl`. Nodes are rounded-rect cards
+with kind-colour strips. Edges are cubic Bezier curves. Viewport culling attaches only on-screen
+visuals. The spatial index answers hit-testing and range queries in O(1).
+
+The workspace indexer maps files/folders to graph nodes automatically. It is diff-based (adds new,
+removes gone, keeps positions). Kind inference uses file extensions and naming conventions.
+
+### Adding a graph node kind
+
+1. Add to `GraphNodeKind` enum in `src/AIClient.Domain/Graph/`
+2. Update `WorkspaceGraphIndexer` kind mapping (file extension or name pattern)
+3. Add brush and glyph in `CanvasPalette`
+
+### Plan pipeline
+
+`SubmitPlanTool` → `AgentPlan` → `CanvasPlanSink` → `GraphChangeSet` → user confirms →
+`GraphService.ApplyAsync`. The plan is a graph change set like any other: undoable, persisted,
+timeline-counted.
+
+## Adding an agent tool
+
+1. Create `YourTool.cs` in `src/AIClient.Application/Services/Tools/`
+2. Implement `IAgentTool` (5 members: `Name`, `Description`, `ParametersJsonSchema`, `Risk`,
+   `ExecuteAsync`)
+3. Declare risk: `AgentToolRisk.Read` (auto-approved), `.Write` (approval, standing yes possible),
+   `.Execute` (approval, always per-call)
+4. If it is a planning-only tool, implement `IAgentPlanningTool` (withheld from Build mode)
+5. If it needs preview text, implement `IAgentToolPreview` (`DescribeAsync`)
+6. The tool is auto-discovered via DI — no manual registration needed
+
+The mode policy reads risk and `IAgentPlanningTool`, never the tool's name. A new tool is gated
+correctly by declaring what it costs.
 
 ## Tests
 

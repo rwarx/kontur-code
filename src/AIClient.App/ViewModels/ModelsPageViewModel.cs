@@ -1,11 +1,14 @@
 using System.Collections.ObjectModel;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using System.Windows.Input;
+using AIClient.App.Behaviors;
 using AIClient.App.Controls;
+using AIClient.App.Services;
 using AIClient.Application.DTOs;
 using AIClient.Application.Interfaces;
 using AIClient.Domain.Enums;
 using AIClient.Domain.Graph;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 
 namespace AIClient.App.ViewModels;
@@ -67,7 +70,7 @@ public sealed partial class ModelsPageViewModel : ObservableObject
 
         foreach (var info in infos.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))
         {
-            Providers.Add(new ProviderRowViewModel(info));
+            Providers.Add(new ProviderRowViewModel(info, _providers, _logger));
         }
     }
 
@@ -122,16 +125,44 @@ public sealed partial class ModelsPageViewModel : ObservableObject
 }
 
 /// <summary>One provider: its name, its state, its key, its catalogue size.</summary>
-public sealed partial class ProviderRowViewModel : ObservableObject
+public sealed partial class ProviderRowViewModel : ObservableObject, IApiKeyEntry
 {
+    private readonly IProviderRegistry _registry;
+    private readonly ILogger _logger;
+
     [ObservableProperty]
     private ProviderRowState _state;
 
     [ObservableProperty]
     private string? _statusMessage;
 
-    public ProviderRowViewModel(ProviderInfo info)
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SaveApiKeyCommand))]
+    private bool _hasApiKey;
+
+    [ObservableProperty]
+    private bool _isEditingApiKey;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SaveApiKeyCommand))]
+    private string _apiKeyInput = string.Empty;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SaveApiKeyCommand))]
+    private bool _isBusy;
+
+    public ProviderRowViewModel(
+        ProviderInfo info,
+        IProviderRegistry registry,
+        ILogger logger)
     {
+        ArgumentNullException.ThrowIfNull(info);
+        ArgumentNullException.ThrowIfNull(registry);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _registry = registry;
+        _logger = logger;
+
         Id = info.Id;
         Name = info.Name;
         HasApiKey = info.HasApiKey;
@@ -151,8 +182,6 @@ public sealed partial class ProviderRowViewModel : ObservableObject
 
     public string Name { get; }
 
-    public bool HasApiKey { get; }
-
     public int CachedModelCount { get; }
 
     /// <summary>A stable glyph per provider; unknown providers get the generic cube.</summary>
@@ -168,6 +197,71 @@ public sealed partial class ProviderRowViewModel : ObservableObject
         : $"{CachedModelCount} models";
 
     public string KeyLabel => HasApiKey ? "key saved" : "no key";
+
+    public bool CanSaveApiKey => ApiKeyInput.Trim().Length > 0 && !IsBusy;
+
+    ICommand IApiKeyEntry.SaveApiKeyCommand => SaveApiKeyCommand;
+
+    ICommand IApiKeyEntry.CancelEditApiKeyCommand => CancelEditApiKeyCommand;
+
+    [RelayCommand(CanExecute = nameof(CanSaveApiKey))]
+    private async Task SaveApiKeyAsync()
+    {
+        var key = ApiKeyInput.Trim();
+
+        ApiKeyInput = string.Empty;
+        IsEditingApiKey = false;
+        IsBusy = true;
+        State = ProviderRowState.Testing;
+
+        try
+        {
+            await _registry.SetApiKeyAsync(Id, key).ConfigureAwait(true);
+
+            HasApiKey = true;
+            StatusMessage = "Saved.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Saving the API key for {Provider} failed.", Id);
+            StatusMessage = "Could not save the API key.";
+            State = ProviderRowState.Failed;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+
+        // Probe the key straight away so the row turns green or red without another click.
+        try
+        {
+            var result = await _registry.TestConnectionAsync(Id).ConfigureAwait(true);
+            State = result.Success ? ProviderRowState.Connected : ProviderRowState.Failed;
+            StatusMessage = result.Message;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Connection test after saving the API key for {Provider} failed.", Id);
+            State = ProviderRowState.Failed;
+            StatusMessage = "Connection test could not be completed.";
+        }
+    }
+
+    [RelayCommand]
+    private void BeginEditApiKey()
+    {
+        ApiKeyInput = string.Empty;
+        IsEditingApiKey = true;
+    }
+
+    [RelayCommand]
+    private void CancelEditApiKey()
+    {
+        ApiKeyInput = string.Empty;
+        IsEditingApiKey = false;
+    }
+
+    partial void OnHasApiKeyChanged(bool value) => OnPropertyChanged(nameof(KeyLabel));
 }
 
 public enum ProviderRowState

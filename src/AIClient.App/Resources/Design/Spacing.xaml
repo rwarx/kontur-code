@@ -21,11 +21,11 @@
     <Thickness x:Key="Spacing.Toolbar">10,6,10,6</Thickness>
     <Thickness x:Key="Spacing.Inset">8,6,8,6</Thickness>
 
-    <!-- Radii. Generous and consistent: a soft, rounded interface in the manner of
-         opencode, while a small control still reads as a control, not a card. -->
-    <CornerRadius x:Key="Radius.SM">6</CornerRadius>
-    <CornerRadius x:Key="Radius.MD">10</CornerRadius>
-    <CornerRadius x:Key="Radius.LG">16</CornerRadius>
+    <!-- Compact radii keep the application in IDE territory: controls are distinct,
+         but panels do not turn into a collection of oversized rounded cards. -->
+    <CornerRadius x:Key="Radius.SM">4</CornerRadius>
+    <CornerRadius x:Key="Radius.MD">6</CornerRadius>
+    <CornerRadius x:Key="Radius.LG">10</CornerRadius>
     <CornerRadius x:Key="Radius.Pill">20</CornerRadius>
 
 </ResourceDictionary>

@@ -185,18 +185,18 @@ Glow — только: selected node, active connection, AI activity, plan propo
 
 ## 12. Migration plan
 
-| Фаза | Содержание | Верификация |
-|---|---|---|
-| 1 | Design System (§11) | build |
-| 2 | AppShell + TopBar + StatusBar + splitters | build |
-| 3 | Sidebar (nav/workspace/sessions, collapse) | build |
-| 4 | Workspace режимы + Files + Graph outline | build |
-| 5 | Graph Domain + Application (snapshot/changeSet/mutator/timeline/indexer/store) + DI | build + тесты без регрессий |
-| 6 | Canvas (projection/index/culling/renderer/interactions/minimap) + CanvasViewModel | build |
-| 7 | Context Surface + CanvasPlanSink (пайплайн §16) | build |
-| 8 | Chat re-skin в workspace + AI actions (Ctrl+I) | build |
-| 9 | Code (табы/подсветка/diff) + Models + Tasks/Agents + палитра | build |
-| 10 | Анимации, polish, перф-ревью renderer'а | build + повторный полный прогон |
+| Фаза | Содержание | Верификация | Статус |
+|---|---|---|---|
+| 1 | Design System (§11) | build | ✅ |
+| 2 | AppShell + TopBar + StatusBar + splitters | build | ✅ |
+| 3 | Sidebar (nav/workspace/sessions, collapse) | build | ✅ |
+| 4 | Workspace режимы + Files + Graph outline | build | ✅ |
+| 5 | Graph Domain + Application (snapshot/changeSet/mutator/timeline/indexer/store) + DI | build + тесты без регрессий | ✅ |
+| 6 | Canvas (projection/index/culling/renderer/interactions/minimap) + CanvasViewModel | build | ✅ |
+| 7 | Context Surface + CanvasPlanSink (пайплайн §16) | build | ✅ |
+| 8 | Chat re-skin в workspace + AI actions (Ctrl+I) | build | в процессе |
+| 9 | Code (табы/подсветка/diff) + Models + Tasks/Agents + палитра | build | план |
+| 10 | Анимации, polish, перф-ревью renderer'а | build + повторный полный прогон | план |
 
 После каждой фазы: `dotnet build AIClient.slnx -p:EnableWindowsTargeting=true` и
 `dotnet test …` (baseline: 708 passed / 25 pre-existing env-падений на Linux — DPAPI/файлнеймы;

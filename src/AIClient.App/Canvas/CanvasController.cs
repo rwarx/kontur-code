@@ -165,9 +165,16 @@ public sealed class CanvasController
         ViewportChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public void PanBy(Vector screenDelta)
+    /// <summary>Drags the surface: the world moves with the pointer, one pixel for one pixel.</summary>
+    /// <remarks>
+    /// The argument is the pointer's own movement, not a viewport scroll, and the sign is
+    /// settled here rather than at the call site: grabbing a surface and having it travel
+    /// the other way is the difference between a hand tool and a scrollbar. Dividing by the
+    /// zoom is what keeps the ratio one-to-one at any scale.
+    /// </remarks>
+    public void PanBy(Vector pointerDelta)
     {
-        Offset -= new Vector(screenDelta.X / Zoom, screenDelta.Y / Zoom);
+        Offset -= new Vector(pointerDelta.X / Zoom, pointerDelta.Y / Zoom);
         ViewportChanged?.Invoke(this, EventArgs.Empty);
     }
 

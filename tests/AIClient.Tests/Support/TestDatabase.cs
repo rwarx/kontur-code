@@ -86,7 +86,25 @@ public sealed class TestDatabase : IDbContextFactory<AIClientDbContext>, IAsyncD
 
     /// <summary>The real registry over this database, backed by whichever providers a test supplies.</summary>
     public ProviderRegistry Registry(ISecureStorage secureStorage, params IAIProvider[] providers) =>
-        new(this, secureStorage, providers, NullLogger<ProviderRegistry>.Instance);
+        new(this,
+            secureStorage,
+            CustomStore(secureStorage),
+            providers,
+            NullLogger<ProviderRegistry>.Instance);
+
+    /// <summary>
+    /// The real custom-provider store over this database. Its HTTP factory is never used
+    /// unless a test adds a custom provider and fetches its catalogue; a stub factory
+    /// failing fast beats a silent one.
+    /// </summary>
+    public CustomProviderStore CustomStore(ISecureStorage secureStorage) =>
+        new(this,
+            new StubHttpClientFactory(
+                new FakeHttpMessageHandler().RespondThrow(
+                    new InvalidOperationException("No HTTP response was scripted for this test."))),
+            secureStorage,
+            NullLoggerFactory.Instance,
+            NullLogger<CustomProviderStore>.Instance);
 
     public ValueTask DisposeAsync()
     {

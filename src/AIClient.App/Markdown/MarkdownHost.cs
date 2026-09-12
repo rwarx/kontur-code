@@ -113,7 +113,7 @@ public static class MarkdownHost
         {
             var run = (Run)inline;
             run.FontFamily = ResolveFont(host, "CodeFont");
-            run.Background = ResolveBrush(host, "ControlFillColorSecondaryBrush");
+            run.Background = ResolveBrush(host, "Brush.Surface3");
 
             // Slightly smaller: a monospace face at the surrounding size reads as oversized
             // next to proportional text.
@@ -273,7 +273,7 @@ public static class MarkdownHost
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         }
 
-        var separator = ResolveBrush(grid, "ControlStrokeColorDefaultBrush");
+        var separator = ResolveBrush(grid, "Brush.BorderFaint");
 
         AddRow(grid, table.Headers, columns, rowIndex: 0, isHeader: true, separator);
 

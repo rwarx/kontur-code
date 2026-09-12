@@ -3,8 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-             xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+              xmlns:kontur="clr-namespace:AIClient.App.Controls"
+              xmlns:motion="clr-namespace:AIClient.App.Controls"
+              xmlns:vm="clr-namespace:AIClient.App.ViewModels"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:ModelPickerViewModel}"
              MinWidth="380"
@@ -16,13 +17,30 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <ui:TextBox x:Name="FilterBox"
-                    Grid.Row="0"
-                    Margin="6,6,6,8"
-                    PlaceholderText="Filter models…"
-                    Icon="{ui:SymbolIcon Search24}"
-                    ClearButtonEnabled="True"
-                    Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" />
+        <Border Grid.Row="0"
+                Background="{DynamicResource Brush.SurfaceSunken}"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource Radius.SM}"
+                MinHeight="30"
+                Margin="6,6,6,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <kontur:KonturIcon Grid.Column="0" Kind="Search" Width="13" Height="13"
+                                   Foreground="{DynamicResource Brush.TextMuted}"
+                                   VerticalAlignment="Center" Margin="9,0,0,0" />
+                <TextBox Grid.Column="1"
+                         x:Name="FilterBox"
+                         Style="{StaticResource KcInputBare}"
+                         Padding="7,0"
+                         MinHeight="28"
+                         VerticalContentAlignment="Center"
+                         Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" />
+            </Grid>
+        </Border>
 
         <Grid Grid.Row="1">
             <!--
@@ -46,10 +64,11 @@
                         <GroupStyle.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Name}"
+                                           Style="{StaticResource Type.Metadata}"
+                                           TextOptions.TextFormattingMode="Display"
                                            FontWeight="SemiBold"
-                                           FontSize="12"
                                            Margin="8,10,0,4"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                           Foreground="{DynamicResource Brush.TextMuted}" />
                             </DataTemplate>
                         </GroupStyle.HeaderTemplate>
                     </GroupStyle>
@@ -66,30 +85,30 @@
                     <DataTemplate>
                         <StackPanel>
                             <TextBlock Text="{Binding Name}"
-                                       FontSize="13"
+                                       Style="{StaticResource Type.Caption}"
+                                       Foreground="{DynamicResource Brush.TextPrimary}"
                                        TextTrimming="CharacterEllipsis" />
 
                             <!-- Capability badges: what actually decides whether a model
                                  suits the task, without opening a docs page. -->
                             <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                                <Border Style="{StaticResource Badge}"
+                                <Border Style="{StaticResource KcBadge}"
                                         Visibility="{Binding ContextWindow, Converter={StaticResource NullToVisibility}}">
-                                    <TextBlock Style="{StaticResource BadgeText}"
+                                    <TextBlock Style="{StaticResource KcBadgeText}"
                                                Text="{Binding ContextWindow, Converter={StaticResource ContextWindow}}" />
                                 </Border>
 
-                                <Border Style="{StaticResource Badge}"
+                                <Border Style="{StaticResource KcBadge}"
                                         Visibility="{Binding SupportsImages, Converter={StaticResource BoolToVisibility}}">
-                                    <TextBlock Style="{StaticResource BadgeText}" Text="vision" />
+                                    <TextBlock Style="{StaticResource KcBadgeText}" Text="vision" />
                                 </Border>
 
-                                <Border Style="{StaticResource Badge}"
+                                <Border Style="{StaticResource KcBadge}"
                                         Visibility="{Binding SupportsTools, Converter={StaticResource BoolToVisibility}}">
-                                    <TextBlock Style="{StaticResource BadgeText}" Text="tools" />
+                                    <TextBlock Style="{StaticResource KcBadgeText}" Text="tools" />
                                 </Border>
 
-                                <TextBlock Style="{StaticResource SubtleText}"
-                                           FontSize="10"
+                                <TextBlock Style="{StaticResource Type.Metadata}"
                                            VerticalAlignment="Center"
                                            Text="{Binding PromptPricePerMillion, Converter={StaticResource Price}}" />
                             </StackPanel>
@@ -102,21 +121,23 @@
             <StackPanel Margin="20,30"
                         Visibility="{Binding HasNoModels, Converter={StaticResource BoolToVisibility}}">
                 <TextBlock Text="No models available"
+                           Style="{StaticResource Type.Caption}"
                            FontWeight="SemiBold"
                            TextAlignment="Center"
                            Margin="0,0,0,6" />
-                <TextBlock Style="{StaticResource SubtleText}"
+                <TextBlock Style="{StaticResource Type.Metadata}"
                            TextAlignment="Center"
                            TextWrapping="Wrap"
                            TextTrimming="None"
                            Text="Add an API key in Settings → Providers, then refresh the model list." />
             </StackPanel>
 
-            <ui:ProgressRing IsIndeterminate="True"
-                             Width="24" Height="24"
-                             HorizontalAlignment="Center"
-                             VerticalAlignment="Center"
-                             Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
+            <kontur:KonturIcon Kind="Refresh" Width="20" Height="20"
+                               Foreground="{DynamicResource Brush.AccentText}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               motion:Motion.Spin="True"
+                               Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
         </Grid>
     </Grid>
 </UserControl>

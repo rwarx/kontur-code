@@ -93,7 +93,6 @@ public sealed class GraphContextSource
         if (focus.Count > 0)
         {
             AppendFocusSection(builder, snapshot, focus, budget);
-
             if (hops >= 1 && budget > focus.Count)
             {
                 AppendNeighbourhoodSection(builder, snapshot, focus, hops, budget);
@@ -176,6 +175,11 @@ public sealed class GraphContextSource
         List<GraphNode> focus,
         int budget)
     {
+        // The instruction the model acts on: everything under this heading is what the user
+        // is pointing at, not background. Without it a context block reads as one undivided
+        // dump, and a question about "this selection" gets answered about the workspace.
+        builder.AppendLine("The nodes below are what the user has currently selected on the canvas.");
+        builder.AppendLine("Answer about these specifically:");
         builder.AppendLine("Focus:");
 
         var edgeBudget = MaxEdgeMentions;

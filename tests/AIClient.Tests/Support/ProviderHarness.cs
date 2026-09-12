@@ -1,5 +1,6 @@
 using AIClient.Domain.Interfaces;
 using AIClient.Infrastructure.Providers;
+using AIClient.Infrastructure.Providers.Anthropic;
 using AIClient.Infrastructure.Providers.OpenAiCompatible;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -37,6 +38,62 @@ public static class ProviderHarness
                 ? new ProviderEndpointOptions()
                 : new ProviderEndpointOptions { Nvidia = baseUrl }),
             NullLogger<NvidiaProvider>.Instance);
+
+    public static OpenAiProvider OpenAI(
+        FakeHttpMessageHandler handler,
+        ISecureStorage? secureStorage = null) =>
+        new(new StubHttpClientFactory(handler),
+            secureStorage ?? FakeSecureStorage.With(OpenAiProvider.ProviderId, DummyKey),
+            NullLogger<OpenAiProvider>.Instance);
+
+    public static AnthropicProvider Anthropic(
+        FakeHttpMessageHandler handler,
+        ISecureStorage? secureStorage = null) =>
+        new(new StubHttpClientFactory(handler),
+            secureStorage ?? FakeSecureStorage.With(AnthropicProvider.ProviderId, DummyKey),
+            NullLogger<AnthropicProvider>.Instance);
+
+    public static GroqProvider Groq(
+        FakeHttpMessageHandler handler,
+        ISecureStorage? secureStorage = null) =>
+        new(new StubHttpClientFactory(handler),
+            secureStorage ?? FakeSecureStorage.With(GroqProvider.ProviderId, DummyKey),
+            NullLogger<GroqProvider>.Instance);
+
+    public static XaiProvider Xai(
+        FakeHttpMessageHandler handler,
+        ISecureStorage? secureStorage = null) =>
+        new(new StubHttpClientFactory(handler),
+            secureStorage ?? FakeSecureStorage.With(XaiProvider.ProviderId, DummyKey),
+            NullLogger<XaiProvider>.Instance);
+
+    public static MistralProvider Mistral(
+        FakeHttpMessageHandler handler,
+        ISecureStorage? secureStorage = null) =>
+        new(new StubHttpClientFactory(handler),
+            secureStorage ?? FakeSecureStorage.With(MistralProvider.ProviderId, DummyKey),
+            NullLogger<MistralProvider>.Instance);
+
+    public static DeepSeekProvider DeepSeek(
+        FakeHttpMessageHandler handler,
+        ISecureStorage? secureStorage = null) =>
+        new(new StubHttpClientFactory(handler),
+            secureStorage ?? FakeSecureStorage.With(DeepSeekProvider.ProviderId, DummyKey),
+            NullLogger<DeepSeekProvider>.Instance);
+
+    /// <summary>A user-defined provider, built the way CustomProviderStore builds one.</summary>
+    public static CustomOpenAiCompatibleProvider Custom(
+        string id,
+        string name,
+        string baseUrl,
+        FakeHttpMessageHandler handler,
+        ISecureStorage? secureStorage = null) =>
+        new(id,
+            name,
+            baseUrl,
+            new StubHttpClientFactory(handler),
+            secureStorage ?? FakeSecureStorage.With(id, DummyKey),
+            NullLogger<CustomOpenAiCompatibleProvider>.Instance);
 
     /// <summary>Drains a provider stream into a list, which is what most assertions want.</summary>
     public static async Task<List<Domain.Models.AIStreamEvent>> CollectAsync(

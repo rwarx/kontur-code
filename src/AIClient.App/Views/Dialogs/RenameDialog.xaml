@@ -22,27 +22,32 @@
 
         <ui:TitleBar Grid.Row="0" Title="Rename chat" ShowMaximize="False" ShowMinimize="False" />
 
-        <StackPanel Grid.Row="1" Margin="20,8,20,20">
-            <TextBlock Text="Chat name" Margin="0,0,0,6" />
+        <StackPanel Grid.Row="1" Margin="20,8,20,20"
+                    Background="{DynamicResource Brush.Surface0}"
+                    TextElement.Foreground="{DynamicResource Brush.TextPrimary}">
+            <TextBlock Text="Chat name" Style="{StaticResource Type.Caption}"
+                       Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,6" />
 
-            <ui:TextBox x:Name="TitleBox"
-                        MaxLength="200"
-                        ClearButtonEnabled="True" />
+            <TextBox x:Name="TitleBox"
+                     MaxLength="200"
+                     MinHeight="30"
+                     VerticalContentAlignment="Center" />
 
             <StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Right"
                         Margin="0,18,0,0">
                 <!-- IsDefault carries Enter; the text box does not accept returns, so it
                      never swallows the key. -->
-                <ui:Button Content="Save"
-                           Appearance="Primary"
-                           MinWidth="88"
-                           Margin="0,0,8,0"
-                           IsDefault="True"
-                           Click="OnSave" />
-                <ui:Button Content="Cancel"
-                           MinWidth="88"
-                           IsCancel="True" />
+                <Button Content="Save"
+                        Style="{StaticResource KcButtonPrimary}"
+                        MinWidth="88" Padding="12,5"
+                        Margin="0,0,8,0"
+                        IsDefault="True"
+                        Click="OnSave" />
+                <Button Content="Cancel"
+                        Style="{StaticResource KcButtonGhost}"
+                        MinWidth="88" Padding="12,5"
+                        IsCancel="True" />
             </StackPanel>
         </StackPanel>
     </Grid>

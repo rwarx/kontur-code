@@ -1,14 +1,14 @@
-<UserControl x:Class="AIClient.App.Views.ChatView"
+﻿<UserControl x:Class="AIClient.App.Views.ChatView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:vm="clr-namespace:AIClient.App.ViewModels"
              xmlns:views="clr-namespace:AIClient.App.Views"
-             xmlns:kontur="clr-namespace:AIClient.App.Controls"
-             xmlns:md="clr-namespace:AIClient.App.Markdown"
-             xmlns:dto="clr-namespace:AIClient.Application.DTOs;assembly=AIClient.Application"
+              xmlns:kontur="clr-namespace:AIClient.App.Controls"
+              xmlns:md="clr-namespace:AIClient.App.Markdown"
+              xmlns:motion="clr-namespace:AIClient.App.Controls"
+              xmlns:dto="clr-namespace:AIClient.Application.DTOs;assembly=AIClient.Application"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:ChatViewModel}"
              d:DesignHeight="700" d:DesignWidth="900">
@@ -30,10 +30,10 @@
                         <Setter Property="Background" Value="Transparent" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding Kind}" Value="Added">
-                                <Setter Property="Background" Value="{StaticResource DiffAddedBrush}" />
+                                <Setter Property="Background" Value="{DynamicResource DiffAddedBrush}" />
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Kind}" Value="Removed">
-                                <Setter Property="Background" Value="{StaticResource DiffRemovedBrush}" />
+                                <Setter Property="Background" Value="{DynamicResource DiffRemovedBrush}" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
@@ -49,6 +49,7 @@
                            TextWrapping="NoWrap">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding Kind}" Value="Header">
                                     <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
@@ -74,7 +75,7 @@
         -->
         <DataTemplate x:Key="ToolCallTemplate" DataType="{x:Type vm:AgentToolCallViewModel}">
             <Border Margin="0,4,0,0"
-                    Padding="8,6"
+                    Padding="9,6"
                     CornerRadius="{StaticResource CardCorner}"
                     Background="{DynamicResource Brush.Surface2}"
                     BorderBrush="{DynamicResource Brush.Border}"
@@ -90,9 +91,9 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- The tool's own name, which the summary usually replaces in the headline. -->
-                        <Border Grid.Column="0" Style="{StaticResource Badge}" VerticalAlignment="Center">
+                        <Border Grid.Column="0" Style="{StaticResource KcBadge}" VerticalAlignment="Center">
                             <TextBlock Text="{Binding ToolName}"
-                                       Style="{StaticResource BadgeText}"
+                                       Style="{StaticResource KcBadgeText}"
                                        FontFamily="{StaticResource CodeFont}" />
                         </Border>
 
@@ -103,22 +104,24 @@
                         -->
                         <Border Grid.Column="1" Margin="4,0,0,0" VerticalAlignment="Center">
                             <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource Badge}">
+                                <Style TargetType="Border" BasedOn="{StaticResource KcBadge}">
                                     <Setter Property="Visibility" Value="Collapsed" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding Risk}" Value="Write">
                                             <Setter Property="Visibility" Value="Visible" />
+                                            <Setter Property="Background" Value="{DynamicResource Brush.WarningSoft}" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding Risk}" Value="Execute">
                                             <Setter Property="Visibility" Value="Visible" />
+                                            <Setter Property="Background" Value="{DynamicResource Brush.WarningSoft}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Border.Style>
                             <TextBlock>
                                 <TextBlock.Style>
-                                    <Style TargetType="TextBlock" BasedOn="{StaticResource BadgeText}">
-                                        <Setter Property="Foreground" Value="{StaticResource ApprovalAccentBrush}" />
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource KcBadgeText}">
+                                        <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding Risk}" Value="Write">
                                                 <Setter Property="Text" Value="changed files" />
@@ -139,14 +142,16 @@
                         -->
                         <TextBlock Grid.Column="2"
                                    Text="{Binding Headline}"
-                                   Margin="8,0,8,0"
+                                   Style="{StaticResource Type.Caption}"
+                                   Foreground="{DynamicResource Brush.TextPrimary}"
+                                   Margin="9,0,8,0"
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"
                                    ToolTip="{Binding Headline}" />
 
                         <TextBlock Grid.Column="3" Text="{Binding StateText}" VerticalAlignment="Center">
                             <TextBlock.Style>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource SubtleText}">
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource Type.Metadata}">
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding State}" Value="Proposed">
                                             <Setter Property="Foreground" Value="{DynamicResource Brush.AccentText}" />
@@ -155,13 +160,13 @@
                                             <Setter Property="Foreground" Value="{DynamicResource Brush.AccentText}" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding State}" Value="Failed">
-                                            <Setter Property="Foreground" Value="{StaticResource ApprovalAccentBrush}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource Brush.Error}" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding State}" Value="Denied">
-                                            <Setter Property="Foreground" Value="{StaticResource ApprovalAccentBrush}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource Brush.Error}" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding State}" Value="Abandoned">
-                                            <Setter Property="Foreground" Value="{StaticResource ApprovalAccentBrush}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource Brush.Error}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -170,27 +175,32 @@
 
                         <ToggleButton Grid.Column="4"
                                       IsChecked="{Binding IsExpanded, Mode=TwoWay}"
-                                      Visibility="{Binding HasBody, Converter={StaticResource BoolToVisibility}}"
+                                      FocusVisualStyle="{StaticResource KcFocusVisual}"
+                                      Cursor="Hand"
                                       Background="Transparent"
-                                      BorderThickness="0"
                                       Padding="4,0"
                                       MinWidth="0"
                                       MinHeight="0"
-                                      Margin="4,0,0,0"
+                                      Margin="6,0,0,0"
                                       VerticalAlignment="Center"
                                       ToolTip="Show what this returned">
-                            <ui:SymbolIcon FontSize="14">
-                                <ui:SymbolIcon.Style>
-                                    <Style TargetType="ui:SymbolIcon">
-                                        <Setter Property="Symbol" Value="ChevronDown24" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsExpanded}" Value="True">
-                                                <Setter Property="Symbol" Value="ChevronUp24" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ui:SymbolIcon.Style>
-                            </ui:SymbolIcon>
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border Background="Transparent" Padding="{TemplateBinding Padding}"
+                                            SnapsToDevicePixels="True">
+                                        <kontur:MorphIcon x:Name="Chevron" First="ChevronDown" Second="ChevronUp"
+                                                          IsSecond="{Binding IsChecked, RelativeSource={RelativeSource TemplatedParent}}"
+                                                          Width="12" Height="12"
+                                                          Foreground="{DynamicResource Brush.TextMuted}" />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Chevron" Property="Foreground"
+                                                    Value="{DynamicResource Brush.TextPrimary}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
                         </ToggleButton>
                     </Grid>
 
@@ -204,9 +214,9 @@
                         agent read arrives however long the file is.
                     -->
                     <Border Margin="0,8,0,0"
-                            CornerRadius="6"
+                            CornerRadius="{StaticResource Radius.SM}"
                             Background="{DynamicResource Brush.SurfaceSunken}"
-                            BorderBrush="{DynamicResource Brush.Border}"
+                            BorderBrush="{DynamicResource Brush.BorderFaint}"
                             BorderThickness="1"
                             Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}">
                         <Grid>
@@ -225,12 +235,11 @@
                                 a user wants to copy out - a path, an error, a line of a file - and
                                 selection is what makes that possible.
                             -->
-                            <TextBox Text="{Binding Body, Mode=OneWay}"
+                            <TextBox Style="{StaticResource KcInputBare}"
+                                     Text="{Binding Body, Mode=OneWay}"
                                      IsReadOnly="True"
                                      MaxHeight="220"
                                      Padding="4,6"
-                                     Background="Transparent"
-                                     BorderThickness="0"
                                      FontFamily="{StaticResource CodeFont}"
                                      FontSize="12"
                                      TextWrapping="NoWrap"
@@ -241,6 +250,21 @@
                     </Border>
                 </StackPanel>
             </Border>
+        </DataTemplate>
+
+        <!--
+            The error card. An error is a component, not a red block: what failed in one
+            sentence, the raw detail folded underneath, and the one action that answers it.
+        -->
+        <DataTemplate x:Key="ErrorDetailsTemplate">
+            <TextBox Text="{Binding}"
+                     IsReadOnly="True"
+                     TextWrapping="Wrap"
+                     MaxHeight="180"
+                     VerticalScrollBarVisibility="Auto"
+                     Style="{StaticResource KcInputBare}"
+                     FontFamily="{StaticResource CodeFont}"
+                     FontSize="12" />
         </DataTemplate>
 
         <!-- One message. Role decides the shape, status decides the extras. -->
@@ -269,8 +293,10 @@
                         <DataTemplate>
                             <Border Style="{StaticResource AttachmentChip}">
                                 <StackPanel Orientation="Horizontal">
-                                    <ui:SymbolIcon Symbol="Document24" FontSize="14" Margin="0,0,6,0" />
-                                    <TextBlock Text="{Binding FileName}" FontSize="12" VerticalAlignment="Center" />
+                                    <kontur:KonturIcon Kind="File" Width="12" Height="12"
+                                                       VerticalAlignment="Center" Margin="0,0,6,0" />
+                                    <TextBlock Text="{Binding FileName}" Style="{StaticResource Type.Caption}"
+                                               VerticalAlignment="Center" />
                                 </StackPanel>
                             </Border>
                         </DataTemplate>
@@ -292,22 +318,25 @@
                         <!-- Inline edit (section 20). -->
                         <StackPanel Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibility}}"
                                     MinWidth="420">
-                            <ui:TextBox Text="{Binding EditDraft, UpdateSourceTrigger=PropertyChanged}"
-                                        AcceptsReturn="True"
-                                        TextWrapping="Wrap"
-                                        MaxHeight="260"
-                                        VerticalScrollBarVisibility="Auto" />
+                            <TextBox Text="{Binding EditDraft, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     MaxHeight="260"
+                                     VerticalScrollBarVisibility="Auto" />
                             <StackPanel Orientation="Horizontal"
                                         HorizontalAlignment="Right"
                                         Margin="0,8,0,0">
-                                <ui:Button Content="Cancel"
-                                           Margin="0,0,6,0"
-                                           Command="{Binding DataContext.CancelEditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                           CommandParameter="{Binding}" />
-                                <ui:Button Content="Save &amp; resend"
-                                           Appearance="Primary"
-                                           Command="{Binding DataContext.SaveEditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                           CommandParameter="{Binding}" />
+                                <Button Style="{StaticResource KcButtonGhost}"
+                                        Content="Cancel"
+                                        Padding="12,5"
+                                        Margin="0,0,6,0"
+                                        Command="{Binding DataContext.CancelEditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" />
+                                <Button Style="{StaticResource KcButtonPrimary}"
+                                        Content="Save &amp; resend"
+                                        Padding="12,5"
+                                        Command="{Binding DataContext.SaveEditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" />
                             </StackPanel>
                         </StackPanel>
                     </Grid>
@@ -317,17 +346,24 @@
                 <StackPanel Grid.Row="2"
                             Visibility="{Binding IsAssistant, Converter={StaticResource BoolToVisibility}}">
 
-                    <TextBlock Style="{StaticResource SubtleText}"
-                               Text="{Binding ModelId}"
+                    <TextBlock Text="{Binding ModelId}"
+                               Style="{StaticResource Type.Metadata}"
                                Margin="0,0,0,6"
                                Visibility="{Binding ModelId, Converter={StaticResource StringToVisibility}}" />
 
-                    <!-- Thinking state: something is on screen before the first token lands. -->
+                    <!-- Thinking state: something is on screen before the first token lands,
+                         and the sparkle breathes while it waits - waiting made visible without
+                         a spinner the eye has to chase. -->
                     <StackPanel Orientation="Horizontal"
                                 Margin="0,2,0,6"
                                 Visibility="{Binding IsAwaitingFirstToken, Converter={StaticResource BoolToVisibility}}">
-                        <ui:ProgressRing IsIndeterminate="True" Width="16" Height="16" Margin="0,0,8,0" />
-                        <TextBlock Text="Thinking…" Style="{StaticResource SubtleText}" VerticalAlignment="Center" />
+                        <kontur:KonturIcon Kind="Sparkle" Width="13" Height="13"
+                                           Foreground="{DynamicResource Brush.AccentText}"
+                                           VerticalAlignment="Center"
+                                           motion:Motion.Pulse="True" />
+                        <TextBlock Text="ThinkingвЂ¦" Style="{StaticResource Type.Caption}"
+                                   Foreground="{DynamicResource Brush.TextSecondary}"
+                                   Margin="8,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
 
                     <!--
@@ -340,19 +376,19 @@
                               IsExpanded="{Binding IsReasoningExpanded, Mode=TwoWay}"
                               Visibility="{Binding HasReasoning, Converter={StaticResource BoolToVisibility}}">
                         <Expander.Header>
-                            <TextBlock Text="Reasoning" FontSize="12" />
+                            <TextBlock Text="Reasoning" Style="{StaticResource Type.Caption}"
+                                       Foreground="{DynamicResource Brush.TextMuted}" />
                         </Expander.Header>
 
                         <TextBox Text="{Binding Reasoning, Mode=OneWay}"
                                  IsReadOnly="True"
                                  TextWrapping="Wrap"
                                  MaxHeight="220"
-                                 Margin="0,6,0,0"
+                                 Margin="0,4,0,0"
+                                 Style="{StaticResource KcInputBare}"
                                  Foreground="{DynamicResource Brush.TextSecondary}"
                                  FontSize="12"
-                                 VerticalScrollBarVisibility="Auto"
-                                 Background="Transparent"
-                                 BorderThickness="0" />
+                                 VerticalScrollBarVisibility="Auto" />
                     </Expander>
 
                     <!--
@@ -380,38 +416,68 @@
                                   Visibility="{Binding HasToolCalls, Converter={StaticResource BoolToVisibility}}" />
                 </StackPanel>
 
-                <!-- Error state with a separate technical section and Retry (section 21). -->
-                <ui:InfoBar Grid.Row="3"
-                            Severity="Error"
-                            IsOpen="{Binding HasFailed, Mode=OneWay}"
-                            IsClosable="False"
-                            Title="Request failed"
-                            Message="{Binding ErrorMessage}"
-                            Margin="0,8,0,0"
-                            Visibility="{Binding HasFailed, Converter={StaticResource BoolToVisibility}}">
-                    <StackPanel Margin="0,8,0,0">
-                        <Expander Header="Technical details"
+                <!--
+                    The error card. A left rule carries the severity so the red is felt before it
+                    is read, but the body stays on the panel's own surfaces - a card that looks
+                    like an alarm everywhere teaches the eye to skim past alarms.
+                -->
+                <Border Grid.Row="3"
+                        Margin="0,8,0,0"
+                        Padding="12,10"
+                        CornerRadius="{StaticResource CardCorner}"
+                        Background="{DynamicResource Brush.ErrorSoft}"
+                        BorderBrush="{DynamicResource Brush.Error}"
+                        BorderThickness="2,1,1,1"
+                        MaxWidth="{StaticResource ContentMaxWidth}"
+                        HorizontalAlignment="Stretch"
+                        Visibility="{Binding HasFailed, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <kontur:KonturIcon Kind="Error" Width="14" Height="14"
+                                               Foreground="{DynamicResource Brush.Error}"
+                                               VerticalAlignment="Top" Margin="0,1,9,0" />
+                            <TextBlock Text="Request failed"
+                                       Style="{StaticResource Type.Caption}"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Brush.TextPrimary}" />
+                        </StackPanel>
+
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   Style="{StaticResource Type.CaptionWrap}"
+                                   Foreground="{DynamicResource Brush.TextPrimary}"
+                                   Margin="23,4,0,0" />
+
+                        <Expander Margin="23,8,0,0"
                                   Visibility="{Binding ErrorTechnicalDetails, Converter={StaticResource StringToVisibility}}">
+                            <Expander.Header>
+                                <TextBlock Text="Technical details" Style="{StaticResource Type.Metadata}"
+                                           Foreground="{DynamicResource Brush.TextMuted}" />
+                            </Expander.Header>
                             <TextBox Text="{Binding ErrorTechnicalDetails, Mode=OneWay}"
                                      IsReadOnly="True"
                                      TextWrapping="Wrap"
                                      MaxHeight="180"
                                      VerticalScrollBarVisibility="Auto"
+                                     Style="{StaticResource KcInputBare}"
                                      FontFamily="{StaticResource CodeFont}"
-                                     FontSize="12"
-                                     Background="Transparent"
-                                     BorderThickness="0" />
+                                     FontSize="12" />
                         </Expander>
 
-                        <ui:Button Content="Retry"
-                                   Icon="{ui:SymbolIcon ArrowClockwise24}"
-                                   HorizontalAlignment="Left"
-                                   Margin="0,8,0,0"
-                                   Visibility="{Binding IsRetryable, Converter={StaticResource BoolToVisibility}}"
-                                   Command="{Binding DataContext.RetryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                   CommandParameter="{Binding}" />
+                        <Button Style="{StaticResource KcButtonQuiet}" HorizontalAlignment="Left"
+                                Margin="23,8,0,0"
+                                Visibility="{Binding IsRetryable, Converter={StaticResource BoolToVisibility}}"
+                                Command="{Binding DataContext.RetryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}">
+                            <StackPanel Orientation="Horizontal">
+                                <kontur:KonturIcon Kind="Refresh" Width="11" Height="11"
+                                                   VerticalAlignment="Center" />
+                                <TextBlock Text="Retry" Style="{StaticResource Type.Metadata}"
+                                           Foreground="{DynamicResource Brush.TextSecondary}"
+                                           Margin="6,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
-                </ui:InfoBar>
+                </Border>
 
                 <TextBlock Grid.Row="3"
                            Style="{StaticResource SubtleText}"
@@ -442,27 +508,38 @@
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Left"
                                 Visibility="{Binding IsAssistant, Converter={StaticResource BoolToVisibility}}">
-                        <ui:Button Style="{StaticResource MessageActionButton}"
-                                   Content="Copy"
-                                   Icon="{ui:SymbolIcon Copy24}"
-                                   ToolTip="Copy message"
-                                   Command="{Binding DataContext.CopyMessageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                   CommandParameter="{Binding}" />
-                        <ui:Button Style="{StaticResource MessageActionButton}"
-                                   Content="Regenerate"
-                                   Icon="{ui:SymbolIcon ArrowClockwise24}"
-                                   ToolTip="Generate a new answer"
-                                   Command="{Binding DataContext.RegenerateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                   CommandParameter="{Binding}" />
-                        <ui:Button Style="{StaticResource MessageActionButton}"
-                                   Icon="{ui:SymbolIcon Delete24}"
-                                   ToolTip="Delete message"
-                                   Command="{Binding DataContext.DeleteMessageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                   CommandParameter="{Binding}" />
+                        <Button Style="{StaticResource KcButtonQuiet}"
+                                ToolTip="Copy message"
+                                Command="{Binding DataContext.CopyMessageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}">
+                            <StackPanel Orientation="Horizontal">
+                                <kontur:KonturIcon Kind="Copy" Width="11" Height="11" />
+                                <TextBlock Text="Copy" Style="{StaticResource Type.Metadata}"
+                                           Foreground="{DynamicResource Brush.TextSecondary}"
+                                           Margin="6,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource KcButtonQuiet}" Margin="4,0,0,0"
+                                ToolTip="Generate a new answer"
+                                Command="{Binding DataContext.RegenerateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}">
+                            <StackPanel Orientation="Horizontal">
+                                <kontur:KonturIcon Kind="Refresh" Width="11" Height="11" />
+                                <TextBlock Text="Regenerate" Style="{StaticResource Type.Metadata}"
+                                           Foreground="{DynamicResource Brush.TextSecondary}"
+                                           Margin="6,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource KcButtonQuiet}" Margin="4,0,0,0"
+                                ToolTip="Delete message"
+                                Command="{Binding DataContext.DeleteMessageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}">
+                            <kontur:KonturIcon Kind="Trash" Width="11" Height="11" />
+                        </Button>
 
-                        <TextBlock Style="{StaticResource SubtleText}"
+                        <TextBlock Style="{StaticResource Type.Metadata}"
                                    VerticalAlignment="Center"
-                                   Margin="8,0,0,0"
+                                   Margin="10,0,0,0"
                                    Visibility="{Binding HasUsage, Converter={StaticResource BoolToVisibility}}">
                             <TextBlock.Text>
                                 <MultiBinding Converter="{StaticResource UsageSummary}">
@@ -478,25 +555,45 @@
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Right"
                                 Visibility="{Binding IsUser, Converter={StaticResource BoolToVisibility}}">
-                        <ui:Button Style="{StaticResource MessageActionButton}"
-                                   Content="Edit"
-                                   Icon="{ui:SymbolIcon Edit24}"
-                                   Command="{Binding DataContext.BeginEditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                   CommandParameter="{Binding}" />
-                        <ui:Button Style="{StaticResource MessageActionButton}"
-                                   Content="Copy"
-                                   Icon="{ui:SymbolIcon Copy24}"
-                                   Command="{Binding DataContext.CopyMessageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                   CommandParameter="{Binding}" />
-                        <ui:Button Style="{StaticResource MessageActionButton}"
-                                   Icon="{ui:SymbolIcon Delete24}"
-                                   ToolTip="Delete message"
-                                   Command="{Binding DataContext.DeleteMessageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                   CommandParameter="{Binding}" />
+                        <Button Style="{StaticResource KcButtonQuiet}"
+                                Command="{Binding DataContext.BeginEditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}">
+                            <StackPanel Orientation="Horizontal">
+                                <kontur:KonturIcon Kind="Edit" Width="11" Height="11" />
+                                <TextBlock Text="Edit" Style="{StaticResource Type.Metadata}"
+                                           Foreground="{DynamicResource Brush.TextSecondary}"
+                                           Margin="6,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource KcButtonQuiet}" Margin="4,0,0,0"
+                                Command="{Binding DataContext.CopyMessageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}">
+                            <StackPanel Orientation="Horizontal">
+                                <kontur:KonturIcon Kind="Copy" Width="11" Height="11" />
+                                <TextBlock Text="Copy" Style="{StaticResource Type.Metadata}"
+                                           Foreground="{DynamicResource Brush.TextSecondary}"
+                                           Margin="6,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource KcButtonQuiet}" Margin="4,0,0,0"
+                                ToolTip="Delete message"
+                                Command="{Binding DataContext.DeleteMessageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}">
+                            <kontur:KonturIcon Kind="Trash" Width="11" Height="11" />
+                        </Button>
                     </StackPanel>
                 </Grid>
             </Grid>
         </DataTemplate>
+
+        <!-- Starter card: a suggestion is one quiet row, not a button that shouts. -->
+        <Style x:Key="SuggestionButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{DynamicResource Brush.Surface1}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+            <Setter Property="Padding" Value="12,9" />
+            <Setter Property="MinWidth" Value="220" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+        </Style>
 
     </UserControl.Resources>
 
@@ -534,45 +631,47 @@
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>
 
-                <!-- Empty state (section 33): never a blank grey panel. -->
+                <!-- Empty state (section 33): never a blank grey panel. The one surface
+                     that may speak in the display voice, arriving with a single rise. -->
                 <StackPanel VerticalAlignment="Center"
                             HorizontalAlignment="Center"
                             Margin="0,40"
+                            motion:Motion.Show="Rise"
                             Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
 
+                    <kontur:KonturIcon Kind="Sparkle" Width="26" Height="26" GlyphThickness="2.7"
+                                       Foreground="{DynamicResource Brush.Accent}"
+                                       HorizontalAlignment="Center" Margin="0,0,0,14" />
+
                     <TextBlock Text="What can I help you with?"
-                               FontSize="26"
-                               FontWeight="SemiBold"
+                               Style="{StaticResource Type.Display}"
                                HorizontalAlignment="Center"
                                Margin="0,0,0,8" />
 
                     <TextBlock Text="Ask a question, paste some code, or attach a file."
-                               Style="{StaticResource SubtleText}"
-                               FontSize="13"
+                               Style="{StaticResource Type.Caption}"
                                HorizontalAlignment="Center"
                                Margin="0,0,0,28" />
 
                     <ItemsControl ItemsSource="{Binding Suggestions}" HorizontalAlignment="Center">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <WrapPanel MaxWidth="640" HorizontalAlignment="Center" />
+                                <WrapPanel MaxWidth="720" HorizontalAlignment="Center" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <ui:Button Margin="4"
-                                           Padding="14,10"
-                                           MinWidth="200"
-                                           HorizontalContentAlignment="Left"
-                                           Command="{Binding DataContext.UseSuggestionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                           CommandParameter="{Binding}">
+                                <Button Style="{StaticResource SuggestionButton}" Margin="4"
+                                        Command="{Binding DataContext.UseSuggestionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}">
                                     <StackPanel>
-                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                                        <TextBlock Text="{Binding Description}"
-                                                   Style="{StaticResource SubtleText}"
+                                        <TextBlock Text="{Binding Title}" Style="{StaticResource Type.Caption}"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource Brush.TextPrimary}" />
+                                        <TextBlock Text="{Binding Description}" Style="{StaticResource Type.Metadata}"
                                                    Margin="0,2,0,0" />
                                     </StackPanel>
-                                </ui:Button>
+                                </Button>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -581,15 +680,24 @@
         </ScrollViewer>
 
         <!-- Jump-to-bottom, shown once the user has scrolled away from the tail. -->
-        <ui:Button Grid.Row="0"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Bottom"
-                   Margin="0,0,0,12"
-                   Padding="10,6"
-                   Icon="{ui:SymbolIcon ArrowDown24}"
-                   Content="Jump to latest"
-                   Click="OnJumpToLatest"
-                   Visibility="{Binding IsScrolledAway, Converter={StaticResource BoolToVisibility}}" />
+        <Button Grid.Row="0"
+                Style="{StaticResource KcButtonGhost}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Margin="0,0,0,12"
+                Padding="10,5"
+                Click="OnJumpToLatest"
+                Visibility="{Binding IsScrolledAway, Converter={StaticResource BoolToVisibility}}">
+            <Button.Background>
+                <DynamicResource ResourceKey="Brush.Surface3" />
+            </Button.Background>
+            <StackPanel Orientation="Horizontal">
+                <kontur:KonturIcon Kind="ChevronDown" Width="12" Height="12" VerticalAlignment="Center" />
+                <TextBlock Text="Jump to latest" Style="{StaticResource Type.Metadata}"
+                           Foreground="{DynamicResource Brush.TextSecondary}"
+                           Margin="6,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
+        </Button>
 
         <!--
             The approval gate (section 28). Docked above the composer rather than raised as a modal
@@ -603,8 +711,9 @@
                 CornerRadius="{StaticResource CardCorner}"
                 Background="{DynamicResource Brush.Surface2}"
                 BorderThickness="3,1,1,1"
-                BorderBrush="{StaticResource ApprovalAccentBrush}"
+                BorderBrush="{DynamicResource ApprovalAccentBrush}"
                 MaxWidth="{StaticResource ContentMaxWidth}"
+                motion:Motion.Show="Rise"
                 Visibility="{Binding Approval.IsAsking, Converter={StaticResource BoolToVisibility}}">
 
             <!--
@@ -627,22 +736,24 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <ui:SymbolIcon Grid.Column="0"
-                                   Symbol="Warning24"
-                                   FontSize="18"
-                                   Margin="0,1,10,0"
-                                   VerticalAlignment="Top"
-                                   Foreground="{StaticResource ApprovalAccentBrush}" />
+                    <kontur:KonturIcon Grid.Column="0"
+                                       Kind="Warning"
+                                       Width="16" Height="16"
+                                       Margin="0,1,10,0"
+                                       VerticalAlignment="Top"
+                                       Foreground="{DynamicResource ApprovalAccentBrush}" />
 
                     <StackPanel Grid.Column="1">
                         <TextBlock Text="{Binding Headline}"
+                                   Style="{StaticResource Type.Caption}"
                                    FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Brush.TextPrimary}"
                                    TextWrapping="Wrap" />
 
                         <TextBlock Text="{Binding Consequence}"
-                                   Style="{StaticResource SubtleText}"
+                                   Style="{StaticResource Type.CaptionWrap}"
+                                   Foreground="{DynamicResource Brush.TextSecondary}"
                                    TextTrimming="None"
-                                   TextWrapping="Wrap"
                                    Margin="0,2,0,0" />
 
                         <!--
@@ -650,15 +761,16 @@
                             user is left wondering whether they misread the previous question.
                         -->
                         <TextBlock Text="You already allowed this exact call in this run. It is being asked again because answers to this kind of call are deliberately not remembered."
-                                   Style="{StaticResource SubtleText}"
-                                   TextTrimming="None"
+                                   Style="{StaticResource Type.Metadata}"
                                    TextWrapping="Wrap"
+                                   TextTrimming="None"
                                    Margin="0,4,0,0"
                                    Visibility="{Binding IsRepeat, Converter={StaticResource BoolToVisibility}}" />
                     </StackPanel>
 
-                    <Border Grid.Column="2" Style="{StaticResource Badge}" VerticalAlignment="Top">
-                        <TextBlock Text="{Binding ToolName}" Style="{StaticResource BadgeText}" />
+                    <Border Grid.Column="2" Style="{StaticResource KcBadge}" VerticalAlignment="Top">
+                        <TextBlock Text="{Binding ToolName}" Style="{StaticResource KcBadgeText}"
+                                   FontFamily="{StaticResource CodeFont}" />
                     </Border>
                 </Grid>
 
@@ -690,13 +802,15 @@
                           IsExpanded="{Binding IsArgumentsExpanded, Mode=TwoWay}"
                           Visibility="{Binding HasArguments, Converter={StaticResource BoolToVisibility}}">
                     <Expander.Header>
-                        <TextBlock Text="Arguments" FontSize="12" />
+                        <TextBlock Text="Arguments" Style="{StaticResource Type.Metadata}"
+                                   Foreground="{DynamicResource Brush.TextMuted}" />
                     </Expander.Header>
 
                     <TextBox Text="{Binding ArgumentsJson, Mode=OneWay}"
                              IsReadOnly="True"
                              MaxHeight="140"
-                             Margin="0,6,0,0"
+                             Margin="0,4,0,0"
+                             Style="{StaticResource KcInputBare}"
                              FontFamily="{StaticResource CodeFont}"
                              FontSize="12"
                              TextWrapping="NoWrap"
@@ -715,30 +829,38 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <ui:TextBox Grid.Column="0"
-                                Text="{Binding DenyReason, UpdateSourceTrigger=PropertyChanged}"
-                                PlaceholderText="Why not? Optional, and sent to the model."
-                                Margin="0,0,10,0"
-                                VerticalAlignment="Center" />
+                    <Border Grid.Column="0"
+                            Background="{DynamicResource Brush.SurfaceSunken}"
+                            BorderBrush="{DynamicResource Brush.Border}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource Radius.SM}"
+                            Margin="0,0,10,0"
+                            MinHeight="30">
+                        <TextBox Style="{StaticResource KcInputBare}"
+                                 Text="{Binding DenyReason, UpdateSourceTrigger=PropertyChanged}"
+                                 Tag="Why not? Optional, and sent to the model."
+                                 VerticalContentAlignment="Center"
+                                 Margin="8,0" />
+                    </Border>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <ui:Button Content="Don't allow"
-                                   Appearance="Secondary"
-                                   Padding="12,7"
-                                   Margin="0,0,6,0"
-                                   Command="{Binding DenyCommand}" />
+                        <Button Style="{StaticResource KcButtonGhost}"
+                                Content="Don't allow"
+                                Padding="12,5"
+                                Margin="0,0,6,0"
+                                Command="{Binding DenyCommand}" />
 
-                        <ui:Button Content="Allow for this run"
-                                   Appearance="Secondary"
-                                   Padding="12,7"
-                                   Margin="0,0,6,0"
-                                   Command="{Binding AllowForRunCommand}"
-                                   Visibility="{Binding CanAllowForRun, Converter={StaticResource BoolToVisibility}}" />
+                        <Button Style="{StaticResource KcButtonGhost}"
+                                Content="Allow for this run"
+                                Padding="12,5"
+                                Margin="0,0,6,0"
+                                Command="{Binding AllowForRunCommand}"
+                                Visibility="{Binding CanAllowForRun, Converter={StaticResource BoolToVisibility}}" />
 
-                        <ui:Button Content="Allow once"
-                                   Appearance="Primary"
-                                   Padding="12,7"
-                                   Command="{Binding AllowCommand}" />
+                        <Button Style="{StaticResource KcButtonPrimary}"
+                                Content="Allow once"
+                                Padding="12,5"
+                                Command="{Binding AllowCommand}" />
                     </StackPanel>
                 </Grid>
             </Grid>
@@ -747,8 +869,9 @@
         <!-- Composer -->
         <Border Grid.Row="2"
                 BorderThickness="0,1,0,0"
-                BorderBrush="{DynamicResource Brush.Border}"
-                Padding="24,12,24,16">
+                BorderBrush="{DynamicResource Brush.BorderFaint}"
+                Background="{DynamicResource Brush.Surface1}"
+                Padding="24,12,24,14">
             <Grid MaxWidth="{StaticResource ContentMaxWidth}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -757,17 +880,44 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- Transient notice: attachment rejected, export written, model not chosen. -->
-                <ui:InfoBar Grid.Row="0"
-                            Severity="Warning"
-                            IsOpen="{Binding IsBannerOpen, Mode=TwoWay}"
-                            Message="{Binding BannerMessage}"
-                            Margin="0,0,0,8" />
+                <!--
+                    Transient notice: attachment rejected, export written, model not chosen.
+                    A notice, not an alarm - warning tint, quiet text, and one quiet X.
+                -->
+                <Border Grid.Row="0"
+                        Background="{DynamicResource Brush.WarningSoft}"
+                        BorderBrush="{DynamicResource Brush.Warning}"
+                        BorderThickness="2,1,1,1"
+                        CornerRadius="{StaticResource Radius.SM}"
+                        Padding="10,6"
+                        Margin="0,0,0,8"
+                        Visibility="{Binding IsBannerOpen, Converter={StaticResource BoolToVisibility}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <kontur:KonturIcon Grid.Column="0" Kind="Warning" Width="13" Height="13"
+                                           Foreground="{DynamicResource Brush.Warning}"
+                                           VerticalAlignment="Top" Margin="0,1,9,0" />
+                        <TextBlock Grid.Column="1" Text="{Binding BannerMessage}"
+                                   Style="{StaticResource Type.CaptionWrap}"
+                                   Foreground="{DynamicResource Brush.TextPrimary}"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="2" Style="{StaticResource KcButtonTool}" Width="22" Height="22"
+                                Margin="8,0,0,0" VerticalAlignment="Center"
+                                Command="{Binding DismissBannerCommand}"
+                                ToolTip="Dismiss">
+                            <kontur:KonturIcon Kind="Close" Width="10" Height="10" GlyphThickness="2.7" />
+                        </Button>
+                    </Grid>
+                </Border>
 
                 <!-- Staged attachments as removable chips (section 19). -->
                 <ItemsControl Grid.Row="1"
                               ItemsSource="{Binding PendingAttachments}"
-                              Margin="0,0,0,4">
+                              Margin="0,0,0,6">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel />
@@ -777,217 +927,56 @@
                         <DataTemplate>
                             <Border Style="{StaticResource AttachmentChip}">
                                 <StackPanel Orientation="Horizontal">
-                                    <ui:SymbolIcon Symbol="Document24" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding FileName}" VerticalAlignment="Center" FontSize="12" />
+                                    <kontur:KonturIcon Kind="File" Width="12" Height="12"
+                                                       VerticalAlignment="Center" Margin="0,0,6,0" />
+                                    <TextBlock Text="{Binding FileName}" Style="{StaticResource Type.Caption}"
+                                               VerticalAlignment="Center" />
                                     <TextBlock Text="{Binding DisplaySize}"
-                                               Style="{StaticResource SubtleText}"
-                                               Margin="6,0,0,0"
+                                               Style="{StaticResource Type.Metadata}"
+                                               Margin="7,0,0,0"
                                                VerticalAlignment="Center" />
                                     <TextBlock Text="truncated"
-                                               Style="{StaticResource SubtleText}"
-                                               Margin="6,0,0,0"
-                                               VerticalAlignment="Center"
+                                               Style="{StaticResource Type.Metadata}"
                                                FontStyle="Italic"
+                                               Margin="7,0,0,0"
+                                               VerticalAlignment="Center"
                                                Visibility="{Binding IsTruncated, Converter={StaticResource BoolToVisibility}}" />
-                                    <Button Content="✕"
-                                            Margin="8,0,0,0"
-                                            Padding="4,0"
-                                            FontSize="11"
-                                            Background="Transparent"
-                                            BorderThickness="0"
+                                    <Button Style="{StaticResource KcButtonQuiet}" Padding="2,0" Margin="7,0,0,0"
                                             ToolTip="Remove attachment"
                                             Command="{Binding DataContext.RemoveAttachmentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            CommandParameter="{Binding}" />
+                                            CommandParameter="{Binding}">
+                                        <kontur:KonturIcon Kind="Close" Width="10" Height="10" GlyphThickness="2.7" />
+                                    </Button>
                                 </StackPanel>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <!-- Input row -->
+                <!--
+                    The composer is one control: a single framed surface holding the draft, with
+                    the actions in a footer row. Focus belongs to the frame, not to the text
+                    inside it, which is why the border lights rather than the well.
+                -->
                 <Border Grid.Row="2"
-                        CornerRadius="8"
+                        x:Name="ComposerFrame"
+                        CornerRadius="{StaticResource Radius.MD}"
                         BorderThickness="1"
                         BorderBrush="{DynamicResource Brush.Border}"
-                        Background="{DynamicResource Brush.Surface2}"
-                        Padding="6"
+                        Background="{DynamicResource Brush.SurfaceSunken}"
+                        Padding="4"
                         AllowDrop="True"
                         Drop="OnFilesDropped"
                         DragOver="OnFilesDragOver">
                     <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
-                        <ui:Button Grid.Column="0"
-                                   Icon="{ui:SymbolIcon Attach24}"
-                                   ToolTip="Attach a file"
-                                   Appearance="Secondary"
-                                   Background="Transparent"
-                                   BorderThickness="0"
-                                   VerticalAlignment="Bottom"
-                                   Margin="0,0,4,0"
-                                   Command="{Binding AttachFilesCommand}" />
-
-                        <!--
-                            Agent mode, and which kind of run, in one button. Both are one question -
-                            what pressing Send does with this message - so they are one control, and it
-                            is in the composer rather than in Settings because the answer changes from
-                            message to message: plan, read the plan, then build.
-
-                            A plain button rather than a toggle: every state here is chosen from the
-                            menu, including off, so a click can never change what Send does by itself.
-                            The caption carries the answer, because a control whose menu is shut has to
-                            say what it is set to.
-                        -->
-                        <ui:Button Grid.Column="1"
-                                   Content="{Binding AgentButtonText}"
-                                   FontSize="12"
-                                   Padding="10,4"
-                                   MinWidth="0"
-                                   MinHeight="0"
-                                   VerticalAlignment="Bottom"
-                                   Margin="0,0,4,4"
-                                   ToolTip="Let the model work on the project. It plans by default, and asks before anything it cannot take back."
-                                   Click="OnAgentButtonClick">
-                            <ui:Button.Style>
-                                <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
-                                    <Style.Triggers>
-                                        <!-- Accented while it is on, which is the one state worth seeing from across the room. -->
-                                        <DataTrigger Binding="{Binding IsAgentMode}" Value="True">
-                                            <Setter Property="Appearance" Value="Primary" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </ui:Button.Style>
-
-                            <ui:Button.ContextMenu>
-                                <!--
-                                    Ordered by how much each mode changes, planning first, for the same
-                                    reason the tool registry orders tools by risk: the first plausible
-                                    entry is the one that gets picked.
-
-                                    Each entry says what it costs on a second line rather than in a
-                                    tooltip, because the difference between these four is the whole of
-                                    the decision and nobody hovers a menu they are already reading.
-
-                                    IsChecked is bound to one string rather than to three comparisons of
-                                    the mode, so exactly one item can ever be marked - including Off,
-                                    which is a state of this control as much as the other three are. It
-                                    is one-way, and IsCheckable is left false: a click that set its own
-                                    check would overwrite the binding for good.
-                                -->
-                                <ContextMenu>
-                                    <MenuItem Command="{Binding SetAgentModeCommand}"
-                                              CommandParameter="{x:Static dto:AgentMode.Plan}"
-                                              IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=Plan}">
-                                        <MenuItem.Header>
-                                            <StackPanel>
-                                                <TextBlock Text="Plan" />
-                                                <TextBlock Text="Reads and works out what to do. Changes nothing."
-                                                           Style="{StaticResource SubtleText}" />
-                                            </StackPanel>
-                                        </MenuItem.Header>
-                                    </MenuItem>
-
-                                    <MenuItem Command="{Binding SetAgentModeCommand}"
-                                              CommandParameter="{x:Static dto:AgentMode.PlanCanvas}"
-                                              IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=PlanCanvas}">
-                                        <MenuItem.Header>
-                                            <StackPanel>
-                                                <TextBlock Text="Plan + canvas" />
-                                                <TextBlock Text="Plans, and draws the project it would build."
-                                                           Style="{StaticResource SubtleText}" />
-                                            </StackPanel>
-                                        </MenuItem.Header>
-                                    </MenuItem>
-
-                                    <MenuItem Command="{Binding SetAgentModeCommand}"
-                                              CommandParameter="{x:Static dto:AgentMode.Build}"
-                                              IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=Build}">
-                                        <MenuItem.Header>
-                                            <StackPanel>
-                                                <TextBlock Text="Build" />
-                                                <TextBlock Text="Carries the work out, asking before each change."
-                                                           Style="{StaticResource SubtleText}" />
-                                            </StackPanel>
-                                        </MenuItem.Header>
-                                    </MenuItem>
-
-                                    <Separator />
-
-                                    <MenuItem Command="{Binding TurnAgentOffCommand}"
-                                              IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=Off}">
-                                        <MenuItem.Header>
-                                            <StackPanel>
-                                                <TextBlock Text="Off" />
-                                                <TextBlock Text="One answer from the model, no tools."
-                                                           Style="{StaticResource SubtleText}" />
-                                            </StackPanel>
-                                        </MenuItem.Header>
-                                    </MenuItem>
-                                </ContextMenu>
-                            </ui:Button.ContextMenu>
-                        </ui:Button>
-
-                        <!--
-                            The model for this conversation, chosen where the conversation happens
-                            rather than up in the title bar: which model answers is part of the
-                            message, like the agent mode beside it. The caption carries the current
-                            choice; the flyout is the same picker the rest of the app uses, bound to
-                            the one shared ModelPicker on the shell so a choice made here, in Settings,
-                            or at first run is always the same selection.
-                        -->
-                        <ui:Button Grid.Column="2"
-                                   x:Name="ModelPill"
-                                   FontSize="12"
-                                   Padding="10,4"
-                                   MinWidth="0"
-                                   MinHeight="0"
-                                   Appearance="Secondary"
-                                   VerticalAlignment="Bottom"
-                                   Margin="0,0,4,4"
-                                   ToolTip="Choose the model for this conversation"
-                                   Click="OnModelPillClick">
-                            <StackPanel Orientation="Horizontal">
-                                <kontur:KonturIcon Kind="Models" Width="13" Height="13"
-                                                   VerticalAlignment="Center" Margin="0,0,6,0" />
-                                <TextBlock VerticalAlignment="Center"
-                                           Text="{Binding SelectedModel.Name, FallbackValue='Model', TargetNullValue='Model'}" />
-                                <kontur:KonturIcon Kind="ChevronDown" Width="11" Height="11"
-                                                   VerticalAlignment="Center" Margin="6,0,0,0" />
-                            </StackPanel>
-                        </ui:Button>
-
-                        <!--
-                            Placed above the pill: the composer sits at the bottom of the window, so a
-                            flyout opening downward would fall off-screen. DataContext reaches past the
-                            chat VM to the shell's shared ModelPicker.
-                        -->
-                        <Popup x:Name="ModelPopup"
-                               PlacementTarget="{Binding ElementName=ModelPill}"
-                               Placement="Top"
-                               StaysOpen="False"
-                               AllowsTransparency="True"
-                               PopupAnimation="Fade">
-                            <Border Background="{DynamicResource Brush.OverlayBackground}"
-                                    BorderBrush="{DynamicResource Brush.Border}"
-                                    BorderThickness="1"
-                                    CornerRadius="10"
-                                    Margin="8"
-                                    Padding="4">
-                                <views:ModelPickerView x:Name="ModelPicker"
-                                                       Width="440" MaxHeight="460"
-                                                       DataContext="{Binding DataContext.ModelPicker, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            </Border>
-                        </Popup>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
                         <TextBox x:Name="DraftBox"
-                                 Grid.Column="3"
+                                 Grid.Row="0"
+                                 Style="{StaticResource KcInputBare}"
                                  Text="{Binding Draft, UpdateSourceTrigger=PropertyChanged}"
                                  AcceptsReturn="True"
                                  TextWrapping="Wrap"
@@ -995,30 +984,206 @@
                                  MaxLines="12"
                                  MaxHeight="240"
                                  VerticalScrollBarVisibility="Auto"
-                                 BorderThickness="0"
-                                 Background="Transparent"
-                                 Padding="4,8"
+                                 Padding="8,7"
                                  PreviewKeyDown="OnDraftKeyDown"
                                  SpellCheck.IsEnabled="True" />
 
-                        <!-- Send and Stop swap: only one is ever meaningful. -->
-                        <ui:Button Grid.Column="4"
-                                   Appearance="Primary"
-                                   Icon="{ui:SymbolIcon Send24}"
-                                   ToolTip="Send (Enter)"
-                                   VerticalAlignment="Bottom"
-                                   Margin="4,0,0,0"
-                                   Command="{Binding SendCommand}"
-                                   Visibility="{Binding IsGenerating, Converter={StaticResource InverseBoolToVisibility}}" />
+                        <!-- The composer's own footer: tools left, send right. -->
+                        <Grid Grid.Row="1" Margin="4,2,4,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
 
-                        <ui:Button Grid.Column="4"
-                                   Appearance="Danger"
-                                   Icon="{ui:SymbolIcon Stop24}"
-                                   ToolTip="Stop generating (Esc)"
-                                   VerticalAlignment="Bottom"
-                                   Margin="4,0,0,0"
-                                   Command="{Binding StopCommand}"
-                                   Visibility="{Binding IsGenerating, Converter={StaticResource BoolToVisibility}}" />
+                            <Button Grid.Column="0"
+                                    Style="{StaticResource KcButtonTool}" Width="26" Height="24"
+                                    ToolTip="Attach a file"
+                                    Command="{Binding AttachFilesCommand}">
+                                <kontur:KonturIcon Kind="Paperclip" Width="13" Height="13" />
+                            </Button>
+
+                            <!--
+                                Agent mode, and which kind of run, in one button. Both are one question -
+                                what pressing Send does with this message - so they are one control, and it
+                                is in the composer rather than in Settings because the answer changes from
+                                message to message: plan, read the plan, then build.
+
+                                A plain button rather than a toggle: every state here is chosen from the
+                                menu, including off, so a click can never change what Send does by itself.
+                                The caption carries the answer, because a control whose menu is shut has to
+                                say what it is set to.
+                            -->
+                            <Button Grid.Column="1"
+                                    x:Name="AgentButton"
+                                    Content="{Binding AgentButtonText}"
+                                    ToolTip="Let the model work on the project. It plans by default, and asks before anything it cannot take back."
+                                    Click="OnAgentButtonClick">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource KcButtonGhost}">
+                                        <Setter Property="FontSize" Value="{StaticResource Size.Metadata}" />
+                                        <Setter Property="Padding" Value="9,3" />
+                                        <Setter Property="MinHeight" Value="24" />
+                                        <Setter Property="VerticalAlignment" Value="Center" />
+                                        <Setter Property="Margin" Value="4,0,0,0" />
+                                        <Style.Triggers>
+                                            <!-- Accented while it is on, which is the one state worth seeing from across the room. -->
+                                            <DataTrigger Binding="{Binding IsAgentMode}" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+                                                <Setter Property="Foreground" Value="{DynamicResource Brush.TextOnAccent}" />
+                                                <Setter Property="FontWeight" Value="SemiBold" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                                <Button.ContextMenu>
+                                    <!--
+                                        Ordered by how much each mode changes, planning first, for the same
+                                        reason the tool registry orders tools by risk: the first plausible
+                                        entry is the one that gets picked.
+
+                                        Each entry says what it costs on a second line rather than in a
+                                        tooltip, because the difference between these four is the whole of
+                                        the decision and nobody hovers a menu they are already reading.
+
+                                        IsChecked is bound to one string rather than to three comparisons of
+                                        the mode, so exactly one item can ever be marked - including Off,
+                                        which is a state of this control as much as the other three are. It
+                                        is one-way, and IsCheckable is left false: a click that set its own
+                                        check would overwrite the binding for good.
+                                    -->
+                                    <ContextMenu>
+                                        <MenuItem Command="{Binding SetAgentModeCommand}"
+                                                  CommandParameter="{x:Static dto:AgentMode.Plan}"
+                                                  IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=Plan}">
+                                            <MenuItem.Header>
+                                                <StackPanel>
+                                                    <TextBlock Text="Plan" />
+                                                    <TextBlock Text="Reads and works out what to do. Changes nothing."
+                                                               Style="{StaticResource SubtleText}" />
+                                                </StackPanel>
+                                            </MenuItem.Header>
+                                        </MenuItem>
+
+                                        <MenuItem Command="{Binding SetAgentModeCommand}"
+                                                  CommandParameter="{x:Static dto:AgentMode.PlanCanvas}"
+                                                  IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=PlanCanvas}">
+                                            <MenuItem.Header>
+                                                <StackPanel>
+                                                    <TextBlock Text="Plan + canvas" />
+                                                    <TextBlock Text="Plans, and draws the project it would build."
+                                                               Style="{StaticResource SubtleText}" />
+                                                </StackPanel>
+                                            </MenuItem.Header>
+                                        </MenuItem>
+
+                                        <MenuItem Command="{Binding SetAgentModeCommand}"
+                                                  CommandParameter="{x:Static dto:AgentMode.Build}"
+                                                  IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=Build}">
+                                            <MenuItem.Header>
+                                                <StackPanel>
+                                                    <TextBlock Text="Build" />
+                                                    <TextBlock Text="Carries the work out, asking before each change."
+                                                               Style="{StaticResource SubtleText}" />
+                                                </StackPanel>
+                                            </MenuItem.Header>
+                                        </MenuItem>
+
+                                        <Separator />
+
+                                        <MenuItem Command="{Binding TurnAgentOffCommand}"
+                                                  IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=Off}">
+                                            <MenuItem.Header>
+                                                <StackPanel>
+                                                    <TextBlock Text="Off" />
+                                                    <TextBlock Text="One answer from the model, no tools."
+                                                               Style="{StaticResource SubtleText}" />
+                                                </StackPanel>
+                                            </MenuItem.Header>
+                                        </MenuItem>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
+
+                            <!--
+                                The model for this conversation, chosen where the conversation happens
+                                rather than up in the title bar: which model answers is part of the
+                                message, like the agent mode beside it. The caption carries the current
+                                choice; the flyout is the same picker the rest of the app uses, bound to
+                                the one shared ModelPicker on the shell so a choice made here, in Settings,
+                                or at first run is always the same selection.
+                            -->
+                            <Button Grid.Column="2"
+                                    x:Name="ModelPill"
+                                    Style="{StaticResource KcButtonGhost}"
+                                    Padding="9,3"
+                                    MinHeight="24"
+                                    VerticalAlignment="Center"
+                                    Margin="4,0,0,0"
+                                    ToolTip="Choose the model for this conversation"
+                                    Click="OnModelPillClick">
+                                <StackPanel Orientation="Horizontal">
+                                    <kontur:KonturIcon Kind="Models" Width="12" Height="12"
+                                                       VerticalAlignment="Center" Margin="0,0,6,0" />
+                                    <TextBlock Style="{StaticResource Type.Metadata}"
+                                               Foreground="{DynamicResource Brush.TextSecondary}"
+                                               VerticalAlignment="Center"
+                                               Text="{Binding SelectedModel.Name, FallbackValue='Model', TargetNullValue='Model'}" />
+                                    <kontur:KonturIcon Kind="ChevronDown" Width="10" Height="10" GlyphThickness="2.7"
+                                                       VerticalAlignment="Center" Margin="5,0,0,0" />
+                                </StackPanel>
+                            </Button>
+
+                            <!--
+                                Placed above the pill: the composer sits at the bottom of the window, so a
+                                flyout opening downward would fall off-screen. DataContext reaches past the
+                                chat VM to the shell's shared ModelPicker.
+                            -->
+                            <Popup x:Name="ModelPopup"
+                                   PlacementTarget="{Binding ElementName=ModelPill}"
+                                   Placement="Top"
+                                   StaysOpen="False"
+                                   AllowsTransparency="True"
+                                   PopupAnimation="Fade">
+                                <Border Background="{DynamicResource Brush.Surface3}"
+                                        BorderBrush="{DynamicResource Brush.BorderStrong}"
+                                        BorderThickness="1"
+                                        CornerRadius="{StaticResource Radius.LG}"
+                                        Margin="8"
+                                        Padding="4"
+                                        Effect="{StaticResource Shadow.Overlay}">
+                                    <views:ModelPickerView x:Name="ModelPicker"
+                                                           Width="440" MaxHeight="460"
+                                                           DataContext="{Binding DataContext.ModelPicker, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                </Border>
+                            </Popup>
+
+                            <!-- Send and Stop are one button: the state decides what it
+                                  does, and the icon folds between the paper plane and the
+                                  square rather than two buttons trading places. -->
+                            <Button Grid.Column="4"
+                                    Width="30" Height="26"
+                                    VerticalAlignment="Center">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource KcButtonPrimary}">
+                                        <Setter Property="Command" Value="{Binding SendCommand}" />
+                                        <Setter Property="ToolTip" Value="Send (Enter)" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsGenerating}" Value="True">
+                                                <Setter Property="Command" Value="{Binding StopCommand}" />
+                                                <Setter Property="ToolTip" Value="Stop generating (Esc)" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                                <kontur:MorphIcon First="Send" Second="Stop"
+                                                  IsSecond="{Binding IsGenerating}"
+                                                  Width="13" Height="13"
+                                                  Foreground="{DynamicResource Brush.TextOnAccent}" />
+                            </Button>
+                        </Grid>
                     </Grid>
                 </Border>
 
@@ -1037,7 +1202,7 @@
                                Style="{StaticResource SubtleText}"
                                Text="{Binding AgentHint}"
                                Margin="12,0,0,0"
-                               Foreground="{StaticResource ApprovalAccentBrush}"
+                               Foreground="{DynamicResource ApprovalAccentBrush}"
                                Visibility="{Binding IsAgentMode, Converter={StaticResource BoolToVisibility}}" />
                 </Grid>
             </Grid>

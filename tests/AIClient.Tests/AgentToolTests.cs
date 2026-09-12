@@ -4,6 +4,7 @@ using AIClient.Application.DTOs;
 using AIClient.Application.Interfaces;
 using AIClient.Application.Services;
 using AIClient.Application.Services.Tools;
+using AIClient.Domain.Interfaces;
 using AIClient.Infrastructure;
 using AIClient.Infrastructure.Configuration;
 using AIClient.Infrastructure.Workspace;
@@ -425,6 +426,7 @@ public sealed class AgentToolTests : IAsyncLifetime
                 var wanted when wanted == typeof(IWorkspaceService) => _workspace,
                 var wanted when wanted == typeof(ISettingsService) => _settings,
                 var wanted when wanted == typeof(IProcessRunner) => _runner,
+                var wanted when wanted == typeof(IGitService) => new StubGitService(),
 
                 // The registered default, and stateless. Nothing here calls the tool, so where a plan
                 // would end up does not matter; the tool existing and publishing a valid schema does.
@@ -499,5 +501,28 @@ public sealed class AgentToolTests : IAsyncLifetime
 
         Directory.CreateDirectory(Path.GetDirectoryName(full)!);
         await File.WriteAllTextAsync(full, content, Token);
+    }
+
+    /// <summary>
+    /// A no-op git service for tests that only need to construct tools, not call them.
+    /// </summary>
+    private sealed class StubGitService : IGitService
+    {
+        public Task<bool> IsRepositoryAsync(CancellationToken cancellationToken) => Task.FromResult(false);
+        public Task<GitStatus> GetStatusAsync(CancellationToken cancellationToken) => Task.FromResult(new GitStatus());
+        public Task<GitDiff> GetDiffAsync(CancellationToken cancellationToken) => Task.FromResult(new GitDiff());
+        public Task<GitDiff> GetDiffAsync(string fromRef, string toRef, CancellationToken cancellationToken) => Task.FromResult(new GitDiff());
+        public Task<GitDiff> GetFileDiffAsync(string filePath, CancellationToken cancellationToken) => Task.FromResult(new GitDiff());
+        public Task<IReadOnlyList<GitCommit>> GetFileHistoryAsync(string filePath, int maxCount, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<GitCommit>>([]);
+        public Task<IReadOnlyList<GitCommit>> GetHistoryAsync(int maxCount, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<GitCommit>>([]);
+        public Task<GitBranchInfo> GetBranchInfoAsync(CancellationToken cancellationToken) => Task.FromResult(new GitBranchInfo());
+        public Task<IReadOnlyList<GitBranchInfo>> GetBranchesAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<GitBranchInfo>>([]);
+        public Task<GitResult> CreateBranchAsync(string branchName, CancellationToken cancellationToken) => Task.FromResult(GitResult.Ok());
+        public Task<GitResult> CheckoutAsync(string branchName, CancellationToken cancellationToken) => Task.FromResult(GitResult.Ok());
+        public Task<GitResult> StageAsync(IReadOnlyList<string>? filePaths, CancellationToken cancellationToken) => Task.FromResult(GitResult.Ok());
+        public Task<GitResult> CommitAsync(string message, CancellationToken cancellationToken) => Task.FromResult(GitResult.Ok());
+        public Task<GitResult> RevertLastAsync(CancellationToken cancellationToken) => Task.FromResult(GitResult.Ok());
+        public Task<GitResult> RevertAsync(string commitSha, CancellationToken cancellationToken) => Task.FromResult(GitResult.Ok());
+        public Task<GitCommit?> GetCommitAsync(string commitSha, CancellationToken cancellationToken) => Task.FromResult<GitCommit?>(null);
     }
 }

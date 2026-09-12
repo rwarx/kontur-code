@@ -16,11 +16,10 @@
     <conv:ContextWindowConverter x:Key="ContextWindow" />
     <conv:PriceConverter x:Key="Price" />
     <conv:IntToDoubleConverter x:Key="IntToDouble" />
+    <conv:IntToTextConverter x:Key="IntToText" />
     <conv:EqualityConverter x:Key="Equality" />
     <conv:WorkspaceModeEqualsConverter x:Key="WorkspaceModeEquals" />
     <conv:NodeCountToVisibilityConverter x:Key="NodeCountToVisibility" />
-    <conv:BoolToBrushConverter x:Key="BoolToBrush" TrueBrush="{DynamicResource Brush.SurfaceSelected}" FalseBrush="{DynamicResource Brush.Surface1}" />
-    <conv:BoolToBrushConverter x:Key="BoolToBorderBrush" TrueBrush="{DynamicResource Brush.AccentBorder}" FalseBrush="{DynamicResource Brush.Border}" />
     <conv:ContextPanelModeLabelConverter x:Key="ContextPanelModeLabel" />
     <conv:NodeKindIconConverter x:Key="NodeKindToIcon" />
 

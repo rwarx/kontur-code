@@ -1,4 +1,5 @@
 using AIClient.Domain.Entities;
+using AIClient.Infrastructure.Providers.Anthropic;
 using AIClient.Infrastructure.Providers.OpenAiCompatible;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -56,7 +57,13 @@ public sealed class DatabaseInitializer
         var seeds = new (string Id, string Name, int SortOrder)[]
         {
             (OpenRouterProvider.ProviderId, "OpenRouter", 0),
-            (NvidiaProvider.ProviderId, "NVIDIA", 1),
+            (OpenAiProvider.ProviderId, "OpenAI", 1),
+            (AnthropicProvider.ProviderId, "Anthropic", 2),
+            (NvidiaProvider.ProviderId, "NVIDIA", 3),
+            (GroqProvider.ProviderId, "Groq", 4),
+            (XaiProvider.ProviderId, "xAI Grok", 5),
+            (MistralProvider.ProviderId, "Mistral", 6),
+            (DeepSeekProvider.ProviderId, "DeepSeek", 7),
         };
 
         var existing = await db.Providers.ToDictionaryAsync(p => p.Id, cancellationToken).ConfigureAwait(false);

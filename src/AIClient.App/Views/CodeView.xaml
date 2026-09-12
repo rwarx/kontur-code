@@ -1,4 +1,4 @@
-<UserControl x:Class="AIClient.App.Views.CodeView"
+﻿<UserControl x:Class="AIClient.App.Views.CodeView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -42,10 +42,20 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border CornerRadius="{StaticResource Radius.SM}" Margin="2,4"
-                                        Background="{Binding IsActive, Converter={StaticResource BoolToBrush}}"
-                                        BorderBrush="{Binding IsActive, Converter={StaticResource BoolToBorderBrush}}"
                                         BorderThickness="1" Padding="8,4" Cursor="Hand"
                                         MouseLeftButtonUp="OnTabClicked">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{DynamicResource Brush.Surface1}" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource Brush.SurfaceSelected}" />
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.AccentBorder}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
                                     <StackPanel Orientation="Horizontal" MinWidth="0">
                                         <kontur:KonturIcon Kind="{Binding Icon}" Width="13" Height="13"
                                                            Foreground="{DynamicResource Brush.TextSecondary}" />
@@ -55,7 +65,7 @@
                                         <Button Style="{StaticResource KcButtonTool}" Width="18" Height="18"
                                                 Margin="6,-2,-4,-2" Click="OnCloseTabClicked"
                                                 ToolTip="Close">
-                                            <kontur:KonturIcon Kind="Close" Width="10" Height="10" GlyphThickness="1.8" />
+                                            <kontur:KonturIcon Kind="Close" Width="10" Height="10" GlyphThickness="2.7" />
                                         </Button>
                                     </StackPanel>
                                 </Border>
@@ -78,7 +88,7 @@
             <!-- No tabs: the honest empty state. -->
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
                         Visibility="{Binding HasTabs, Converter={StaticResource InverseBoolToVisibility}}">
-                <kontur:KonturIcon Kind="Code" Width="34" Height="34" GlyphThickness="1.1"
+                <kontur:KonturIcon Kind="Code" Width="34" Height="34" GlyphThickness="1.65"
                                    Foreground="{DynamicResource Brush.Accent}" HorizontalAlignment="Center" />
                 <TextBlock Text="No documents open" Style="{StaticResource Type.Section}"
                            HorizontalAlignment="Center" Margin="0,10,0,0" />

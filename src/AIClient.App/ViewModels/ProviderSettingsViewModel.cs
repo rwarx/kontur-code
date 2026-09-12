@@ -1,3 +1,5 @@
+using System.Windows.Input;
+using AIClient.App.Behaviors;
 using AIClient.App.Services;
 using AIClient.Application.Interfaces;
 using AIClient.Domain.Enums;
@@ -16,7 +18,7 @@ namespace AIClient.App.ViewModels;
 /// knows only whether a key exists, and shows a fixed mask when one does. What the user
 /// types stays in <see cref="ApiKeyInput"/> until Save, and is cleared immediately after.
 /// </remarks>
-public sealed partial class ProviderSettingsViewModel : ObservableObject
+public sealed partial class ProviderSettingsViewModel : ObservableObject, IApiKeyEntry
 {
     private readonly IProviderRegistry _registry;
     private readonly IDialogService _dialogs;
@@ -69,6 +71,7 @@ public sealed partial class ProviderSettingsViewModel : ObservableObject
         Id = info.Id;
         Name = info.Name;
         ApiKeyUrl = info.ApiKeyUrl;
+        IsCustom = info.IsCustom;
 
         _isEnabled = info.IsEnabled;
         _hasApiKey = info.HasApiKey;
@@ -81,6 +84,15 @@ public sealed partial class ProviderSettingsViewModel : ObservableObject
     public string Id { get; }
     public string Name { get; }
     public string? ApiKeyUrl { get; }
+
+    /// <summary>True when the user defined this provider and can remove it again.</summary>
+    public bool IsCustom { get; }
+
+    /// <inheritdoc />
+    ICommand IApiKeyEntry.SaveApiKeyCommand => SaveApiKeyCommand;
+
+    /// <inheritdoc />
+    ICommand IApiKeyEntry.CancelEditApiKeyCommand => CancelEditApiKeyCommand;
 
     /// <summary>
     /// A fixed-length mask. Deliberately not derived from the real key: a mask that matched

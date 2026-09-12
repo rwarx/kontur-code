@@ -93,6 +93,27 @@ public sealed class StubProviderRegistry : IProviderRegistry
     public Task SetEnabledAsync(string providerId, bool isEnabled, CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
 
+    public Task LoadCustomProvidersAsync(CancellationToken cancellationToken = default) =>
+        Task.CompletedTask;
+
+    public Task<ProviderInfo> AddCustomProviderAsync(
+        string name,
+        string baseUrl,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(new ProviderInfo
+        {
+            Id = $"{CustomIdPrefix}{name}",
+            Name = name,
+            IsEnabled = true,
+            HasApiKey = false,
+            IsCustom = true,
+        });
+
+    public Task RemoveCustomProviderAsync(string providerId, CancellationToken cancellationToken = default) =>
+        Task.CompletedTask;
+
+    public const string CustomIdPrefix = "custom-";
+
     public event EventHandler<string>? ModelsChanged;
 
     /// <summary>Kept so the event is not merely declared; nothing in these tests subscribes.</summary>

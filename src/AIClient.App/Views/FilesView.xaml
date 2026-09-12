@@ -1,4 +1,4 @@
-<UserControl x:Class="AIClient.App.Views.FilesView"
+﻿<UserControl x:Class="AIClient.App.Views.FilesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -65,7 +65,10 @@
                             <Setter.Value>
                                 <ControlTemplate TargetType="TreeViewItem">
                                     <StackPanel>
-                                        <Border x:Name="Row" Background="Transparent"
+                                        <Border x:Name="Row"
+                                                Background="Transparent"
+                                                BorderBrush="Transparent"
+                                                BorderThickness="1"
                                                 CornerRadius="{StaticResource Radius.SM}"
                                                 Padding="{TemplateBinding Padding}">
                                             <ContentPresenter x:Name="PART_Header" ContentSource="Header" />
@@ -79,16 +82,14 @@
                                             <Setter TargetName="ItemsHost" Property="Visibility" Value="Visible" />
                                         </Trigger>
                                         <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Row" Property="Background"
-                                                    Value="{DynamicResource Brush.SurfaceHover}" />
-                                            <Setter Property="Foreground"
-                                                    Value="{DynamicResource Brush.TextPrimary}" />
+                                            <Setter TargetName="Row" Property="BorderBrush"
+                                                    Value="{DynamicResource Brush.Border}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
                                         </Trigger>
                                         <Trigger Property="IsSelected" Value="True">
-                                            <Setter TargetName="Row" Property="Background"
-                                                    Value="{DynamicResource Brush.SurfaceSelected}" />
-                                            <Setter Property="Foreground"
-                                                    Value="{DynamicResource Brush.AccentText}" />
+                                            <Setter TargetName="Row" Property="BorderBrush"
+                                                    Value="{DynamicResource Brush.AccentBorder}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource Brush.AccentText}" />
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -102,7 +103,7 @@
                             <kontur:KonturIcon Kind="{Binding Kind}" Width="14" Height="14" />
                             <TextBlock Text="{Binding Name}" Style="{StaticResource Type.Caption}"
                                        Margin="8,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                            <kontur:KonturIcon Kind="Refresh" Width="10" Height="10" GlyphThickness="2.2"
+                            <kontur:KonturIcon Kind="Refresh" Width="10" Height="10" GlyphThickness="3.3"
                                                Foreground="{DynamicResource Brush.AccentText}"
                                                Margin="6,0,0,0" VerticalAlignment="Center"
                                                Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
@@ -129,7 +130,7 @@
                             <kontur:KonturIcon Kind="{Binding SelectedEntry.Kind, TargetNullValue=File}"
                                                Width="16" Height="16"
                                                Foreground="{DynamicResource Brush.AccentText}" />
-                            <TextBlock Text="{Binding SelectedEntry.Name, TargetNullValue='—'}"
+                            <TextBlock Text="{Binding SelectedEntry.Name, TargetNullValue='вЂ”'}"
                                        Style="{StaticResource Type.Section}" Margin="10,0,0,0" />
                         </StackPanel>
                         <TextBlock Text="{Binding SelectedEntry.Path, TargetNullValue=''}"

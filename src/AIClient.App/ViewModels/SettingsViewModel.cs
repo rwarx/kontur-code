@@ -160,6 +160,23 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private int _maxCommandOutputCharacters;
 
+    // Custom provider form. Two inputs and an add button: a custom provider is a name
+    // and a base URL that speaks the OpenAI wire protocol, nothing else.
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(AddCustomProviderCommand))]
+    private string _newProviderName = string.Empty;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(AddCustomProviderCommand))]
+    private string _newProviderBaseUrl = string.Empty;
+
+    [ObservableProperty]
+    private string? _newProviderProblem;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(AddCustomProviderCommand))]
+    private bool _isAddingProvider;
+
     public SettingsViewModel(
         ISettingsService settings,
         IProviderRegistry registry,
@@ -292,6 +309,73 @@ public sealed partial class SettingsViewModel : ObservableObject
         foreach (var provider in providers)
         {
             Providers.Add(new ProviderSettingsViewModel(provider, _registry, _dialogs, _logger));
+        }
+    }
+
+    public bool CanAddCustomProvider =>
+        !IsAddingProvider
+        && NewProviderName.Trim().Length > 0
+        && NewProviderBaseUrl.Trim().Length > 0;
+
+    [RelayCommand(CanExecute = nameof(CanAddCustomProvider))]
+    private async Task AddCustomProviderAsync()
+    {
+        IsAddingProvider = true;
+        NewProviderProblem = null;
+
+        try
+        {
+            await _registry.AddCustomProviderAsync(NewProviderName, NewProviderBaseUrl)
+                .ConfigureAwait(true);
+
+            NewProviderName = string.Empty;
+            NewProviderBaseUrl = string.Empty;
+
+            // The new row appears in the list, ready for its key.
+            await LoadProvidersAsync().ConfigureAwait(true);
+        }
+        catch (ArgumentException ex)
+        {
+            NewProviderProblem = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Adding a custom provider failed.");
+            NewProviderProblem = "The provider could not be added.";
+        }
+        finally
+        {
+            IsAddingProvider = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task RemoveProviderAsync(ProviderSettingsViewModel provider)
+    {
+        if (!provider.IsCustom)
+        {
+            return;
+        }
+
+        var confirmed = await _dialogs.ConfirmAsync(
+            $"Remove {provider.Name}",
+            $"{provider.Name} and its cached models will be deleted, along with the stored API key. "
+            + "Built-in providers cannot be removed.",
+            "Remove").ConfigureAwait(true);
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        try
+        {
+            await _registry.RemoveCustomProviderAsync(provider.Id).ConfigureAwait(true);
+            await LoadProvidersAsync().ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Removing custom provider {Id} failed.", provider.Id);
         }
     }
 

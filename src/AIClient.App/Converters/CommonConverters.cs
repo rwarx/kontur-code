@@ -210,7 +210,7 @@ public sealed class IntToDoubleConverter : IValueConverter
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         value is int number ? (double)number : null;
 
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         value switch
         {
             // A partially typed value can be out of int range; leaving the source alone is
@@ -218,6 +218,25 @@ public sealed class IntToDoubleConverter : IValueConverter
             double number when number is >= int.MinValue and <= int.MaxValue => (int)Math.Round(number),
             _ => Binding.DoNothing,
         };
+}
+
+/// <summary>
+/// int to editable text and back, for the settings' plain-TextBox numeric rows.
+/// </summary>
+/// <remarks>
+/// Replaces NumberBox where the design system owns the field. Parsing is invariant and
+/// tolerant: a half-typed value leaves the source untouched rather than writing zero
+/// through it, which is what a failed parse would do to a saved setting.
+/// </remarks>
+public sealed class IntToTextConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is int number ? number.ToString(CultureInfo.InvariantCulture) : string.Empty;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        int.TryParse(value as string, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number)
+            ? number
+            : Binding.DoNothing;
 }
 
 /// <summary>Maps an equality test to a bool, for radio-style bindings over an enum.</summary>
@@ -264,24 +283,6 @@ public sealed class NodeCountToVisibilityConverter : IValueConverter
 
         return hasNodes != invert ? Visibility.Visible : Visibility.Collapsed;
     }
-
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        Binding.DoNothing;
-}
-
-/// <summary>Maps a bool to one of two brushes - the active tab's quiet emphasis.</summary>
-/// <remarks>
-/// A tab's active state is a background and border pair, and this converter lets both
-/// come from resources rather than hard-coded colours in the template.
-/// </remarks>
-public sealed class BoolToBrushConverter : IValueConverter
-{
-    public Brush? TrueBrush { get; set; }
-
-    public Brush? FalseBrush { get; set; }
-
-    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        value is true ? TrueBrush : FalseBrush;
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         Binding.DoNothing;

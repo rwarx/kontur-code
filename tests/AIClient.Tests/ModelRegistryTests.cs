@@ -307,7 +307,7 @@ public sealed class ModelRegistryTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Both_shipped_providers_are_listed_with_somewhere_to_get_a_key()
+    public async Task Every_shipped_provider_is_listed_with_somewhere_to_get_a_key()
     {
         // Section 32's wizard and the Providers page both need this: a provider with no key
         // and no link is a dead end for the user.
@@ -315,7 +315,9 @@ public sealed class ModelRegistryTests : IAsyncLifetime
 
         var providers = await registry.GetProvidersAsync(Token);
 
-        Assert.Equal(["openrouter", "nvidia"], providers.Select(p => p.Id));
+        Assert.Equal(
+            ["openrouter", "openai", "anthropic", "nvidia", "groq", "xai", "mistral", "deepseek"],
+            providers.Select(p => p.Id));
         Assert.All(providers, p => Assert.StartsWith("https://", p.ApiKeyUrl!, StringComparison.Ordinal));
     }
 

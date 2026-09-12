@@ -12,6 +12,7 @@
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="pack://application:,,,/Resources/Design/Spacing.xaml" />
         <ResourceDictionary Source="pack://application:,,,/Resources/Design/Typography.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/Resources/Design/Motion.xaml" />
         <ResourceDictionary Source="pack://application:,,,/Resources/Design/Shadows.xaml" />
         <ResourceDictionary Source="pack://application:,,,/Resources/Design/Colors.xaml" />
         <ResourceDictionary Source="pack://application:,,,/Resources/Design/Icons.xaml" />

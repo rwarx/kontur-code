@@ -1,4 +1,5 @@
 using AIClient.App.Services;
+using AIClient.Application.Configuration;
 using AIClient.Application.Graph;
 using AIClient.Application.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -108,6 +109,10 @@ public sealed partial class MainViewModel : ObservableObject
         _graphContext = graphContext;
         _logger = logger;
 
+        // The sun/moon morph reads this; without the subscription it would freeze on
+        // whatever the theme was at startup.
+        _themeService.EffectiveThemeChanged += (_, _) => OnPropertyChanged(nameof(IsDarkTheme));
+
         IsOffline = !connectivity.IsOnline;
         connectivity.ConnectivityChanged += OnConnectivityChanged;
 
@@ -154,6 +159,12 @@ public sealed partial class MainViewModel : ObservableObject
     public TasksViewModel Tasks { get; }
 
     public ModelsPageViewModel ModelsPage { get; }
+
+    /// <summary>
+    /// Whether the theme on screen is dark. Drives the sidebar's sun/moon morph: the icon
+    /// names what one click buys, not what is already on screen.
+    /// </summary>
+    public bool IsDarkTheme => _themeService.EffectiveTheme == ThemeMode.Dark;
 
     /// <summary>Runs the startup sequence once the window is up.</summary>
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -211,12 +222,6 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
-    /// <summary>Cycles the sidebar between full, collapsed rail and hidden.</summary>
-    [RelayCommand]
-    private void CollapseSidebar() => (IsSidebarVisible, IsSidebarCollapsed) = IsSidebarVisible && !IsSidebarCollapsed
-        ? (true, true)
-        : (true, false);
-
     [RelayCommand]
     private void ToggleContextPanel() => IsContextPanelVisible = !IsContextPanelVisible;
 
@@ -246,18 +251,15 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Ctrl+I. Asks the AI about whatever the workspace currently has selected, with the
-    /// graph context the model needs to answer about the code it cannot see.
+    /// Ctrl+I. Asks the AI about whatever the workspace currently has selected; the graph
+    /// context itself is attached by the funnel the request flows through.
     /// </summary>
     [RelayCommand]
     private void AskAiAboutSelection()
     {
-        var focus = Workspace.Canvas.Controller.SelectedNodeIds;
-        var context = _graphContext.BuildContext(focus.Count > 0 ? focus : null);
-
-        var prompt = string.IsNullOrEmpty(context)
-            ? "Explain the overall structure of this workspace"
-            : $"Explain the role of these parts of the workspace and how they relate:\n\n{context}";
+        var prompt = Workspace.Canvas.Controller.SelectedNodeIds.Count > 0
+            ? "Explain the role of these parts of the workspace and how they relate"
+            : "Explain the overall structure of this workspace";
 
         Workspace.RequestAskAi(prompt);
     }
@@ -431,9 +433,23 @@ public sealed partial class MainViewModel : ObservableObject
     /// the user to see and edit before it is sent - the honest form of context sharing:
     /// what the model reads is what the user reads.
     /// </summary>
+    /// <remarks>
+    /// The graph context is attached here, at the one funnel every "ask the AI about the
+    /// workspace" path flows through: the canvas toolbar, the Inspector's node and
+    /// selection buttons, the palette and Ctrl+I all land in this handler. Without the
+    /// block, "explain this selection" reaches the model as a question about nodes it has
+    /// never heard of. With it, the block opens by naming the selected nodes explicitly,
+    /// so the question and the referent arrive together.
+    /// </remarks>
     private void OnWorkspaceAskAi(object? sender, string prompt)
     {
-        Chat.Draft = prompt;
+        var focus = Workspace.Canvas.Controller.SelectedNodeIds;
+        var context = _graphContext.BuildContext(focus.Count > 0 ? focus : null);
+
+        Chat.Draft = context is null
+            ? prompt
+            : $"{prompt}\n\n{context}";
+
         Workspace.SwitchModeCommand.Execute(WorkspaceMode.Chat);
         Chat.FocusInput();
     }

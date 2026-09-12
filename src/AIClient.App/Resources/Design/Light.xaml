@@ -27,7 +27,7 @@
     <SolidColorBrush x:Key="Brush.Surface3" Color="#FFFFFF" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.SurfaceHover" Color="#E4E7EC" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.SurfacePressed" Color="#D8DCE3" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.SurfaceSelected" Color="#DCF1EA" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.SurfaceSelected" Color="#E6E8EC" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.SurfaceSunken" Color="#E3E6EA" po:Freeze="True" />
 
     <!-- Structure. Faint separates content inside one surface; Border separates surfaces. -->
@@ -41,15 +41,21 @@
     <SolidColorBrush x:Key="Brush.TextPrimary" Color="#1B1E23" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.TextSecondary" Color="#565E6A" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.TextMuted" Color="#89909C" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.TextOnAccent" Color="#06231C" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.TextOnAccent" Color="#FFFFFF" po:Freeze="True" />
 
-    <!-- Accent. Teal, deepened so it holds contrast on light ground. -->
+    <!-- The brand plate keeps its dark ground in the light theme too (see Colors.xaml):
+         the white logo needs it, and the contrast is what makes the badge pop on paper. -->
+    <SolidColorBrush x:Key="Brush.LogoPlate" Color="#1B1E23" po:Freeze="True" />
 
-    <SolidColorBrush x:Key="Brush.Accent" Color="#0FA588" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.AccentText" Color="#0B7C64" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.AccentSoft" Color="#DCF1EA" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.AccentBorder" Color="#86CBB9" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.AccentHover" Color="#0C9578" po:Freeze="True" />
+    <!-- Accent. Ink on paper: the monochrome accent of the dark palette, inverted for
+         light ground. White on white would vanish, so the accent voice here is near-black;
+         it still marks exactly the same places - selection, activity, AI, focus. -->
+
+    <SolidColorBrush x:Key="Brush.Accent" Color="#1B1E23" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.AccentText" Color="#26292E" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.AccentSoft" Color="#ECEEF1" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.AccentBorder" Color="#B4B9C2" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.AccentHover" Color="#3A3E45" po:Freeze="True" />
 
     <!-- Semantics. Soft variants are the fill behind the strong stroke. -->
 
@@ -67,16 +73,16 @@
     <SolidColorBrush x:Key="Brush.CanvasBackground" Color="#E7EAEE" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.CanvasGrid" Color="#D8DCE2" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.CanvasGridMajor" Color="#CBD1D8" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.MarqueeStroke" Color="#0FA588" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.MarqueeFill" Color="#D3EEE5" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.MarqueeStroke" Color="#1B1E23" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.MarqueeFill" Color="#DFE2E6" po:Freeze="True" />
 
     <!-- Nodes. Body is paper on the inset canvas; the 1px border carries the edge. -->
 
     <SolidColorBrush x:Key="Brush.NodeBody" Color="#FFFFFF" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.NodeBodyHover" Color="#F4F6F8" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.NodeBodySelected" Color="#DCF1EA" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.NodeBodySelected" Color="#E6E8EC" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.NodeBorder" Color="#D3D8DF" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.NodeBorderSelected" Color="#0FA588" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.NodeBorderSelected" Color="#1B1E23" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.NodeTitle" Color="#1B1E23" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.NodeMeta" Color="#6C7480" po:Freeze="True" />
 
@@ -85,16 +91,16 @@
 
     <SolidColorBrush x:Key="Brush.Node.File" Color="#67717E" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.Folder" Color="#A2723C" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.Node.Module" Color="#3C9384" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.Node.Service" Color="#0FA588" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Node.Module" Color="#5E6C7D" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Node.Service" Color="#3A3E44" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.Interface" Color="#2A88A0" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.Data" Color="#AC6733" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.View" Color="#6A54A0" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.Node.Test" Color="#5A9430" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Node.Test" Color="#46689E" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.Plan" Color="#B0851E" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.Task" Color="#767E8A" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.Agent" Color="#AF5E3D" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.Node.Model" Color="#3B9E8F" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Node.Model" Color="#8592A1" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.External" Color="#838B97" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Node.Note" Color="#767E8A" po:Freeze="True" />
 
@@ -102,13 +108,14 @@
 
     <SolidColorBrush x:Key="Brush.Edge" Color="#C4CBD3" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.EdgeHover" Color="#99A2AE" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.EdgeSelected" Color="#0FA588" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.EdgeSelected" Color="#1B1E23" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.EdgeDimmed" Color="#E1E5EA" po:Freeze="True" />
 
     <!-- Overlays. Scrim dims the app behind a modal; lighter here than on the dark ground. -->
 
     <SolidColorBrush x:Key="Brush.Scrim" Color="#26000000" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.OverlayBackground" Color="#FFFFFF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.OverlayPanel" Color="#E6FFFFFF" po:Freeze="True" />
 
     <!-- Legacy aliases. Diff washes keep their alpha; syntax colours switch to a light
          editor scheme so code reads on paper rather than on the dark editor ground. -->

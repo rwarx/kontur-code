@@ -23,6 +23,9 @@ public sealed class FakeSecureStorage : ISecureStorage
         return storage;
     }
 
+    /// <summary>An empty store, for tests that add their own keys.</summary>
+    public static FakeSecureStorage Empty() => new();
+
     public List<string> Reads { get; } = [];
 
     public Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)
