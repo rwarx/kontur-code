@@ -257,6 +257,53 @@ internal static class OpenAiWire
 
         [JsonPropertyName("total_tokens")]
         public int? TotalTokens { get; init; }
+
+        /// <summary>
+        /// Prompt breakdown. OpenAI and OpenRouter both nest the cache hit here; NVIDIA sends
+        /// nothing, which is why every field below is nullable rather than defaulted to zero.
+        /// </summary>
+        [JsonPropertyName("prompt_tokens_details")]
+        public PromptTokenDetails? PromptTokensDetails { get; init; }
+
+        [JsonPropertyName("completion_tokens_details")]
+        public CompletionTokenDetails? CompletionTokensDetails { get; init; }
+
+        /// <summary>
+        /// Anthropic's spelling of a cache write, which OpenRouter passes through verbatim for
+        /// Claude models. Read at the top level because that is where it arrives.
+        /// </summary>
+        [JsonPropertyName("cache_creation_input_tokens")]
+        public int? CacheCreationInputTokens { get; init; }
+
+        /// <summary>Anthropic's spelling of a cache read, for the same reason.</summary>
+        [JsonPropertyName("cache_read_input_tokens")]
+        public int? CacheReadInputTokens { get; init; }
+
+        /// <summary>Cache tokens read, whichever spelling the provider used. Null when neither appeared.</summary>
+        public int? CacheReadTokens => PromptTokensDetails?.CachedTokens ?? CacheReadInputTokens;
+
+        /// <summary>Cache tokens written, whichever spelling the provider used.</summary>
+        public int? CacheWriteTokens =>
+            PromptTokensDetails?.CacheWriteTokens ?? CacheCreationInputTokens;
+
+        /// <summary>Tokens spent thinking rather than answering, when the provider separates them.</summary>
+        public int? ReasoningTokens => CompletionTokensDetails?.ReasoningTokens;
+    }
+
+    public sealed class PromptTokenDetails
+    {
+        [JsonPropertyName("cached_tokens")]
+        public int? CachedTokens { get; init; }
+
+        /// <summary>Non-standard but present on some gateways; harmless when absent.</summary>
+        [JsonPropertyName("cache_write_tokens")]
+        public int? CacheWriteTokens { get; init; }
+    }
+
+    public sealed class CompletionTokenDetails
+    {
+        [JsonPropertyName("reasoning_tokens")]
+        public int? ReasoningTokens { get; init; }
     }
 
     public sealed class ErrorInfo

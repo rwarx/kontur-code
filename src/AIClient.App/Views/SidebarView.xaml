@@ -63,7 +63,7 @@
 
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
-                        <Setter Property="Padding" Value="8,7" />
+                        <Setter Property="Padding" Value="8,8" />
                         <Setter Property="Margin" Value="0,1" />
                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                     </Style>
@@ -90,15 +90,18 @@
                                            TextTrimming="CharacterEllipsis"
                                            FontSize="13" />
 
-                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
                                     <TextBlock Style="{StaticResource SubtleText}"
                                                Text="{Binding UpdatedAt, Converter={StaticResource RelativeTime}}"
                                                FontSize="11" />
                                     <TextBlock Style="{StaticResource SubtleText}"
+                                               Text=" · "
+                                               FontSize="11" />
+                                    <TextBlock Style="{StaticResource SubtleText}"
                                                Text="{Binding Preview}"
                                                FontSize="11"
-                                               Margin="6,0,0,0"
-                                               MaxWidth="150" />
+                                               TextTrimming="CharacterEllipsis"
+                                               TextWrapping="NoWrap" />
                                 </StackPanel>
                             </StackPanel>
 

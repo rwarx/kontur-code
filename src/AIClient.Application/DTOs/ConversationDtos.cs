@@ -16,6 +16,9 @@ public sealed record ConversationSummary
     public bool IsPinned { get; init; }
     public int MessageCount { get; init; }
 
+    /// <summary>The project this chat is filed under, or null when it is loose.</summary>
+    public Guid? ProjectId { get; init; }
+
     /// <summary>First line of the most recent message, truncated for the sidebar.</summary>
     public string? Preview { get; init; }
 }
@@ -31,6 +34,7 @@ public sealed record ConversationDetail
     public string? SystemPrompt { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
+    public Guid? ProjectId { get; init; }
     public required IReadOnlyList<MessageDto> Messages { get; init; }
 }
 
@@ -50,8 +54,17 @@ public sealed record MessageDto
     public string? ModelId { get; init; }
     public int? InputTokens { get; init; }
     public int? OutputTokens { get; init; }
+    public int? ReasoningTokens { get; init; }
+    public int? CacheReadTokens { get; init; }
+    public int? CacheWriteTokens { get; init; }
     public int? GenerationTimeMs { get; init; }
     public IReadOnlyList<AttachmentDto> Attachments { get; init; } = [];
+
+    /// <summary>True on the synthetic message that stands in for compacted turns.</summary>
+    public bool IsContextSummary { get; init; }
+
+    /// <summary>True once this message has been folded into a later summary and dropped from the prompt.</summary>
+    public bool IsCompacted { get; init; }
 
     /// <summary>
     /// On an assistant message, the tool calls it made, as stored. Null when it only wrote text.
@@ -69,17 +82,6 @@ public sealed record MessageDto
     /// is still a complete message - see <see cref="Domain.Entities.Message.ToolSucceeded"/>.
     /// </summary>
     public bool? ToolSucceeded { get; init; }
-
-    /// <summary>
-    /// Whether compaction has folded this message into a later summary.
-    /// </summary>
-    /// <remarks>
-    /// Nothing sets this yet: compaction does not exist, the stored rows are the whole of
-    /// history, and the context build's filter on the flag is therefore a no-op. The property
-    /// is here so the filter has something true-shaped to read, and so the work that follows
-    /// is a mapping and a writer rather than a contract change.
-    /// </remarks>
-    public bool IsCompacted { get; init; }
 }
 
 /// <summary>An attachment as the UI sees it. <see cref="TextContent"/> is omitted in list views.</summary>
@@ -114,6 +116,9 @@ public sealed record NewMessage
 
     /// <summary>On a tool message, whether the tool did what was asked.</summary>
     public bool? ToolSucceeded { get; init; }
+
+    /// <summary>Marks this as the synthetic stand-in written by compaction rather than a real turn.</summary>
+    public bool IsContextSummary { get; init; }
 }
 
 /// <summary>Input for attaching a file to a new message.</summary>
@@ -140,6 +145,9 @@ public sealed record MessageUpdate
     public AIErrorKind? ErrorKind { get; init; }
     public int? InputTokens { get; init; }
     public int? OutputTokens { get; init; }
+    public int? ReasoningTokens { get; init; }
+    public int? CacheReadTokens { get; init; }
+    public int? CacheWriteTokens { get; init; }
     public int? GenerationTimeMs { get; init; }
 
     /// <summary>

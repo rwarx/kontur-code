@@ -215,7 +215,12 @@ public abstract class OpenAiCompatibleProvider : IAIProvider
             if (chunk.Usage is { } usage)
             {
                 sawUsage = true;
-                yield return new AIStreamEvent.Usage(usage.PromptTokens, usage.CompletionTokens);
+                yield return new AIStreamEvent.Usage(
+                    usage.PromptTokens,
+                    usage.CompletionTokens,
+                    usage.ReasoningTokens,
+                    usage.CacheReadTokens,
+                    usage.CacheWriteTokens);
             }
 
             var choice = chunk.Choices?.FirstOrDefault();
@@ -416,7 +421,12 @@ public abstract class OpenAiCompatibleProvider : IAIProvider
 
         if (body?.Usage is { } usage)
         {
-            yield return new AIStreamEvent.Usage(usage.PromptTokens, usage.CompletionTokens);
+            yield return new AIStreamEvent.Usage(
+                usage.PromptTokens,
+                usage.CompletionTokens,
+                usage.ReasoningTokens,
+                usage.CacheReadTokens,
+                usage.CacheWriteTokens);
         }
 
         // Complete already, but folded through the same accumulator so the two paths cannot

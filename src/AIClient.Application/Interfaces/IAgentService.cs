@@ -134,6 +134,21 @@ public abstract record AgentEvent
     public sealed record TitleGenerated(Guid ConversationId, string Title) : AgentEvent;
 
     /// <summary>
+    /// History was folded into a summary before a step was built, so the transcript has to be
+    /// reloaded to show it.
+    /// </summary>
+    /// <remarks>
+    /// Agent runs hit this far sooner than chats do: tool results are the bulk of a full window, and
+    /// a single directory listing or file read can be worth a dozen turns of conversation. Raised
+    /// rather than left silent because a user who does not know it happened has no way to explain
+    /// why the run stopped remembering what it read at the start.
+    /// </remarks>
+    public sealed record Compacted(
+        Guid ConversationId,
+        int MessagesFolded,
+        int TokensSaved) : AgentEvent;
+
+    /// <summary>
     /// A new step has begun and its assistant row exists.
     /// </summary>
     /// <param name="Step">1-based, and counted against the step budget.</param>

@@ -61,4 +61,39 @@ public interface IConversationService
 
     /// <summary>Applies an auto-generated title, unless the user has already named the chat.</summary>
     Task<string?> TryApplyAutoTitleAsync(Guid conversationId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Marks a run of messages as folded into a summary, so the context builder stops sending
+    /// them while the transcript keeps showing them.
+    /// </summary>
+    /// <returns>How many rows were actually changed.</returns>
+    Task<int> MarkCompactedAsync(
+        IReadOnlyCollection<Guid> messageIds,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Every project, ordered the way the sidebar draws them.</summary>
+    Task<IReadOnlyList<ProjectSummary>> GetProjectsAsync(CancellationToken cancellationToken = default);
+
+    Task<ProjectSummary> CreateProjectAsync(NewProject project, CancellationToken cancellationToken = default);
+
+    /// <summary>Applies the non-null fields of <paramref name="update"/>. Unknown ids are ignored.</summary>
+    Task UpdateProjectAsync(ProjectUpdate update, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a project. Its conversations are unfiled rather than deleted - see
+    /// <see cref="Domain.Entities.Conversation.ProjectId"/>.
+    /// </summary>
+    Task DeleteProjectAsync(Guid projectId, CancellationToken cancellationToken = default);
+
+    /// <summary>Files a chat under a project, or unfiles it when <paramref name="projectId"/> is null.</summary>
+    Task SetProjectAsync(Guid conversationId, Guid? projectId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sidebar rows for one project, or for the unfiled chats when <paramref name="projectId"/>
+    /// is null.
+    /// </summary>
+    Task<IReadOnlyList<ConversationSummary>> GetSummariesByProjectAsync(
+        Guid? projectId,
+        int take = 200,
+        CancellationToken cancellationToken = default);
 }

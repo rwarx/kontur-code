@@ -141,6 +141,20 @@
                                 </StackPanel>
                             </ui:Button>
 
+                            <!--
+                                The context report. A flyout rather than a page: it answers a question
+                                about the conversation on screen, and sending the user somewhere else to
+                                read how full the window is would lose the thing they were looking at.
+                                Bound to the command, not to a Click handler, because the report has to
+                                be built before the panel is shown - the command raises the request once
+                                it has one, and the window opens the flyout then.
+                            -->
+                            <ui:Button x:Name="ContextButton"
+                                       Icon="{ui:SymbolIcon DataHistogram24}"
+                                       Appearance="Transparent"
+                                       ToolTip="{DynamicResource S.Main.Context.ToolTip}"
+                                       Command="{Binding ShowContextCommand}" />
+
                             <ui:Button Icon="{ui:SymbolIcon ArrowExportLtr24}"
                                        Appearance="Transparent"
                                        ToolTip="{DynamicResource S.Main.Export.ToolTip}"
@@ -259,6 +273,34 @@
                                        Width="440"
                                        MaxHeight="460"
                                        DataContext="{Binding ModelPicker}" />
+            </Border>
+        </Popup>
+
+        <!-- Same shape as the model flyout above, and for the same reason: a panel that dismisses
+             itself on the next click outside it, so reading the numbers costs one keystroke to
+             open and none to leave. -->
+        <Popup x:Name="ContextPopup"
+               PlacementTarget="{Binding ElementName=ContextButton}"
+               Placement="Bottom"
+               VerticalOffset="6"
+               HorizontalOffset="-340"
+               StaysOpen="False"
+               AllowsTransparency="True"
+               Focusable="False"
+               PopupAnimation="Fade">
+            <Border Background="{DynamicResource ApplicationBackgroundBrush}"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Margin="12"
+                    Padding="4">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="18" ShadowDepth="3" Direction="270" Opacity="0.35" Color="Black" />
+                </Border.Effect>
+
+                <views:SessionContextView Width="400"
+                                          MaxHeight="620"
+                                          DataContext="{Binding SessionContext}" />
             </Border>
         </Popup>
     </Grid>

@@ -33,6 +33,7 @@
     <sys:String x:Key="S.Main.ToggleSidebar.ToolTip">Показать или скрыть боковую панель (Ctrl+B)</sys:String>
     <sys:String x:Key="S.Main.ChangeModel.ToolTip">Сменить модель</sys:String>
     <sys:String x:Key="S.Main.SelectModel">Выберите модель</sys:String>
+    <sys:String x:Key="S.Main.Context.ToolTip">Контекст сессии</sys:String>
     <sys:String x:Key="S.Main.Export.ToolTip">Экспортировать разговор</sys:String>
     <sys:String x:Key="S.Main.Export.Markdown">Экспорт в Markdown</sys:String>
     <sys:String x:Key="S.Main.Export.Json">Экспорт в JSON</sys:String>
@@ -404,5 +405,44 @@
     <sys:String x:Key="S.Source.Outside">Этот путь вне папки проекта.</sys:String>
     <sys:String x:Key="S.Source.Missing">Этого файла больше нет на диске.</sys:String>
     <sys:String x:Key="S.Source.NotShown">Этот файл не удалось показать.</sys:String>
+
+    <!-- ===== Панель контекста ===== -->
+    <sys:String x:Key="S.Context.Title">Контекст</sys:String>
+    <sys:String x:Key="S.Context.Refresh">Пересчитать</sys:String>
+    <sys:String x:Key="S.Context.Session">Сессия</sys:String>
+    <sys:String x:Key="S.Context.Messages">Сообщения</sys:String>
+    <sys:String x:Key="S.Context.Provider">Провайдер</sys:String>
+    <sys:String x:Key="S.Context.Model">Модель</sys:String>
+    <sys:String x:Key="S.Context.Window">Лимит контекста</sys:String>
+    <sys:String x:Key="S.Context.Total">Всего токенов</sys:String>
+    <sys:String x:Key="S.Context.Usage">Использование</sys:String>
+    <sys:String x:Key="S.Context.Input">Входные токены</sys:String>
+    <sys:String x:Key="S.Context.Output">Выходные токены</sys:String>
+    <sys:String x:Key="S.Context.Reasoning">Токены рассуждения</sys:String>
+    <sys:String x:Key="S.Context.Cache">Токены кеша (чтение / запись)</sys:String>
+    <sys:String x:Key="S.Context.UserMessages">Сообщения пользователя</sys:String>
+    <sys:String x:Key="S.Context.AssistantMessages">Сообщения ассистента</sys:String>
+    <sys:String x:Key="S.Context.ToolMessages">Сообщения инструментов</sys:String>
+    <sys:String x:Key="S.Context.Folded">Свёрнутые сообщения</sys:String>
+    <sys:String x:Key="S.Context.Cost">Общая стоимость</sys:String>
+    <sys:String x:Key="S.Context.Cost.Hint">Оценка по ценам из каталога и по токенам, о которых сообщил провайдер. Это не счёт.</sys:String>
+    <sys:String x:Key="S.Context.Created">Сессия создана</sys:String>
+    <sys:String x:Key="S.Context.LastActivity">Последняя активность</sys:String>
+    <sys:String x:Key="S.Context.Breakdown">Разбивка контекста</sys:String>
+    <sys:String x:Key="S.Context.Breakdown.Hint">Оценка того, какую часть следующего запроса занимает каждый источник текста.</sys:String>
+    <sys:String x:Key="S.Context.Band.User">Пользователь</sys:String>
+    <sys:String x:Key="S.Context.Band.Assistant">Ассистент</sys:String>
+    <sys:String x:Key="S.Context.Band.Tools">Вызовы инструментов</sys:String>
+    <sys:String x:Key="S.Context.Band.Other">Другое</sys:String>
+    <sys:String x:Key="S.Context.Empty">Откройте разговор, чтобы увидеть, что держит модель.</sys:String>
+    <sys:String x:Key="S.Context.Warning.Title">Контекст почти заполнен</sys:String>
+    <sys:String x:Key="S.Context.Warning.Message">Сверните старые сообщения в пересказ, чтобы освободить место под следующее.</sys:String>
+    <sys:String x:Key="S.Context.Compact">Сжать сессию</sys:String>
+    <sys:String x:Key="S.Context.Compact.Hint">Заменяет старые сообщения пересказом, а недавние оставляет дословно.</sys:String>
+    <sys:String x:Key="S.Context.Compact.Running">Пересказываем старые сообщения…</sys:String>
+    <sys:String x:Key="S.Context.Compact.Done">Свёрнуто сообщений: {0}. Освобождено токенов: {1:N0}.</sys:String>
+    <sys:String x:Key="S.Context.Compact.Nothing">Сворачивать было нечего.</sys:String>
+    <sys:String x:Key="S.Context.Compact.Failed">Сессию не удалось сжать.</sys:String>
+    <sys:String x:Key="S.Context.Compact.NoModel">Сначала выберите модель — пересказ пишет она.</sys:String>
 
 </ResourceDictionary>

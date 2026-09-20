@@ -219,6 +219,111 @@ public sealed class IntToDoubleConverter : IValueConverter
         };
 }
 
+/// <summary>
+/// A token count as a star weight, for the context panel's stacked bar.
+/// </summary>
+/// <remarks>
+/// The bar is a four-column <c>Grid</c> whose columns are weighted by what each band costs, so
+/// the proportions come out of the layout pass instead of out of arithmetic over
+/// <c>ActualWidth</c>. A band with no tokens weighs nothing and collapses on its own, which is
+/// what a chat that has not run a tool yet should look like.
+/// </remarks>
+public sealed class TokenShareConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        new GridLength(value is int tokens and > 0 ? tokens : 0, GridUnitType.Star);
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+/// <summary>
+/// A token count as "73 909", or an em dash when the provider never reported one.
+/// </summary>
+/// <remarks>
+/// Grouped by the current culture on purpose: the panel is a wall of six-figure numbers and
+/// "73909" is unreadable next to "73 909". Zero is printed as zero rather than as a dash - a
+/// model that used no cache reported that, it did not stay silent.
+/// </remarks>
+public sealed class TokenCountConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value switch
+        {
+            int tokens => tokens.ToString("N0", culture),
+            long tokens => tokens.ToString("N0", culture),
+            _ => "—",
+        };
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+/// <summary>
+/// A share of the window as "37%", or an em dash when the window is unknown.
+/// </summary>
+/// <remarks>
+/// Rounded to whole percent because the panel is a glance, not a meter, and a figure that
+/// changes in its second decimal while a stream runs reads as noise.
+/// </remarks>
+public sealed class PercentConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is double share ? share.ToString("0'%'", culture) : "—";
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+/// <summary>
+/// A band's share of the estimated prompt as "59,4%", for the stacked bar's legend.
+/// </summary>
+/// <remarks>
+/// One decimal rather than none, because the small bands are the interesting ones: "0,5%" and
+/// "0,2%" both round to "0%" and the legend would then claim two bands are empty when they are
+/// the reason the numbers do not add up.
+/// </remarks>
+public sealed class BandShareConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is double share ? share.ToString("0.0'%'", culture) : string.Empty;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+/// <summary>
+/// Money as "0,00 $", or an em dash when the catalogue publishes no prices.
+/// </summary>
+/// <remarks>
+/// The dash matters more here than anywhere else in the panel: a model whose price nobody told
+/// us about is not a free model, and "0,00 $" for the second one invents a guarantee.
+/// </remarks>
+public sealed class CostConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is decimal cost ? cost.ToString("C2", culture) : "—";
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+/// <summary>
+/// A timestamp as "5 Sep 2026, 01:23" - the panel's two dates, in full.
+/// </summary>
+/// <remarks>
+/// Not <see cref="RelativeTimeConverter"/>: "2d" is right for a sidebar row a user is scanning,
+/// and wrong for a field labelled "created" that they opened the panel to read.
+/// </remarks>
+public sealed class AbsoluteTimeConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is DateTimeOffset timestamp ? timestamp.ToLocalTime().ToString("g", culture) : string.Empty;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
 /// <summary>Maps an equality test to a bool, for radio-style bindings over an enum.</summary>
 public sealed class EqualityConverter : IValueConverter
 {

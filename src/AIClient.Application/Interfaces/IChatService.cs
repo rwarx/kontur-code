@@ -79,11 +79,31 @@ public abstract record ChatTurnEvent
     public sealed record ContentDelta(Guid MessageId, string Text) : ChatTurnEvent;
 
     /// <summary>The turn finished and the final content has been persisted.</summary>
+    /// <param name="ReasoningTokens">
+    /// The thinking part of <paramref name="OutputTokens"/>, not an addition to it.
+    /// </param>
     public sealed record Completed(
         Guid MessageId,
         int? InputTokens,
         int? OutputTokens,
-        int GenerationTimeMs) : ChatTurnEvent;
+        int GenerationTimeMs,
+        int? ReasoningTokens = null,
+        int? CacheReadTokens = null,
+        int? CacheWriteTokens = null) : ChatTurnEvent;
+
+    /// <summary>
+    /// History was folded into a summary before the turn was built, so the transcript has to be
+    /// reloaded to show it.
+    /// </summary>
+    /// <remarks>
+    /// Raised rather than left silent because compaction rewrites what the model can see. A user
+    /// who does not know it happened has no way to explain why the assistant stopped remembering
+    /// the exact wording of an early message.
+    /// </remarks>
+    public sealed record Compacted(
+        Guid ConversationId,
+        int MessagesFolded,
+        int TokensSaved) : ChatTurnEvent;
 
     /// <summary>
     /// The turn failed. Any text received before the failure is kept and persisted.

@@ -14,7 +14,7 @@ namespace AIClient.App.Views;
 /// from a service locator in the constructor.
 ///
 /// The code here is limited to what a binding cannot express: moving keyboard focus, and
-/// opening and closing the model popup. Everything else the shell does is a command on
+/// opening and closing the header's flyouts. Everything else the shell does is a command on
 /// <see cref="MainViewModel"/>, reached through the ViewModel events below rather than by
 /// the ViewModel holding a reference to this window.
 /// </remarks>
@@ -41,6 +41,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 
         viewModel.SearchRequested += OnSearchRequested;
         viewModel.ModelPickerRequested += OnModelPickerRequested;
+        viewModel.ContextRequested += OnContextRequested;
 
         ModelPicker.SelectionCommitted += OnModelSelectionCommitted;
         CommandPalette.Dismissed += OnCommandPaletteDismissed;
@@ -71,6 +72,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     {
         ViewModel.SearchRequested -= OnSearchRequested;
         ViewModel.ModelPickerRequested -= OnModelPickerRequested;
+        ViewModel.ContextRequested -= OnContextRequested;
         ModelPicker.SelectionCommitted -= OnModelSelectionCommitted;
         CommandPalette.Dismissed -= OnCommandPaletteDismissed;
     }
@@ -96,6 +98,16 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     }
 
     private void OnModelSelectionCommitted(object? sender, EventArgs e) => ModelPopup.IsOpen = false;
+
+    /// <summary>
+    /// Shows the context flyout once its command has a report to put in it.
+    /// </summary>
+    /// <remarks>
+    /// Nothing here decides when: the header button and any other caller run the same command, and
+    /// the request arrives after the read. Opening the popup on the click instead would show the
+    /// previous conversation's numbers for as long as the report took to build.
+    /// </remarks>
+    private void OnContextRequested(object? sender, EventArgs e) => ContextPopup.IsOpen = true;
 
     private void OnCommandPaletteDismissed(object? sender, EventArgs e) =>
         ViewModel.IsCommandPaletteOpen = false;

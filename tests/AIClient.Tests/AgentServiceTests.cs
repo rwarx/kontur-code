@@ -719,15 +719,19 @@ public sealed class AgentServiceTests : IAsyncLifetime
     /// <remarks>
     /// The default gate allows everything, because most tests are about something other than the
     /// approval rules and a gate that refused by default would make each of them assert twice.
+    /// Compaction refuses by default for the same reason: a step is built from the transcript the
+    /// test arranged, not from a summary of it.
     /// </remarks>
     private AgentService Service(
         IAIProvider provider,
         IEnumerable<IAgentTool>? tools = null,
         IAgentApproval? approval = null,
-        IProviderRegistry? registry = null) =>
+        IProviderRegistry? registry = null,
+        ICompactionService? compaction = null) =>
         new(_conversations,
             registry ?? new StubProviderRegistry(provider).WithModel(Model()),
             new ContextBuilder(_conversations, NullLogger<ContextBuilder>.Instance),
+            compaction ?? new StubCompactionService(),
             _settings,
             new AgentToolRegistry(tools ?? []),
             approval ?? new ScriptedApproval(),

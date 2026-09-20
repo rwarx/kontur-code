@@ -115,6 +115,13 @@ public static class DependencyInjection
         services.AddSingleton<ITitleGenerator, HeuristicTitleGenerator>();
         services.AddSingleton<IAttachmentService, AttachmentService>();
         services.AddSingleton<IExportService, ExportService>();
+
+        // Both stateless, and both registered before the two orchestrators that consume them: the
+        // panel reads a report per open and compaction owns nothing between passes, so a singleton
+        // is a cheap way of saying "one definition of how full this chat is".
+        services.AddSingleton<ISessionContextService, SessionContextService>();
+        services.AddSingleton<ICompactionService, CompactionService>();
+
         services.AddSingleton<IChatService, ChatService>();
 
         // Singleton because the interface is one microphone for the whole application: the

@@ -33,6 +33,7 @@
     <sys:String x:Key="S.Main.ToggleSidebar.ToolTip">Seitenleiste ein- oder ausblenden (Ctrl+B)</sys:String>
     <sys:String x:Key="S.Main.ChangeModel.ToolTip">Modell wechseln</sys:String>
     <sys:String x:Key="S.Main.SelectModel">Modell auswählen</sys:String>
+    <sys:String x:Key="S.Main.Context.ToolTip">Sitzungskontext</sys:String>
     <sys:String x:Key="S.Main.Export.ToolTip">Unterhaltung exportieren</sys:String>
     <sys:String x:Key="S.Main.Export.Markdown">Als Markdown exportieren</sys:String>
     <sys:String x:Key="S.Main.Export.Json">Als JSON exportieren</sys:String>
@@ -404,5 +405,44 @@
     <sys:String x:Key="S.Source.Outside">Dieser Pfad liegt außerhalb des Projektordners.</sys:String>
     <sys:String x:Key="S.Source.Missing">Diese Datei ist nicht mehr auf der Festplatte.</sys:String>
     <sys:String x:Key="S.Source.NotShown">Diese Datei konnte nicht angezeigt werden.</sys:String>
+
+    <!-- ===== Kontextbereich ===== -->
+    <sys:String x:Key="S.Context.Title">Kontext</sys:String>
+    <sys:String x:Key="S.Context.Refresh">Neu zählen</sys:String>
+    <sys:String x:Key="S.Context.Session">Sitzung</sys:String>
+    <sys:String x:Key="S.Context.Messages">Nachrichten</sys:String>
+    <sys:String x:Key="S.Context.Provider">Anbieter</sys:String>
+    <sys:String x:Key="S.Context.Model">Modell</sys:String>
+    <sys:String x:Key="S.Context.Window">Kontextgrenze</sys:String>
+    <sys:String x:Key="S.Context.Total">Token insgesamt</sys:String>
+    <sys:String x:Key="S.Context.Usage">Auslastung</sys:String>
+    <sys:String x:Key="S.Context.Input">Eingabe-Token</sys:String>
+    <sys:String x:Key="S.Context.Output">Ausgabe-Token</sys:String>
+    <sys:String x:Key="S.Context.Reasoning">Denk-Token</sys:String>
+    <sys:String x:Key="S.Context.Cache">Cache-Token (Lesen / Schreiben)</sys:String>
+    <sys:String x:Key="S.Context.UserMessages">Nachrichten des Nutzers</sys:String>
+    <sys:String x:Key="S.Context.AssistantMessages">Nachrichten des Assistenten</sys:String>
+    <sys:String x:Key="S.Context.ToolMessages">Nachrichten der Werkzeuge</sys:String>
+    <sys:String x:Key="S.Context.Folded">Zusammengefasste Nachrichten</sys:String>
+    <sys:String x:Key="S.Context.Cost">Gesamtkosten</sys:String>
+    <sys:String x:Key="S.Context.Cost.Hint">Geschätzt aus den Preisen des Katalogs und den vom Anbieter gemeldeten Token. Keine Rechnung.</sys:String>
+    <sys:String x:Key="S.Context.Created">Sitzung erstellt</sys:String>
+    <sys:String x:Key="S.Context.LastActivity">Letzte Aktivität</sys:String>
+    <sys:String x:Key="S.Context.Breakdown">Aufteilung des Kontexts</sys:String>
+    <sys:String x:Key="S.Context.Breakdown.Hint">Geschätzter Anteil an der nächsten Anfrage, nach Herkunft des Textes.</sys:String>
+    <sys:String x:Key="S.Context.Band.User">Nutzer</sys:String>
+    <sys:String x:Key="S.Context.Band.Assistant">Assistent</sys:String>
+    <sys:String x:Key="S.Context.Band.Tools">Werkzeugaufrufe</sys:String>
+    <sys:String x:Key="S.Context.Band.Other">Sonstiges</sys:String>
+    <sys:String x:Key="S.Context.Empty">Öffne eine Unterhaltung, um zu sehen, was das Modell hält.</sys:String>
+    <sys:String x:Key="S.Context.Warning.Title">Das Kontextfenster ist fast voll</sys:String>
+    <sys:String x:Key="S.Context.Warning.Message">Fasse die älteren Nachrichten zusammen, um Platz für die nächste zu schaffen.</sys:String>
+    <sys:String x:Key="S.Context.Compact">Sitzung verdichten</sys:String>
+    <sys:String x:Key="S.Context.Compact.Hint">Ersetzt die älteren Nachrichten durch eine Zusammenfassung und lässt die jüngeren wörtlich stehen.</sys:String>
+    <sys:String x:Key="S.Context.Compact.Running">Die älteren Nachrichten werden zusammengefasst…</sys:String>
+    <sys:String x:Key="S.Context.Compact.Done">{0} Nachricht(en) zusammengefasst, {1:N0} Token frei geworden.</sys:String>
+    <sys:String x:Key="S.Context.Compact.Nothing">Es gab nichts zusammenzufassen.</sys:String>
+    <sys:String x:Key="S.Context.Compact.Failed">Die Sitzung konnte nicht verdichtet werden.</sys:String>
+    <sys:String x:Key="S.Context.Compact.NoModel">Wähle zuerst ein Modell – es schreibt die Zusammenfassung.</sys:String>
 
 </ResourceDictionary>

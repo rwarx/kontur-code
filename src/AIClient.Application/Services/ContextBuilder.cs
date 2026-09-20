@@ -204,7 +204,22 @@ public sealed class ContextBuilder : IContextBuilder
             // Compaction folded these into a later summary. The rows stay on disk so the
             // transcript remains a faithful record; only the prompt forgets them.
             .Where(m => !m.IsCompacted)
-            .Where(HasSomethingToSend);
+            .Where(HasSomethingToSend)
+            .ToList();
+
+        // A context summary stands in for history that has been folded away, so it belongs at the
+        // front of what remains no matter where its row landed. Rows are appended, never inserted,
+        // so the summary the last pass wrote sits at the end of the table while the turns it
+        // replaces sat at the start - left alone, a recap of ancient history would be the last
+        // thing the model reads before the question it has to answer.
+        if (eligible.Any(m => m.IsContextSummary))
+        {
+            eligible =
+            [
+                .. eligible.Where(m => m.IsContextSummary),
+                .. eligible.Where(m => !m.IsContextSummary),
+            ];
+        }
 
         return Repair(eligible);
     }

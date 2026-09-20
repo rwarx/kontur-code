@@ -37,6 +37,7 @@
     <sys:String x:Key="S.Main.ToggleSidebar.ToolTip">Toggle sidebar (Ctrl+B)</sys:String>
     <sys:String x:Key="S.Main.ChangeModel.ToolTip">Change model</sys:String>
     <sys:String x:Key="S.Main.SelectModel">Select a model</sys:String>
+    <sys:String x:Key="S.Main.Context.ToolTip">Session context</sys:String>
     <sys:String x:Key="S.Main.Export.ToolTip">Export conversation</sys:String>
     <sys:String x:Key="S.Main.Export.Markdown">Export as Markdown</sys:String>
     <sys:String x:Key="S.Main.Export.Json">Export as JSON</sys:String>
@@ -408,5 +409,44 @@
     <sys:String x:Key="S.Source.Outside">That path is outside the project folder.</sys:String>
     <sys:String x:Key="S.Source.Missing">That file is no longer on disk.</sys:String>
     <sys:String x:Key="S.Source.NotShown">That file could not be shown.</sys:String>
+
+    <!-- ===== Context panel ===== -->
+    <sys:String x:Key="S.Context.Title">Context</sys:String>
+    <sys:String x:Key="S.Context.Refresh">Recount</sys:String>
+    <sys:String x:Key="S.Context.Session">Session</sys:String>
+    <sys:String x:Key="S.Context.Messages">Messages</sys:String>
+    <sys:String x:Key="S.Context.Provider">Provider</sys:String>
+    <sys:String x:Key="S.Context.Model">Model</sys:String>
+    <sys:String x:Key="S.Context.Window">Context limit</sys:String>
+    <sys:String x:Key="S.Context.Total">Total tokens</sys:String>
+    <sys:String x:Key="S.Context.Usage">Usage</sys:String>
+    <sys:String x:Key="S.Context.Input">Input tokens</sys:String>
+    <sys:String x:Key="S.Context.Output">Output tokens</sys:String>
+    <sys:String x:Key="S.Context.Reasoning">Reasoning tokens</sys:String>
+    <sys:String x:Key="S.Context.Cache">Cache tokens (read / write)</sys:String>
+    <sys:String x:Key="S.Context.UserMessages">User messages</sys:String>
+    <sys:String x:Key="S.Context.AssistantMessages">Assistant messages</sys:String>
+    <sys:String x:Key="S.Context.ToolMessages">Tool messages</sys:String>
+    <sys:String x:Key="S.Context.Folded">Folded messages</sys:String>
+    <sys:String x:Key="S.Context.Cost">Total cost</sys:String>
+    <sys:String x:Key="S.Context.Cost.Hint">Estimated from the prices the catalogue publishes and the tokens this conversation reported. Not a bill.</sys:String>
+    <sys:String x:Key="S.Context.Created">Session created</sys:String>
+    <sys:String x:Key="S.Context.LastActivity">Last activity</sys:String>
+    <sys:String x:Key="S.Context.Breakdown">Context breakdown</sys:String>
+    <sys:String x:Key="S.Context.Breakdown.Hint">Estimated share of the next prompt, by where the text came from.</sys:String>
+    <sys:String x:Key="S.Context.Band.User">User</sys:String>
+    <sys:String x:Key="S.Context.Band.Assistant">Assistant</sys:String>
+    <sys:String x:Key="S.Context.Band.Tools">Tool calls</sys:String>
+    <sys:String x:Key="S.Context.Band.Other">Other</sys:String>
+    <sys:String x:Key="S.Context.Empty">Open a conversation to see what the model is holding.</sys:String>
+    <sys:String x:Key="S.Context.Warning.Title">The context window is nearly full</sys:String>
+    <sys:String x:Key="S.Context.Warning.Message">Fold the older messages into a summary to make room for the next one.</sys:String>
+    <sys:String x:Key="S.Context.Compact">Compact session</sys:String>
+    <sys:String x:Key="S.Context.Compact.Hint">Replaces the older messages with a summary and keeps the recent ones word for word.</sys:String>
+    <sys:String x:Key="S.Context.Compact.Running">Summarising the older messages…</sys:String>
+    <sys:String x:Key="S.Context.Compact.Done">Folded {0} message(s) and freed {1:N0} tokens.</sys:String>
+    <sys:String x:Key="S.Context.Compact.Nothing">Nothing was folded.</sys:String>
+    <sys:String x:Key="S.Context.Compact.Failed">The session could not be compacted.</sys:String>
+    <sys:String x:Key="S.Context.Compact.NoModel">Choose a model first, so the summary can be written by one.</sys:String>
 
 </ResourceDictionary>

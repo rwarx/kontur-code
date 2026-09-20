@@ -21,6 +21,7 @@ public sealed class AIClientDbContext : DbContext
 
     public DbSet<Provider> Providers => Set<Provider>();
     public DbSet<Model> Models => Set<Model>();
+    public DbSet<Project> Projects => Set<Project>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<Attachment> Attachments => Set<Attachment>();
@@ -89,6 +90,21 @@ public sealed class AIClientDbContext : DbContext
             entity.HasIndex(e => new { e.ProviderId, e.ModelId }).IsUnique();
         });
 
+        modelBuilder.Entity<Project>(entity =>
+        {
+            entity.ToTable("Projects");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(128).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(512);
+
+            // Matches WorkspacePath's own ceiling, so a path the agent will accept always fits.
+            entity.Property(e => e.WorkspacePath).HasMaxLength(512);
+            entity.Property(e => e.Accent).HasMaxLength(32);
+
+            // The sidebar reads every project on each open, in this order.
+            entity.HasIndex(e => new { e.SortOrder, e.Name });
+        });
+
         modelBuilder.Entity<Conversation>(entity =>
         {
             entity.ToTable("Conversations");
@@ -97,9 +113,19 @@ public sealed class AIClientDbContext : DbContext
             entity.Property(e => e.ProviderId).HasMaxLength(64);
             entity.Property(e => e.ModelId).HasMaxLength(192);
 
+            // SetNull, not Cascade: deleting a folder must not delete what was in it. The chats
+            // reappear among the unfiled, which is recoverable; the alternative is not.
+            entity.HasOne(e => e.Project)
+                .WithMany(p => p.Conversations)
+                .HasForeignKey(e => e.ProjectId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             // The sidebar orders by pinned then recency; a composite index serves it directly.
             entity.HasIndex(e => new { e.IsPinned, e.UpdatedAt });
             entity.HasIndex(e => e.UpdatedAt);
+
+            // Project mode asks for one folder's chats at a time.
+            entity.HasIndex(e => new { e.ProjectId, e.UpdatedAt });
         });
 
         modelBuilder.Entity<Message>(entity =>

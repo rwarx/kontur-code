@@ -51,7 +51,24 @@ public abstract record AIStreamEvent
     /// Token accounting. Providers send this at most once, usually in the final chunk;
     /// some never send it at all.
     /// </summary>
-    public sealed record Usage(int? InputTokens, int? OutputTokens) : AIStreamEvent;
+    /// <remarks>
+    /// Every field is nullable and they are not interchangeable. Null means the provider said
+    /// nothing, which is not the same as zero: a model with no cache reports no cache figures at
+    /// all, and rendering that as "0 cached tokens" would claim a fact nobody stated. The four
+    /// beyond input and output are the ones that decide whether a session is close to its window,
+    /// which is why they are carried rather than derived.
+    /// </remarks>
+    /// <param name="InputTokens">Prompt tokens billed, cached ones included where the provider counts them.</param>
+    /// <param name="OutputTokens">Completion tokens, reasoning included where the provider counts it.</param>
+    /// <param name="ReasoningTokens">The part of the output that was thinking rather than answer.</param>
+    /// <param name="CacheReadTokens">Prompt tokens served from the provider's cache.</param>
+    /// <param name="CacheWriteTokens">Prompt tokens written into it for later turns.</param>
+    public sealed record Usage(
+        int? InputTokens,
+        int? OutputTokens,
+        int? ReasoningTokens = null,
+        int? CacheReadTokens = null,
+        int? CacheWriteTokens = null) : AIStreamEvent;
 
     /// <summary>
     /// The stream ended normally.

@@ -43,6 +43,7 @@ public static class ServiceRegistration
         services.AddSingleton<ChatViewModel>();
         services.AddSingleton<SessionListViewModel>();
         services.AddSingleton<ModelPickerViewModel>();
+        services.AddSingleton<SessionContextViewModel>();
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<CommandPaletteViewModel>();
         services.AddSingleton<FirstRunViewModel>();

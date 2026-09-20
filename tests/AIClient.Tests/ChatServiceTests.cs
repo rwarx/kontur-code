@@ -633,15 +633,18 @@ public sealed class ChatServiceTests : IAsyncLifetime
     /// <remarks>
     /// Passing <paramref name="registry"/> replaces the whole catalogue, which is how a test
     /// publishes model capabilities; passing neither leaves a registry that knows no providers,
-    /// which is the unconfigured case.
+    /// which is the unconfigured case. Compaction refuses by default, so a turn is built from the
+    /// history the test arranged rather than from a summary of it.
     /// </remarks>
     private ChatService Service(
         IAIProvider? provider = null,
         IProviderRegistry? registry = null,
-        ISettingsService? settings = null) =>
+        ISettingsService? settings = null,
+        ICompactionService? compaction = null) =>
         new(_conversations,
             registry ?? (provider is null ? new StubProviderRegistry() : new StubProviderRegistry(provider)),
             new ContextBuilder(_conversations, NullLogger<ContextBuilder>.Instance),
+            compaction ?? new StubCompactionService(),
             settings ?? new StubSettingsService(),
             NullLogger<ChatService>.Instance);
 
