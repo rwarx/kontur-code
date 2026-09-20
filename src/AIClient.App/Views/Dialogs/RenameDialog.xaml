@@ -14,7 +14,7 @@
                  ExtendsContentIntoTitleBar="True"
                  WindowCornerPreference="Round">
 
-    <Grid>
+    <Grid TextElement.FontFamily="{StaticResource FontUi}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -23,7 +23,10 @@
         <ui:TitleBar Grid.Row="0" Title="{DynamicResource S.Dialog.Rename.Title}" ShowMaximize="False" ShowMinimize="False" />
 
         <StackPanel Grid.Row="1" Margin="20,8,20,20">
-            <TextBlock Text="{DynamicResource S.Dialog.Rename.Label}" Margin="0,0,0,6" />
+            <TextBlock Text="{DynamicResource S.Dialog.Rename.Label}"
+                       FontSize="13"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       Margin="0,0,0,6" />
 
             <ui:TextBox x:Name="TitleBox"
                         MaxLength="200"

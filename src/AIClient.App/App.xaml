@@ -18,6 +18,13 @@
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
 
+                <!--
+                    Kontur Code design tokens. Swapped as a unit between Tokens.Dark.xaml and
+                    Tokens.Light.xaml by AppThemeService, next to the WPF-UI theme swap, so
+                    every DynamicResource token re-resolves live.
+                -->
+                <ResourceDictionary Source="pack://application:,,,/Resources/Styles/Tokens.Dark.xaml" />
+
                 <ResourceDictionary Source="pack://application:,,,/Resources/Styles/Converters.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/Resources/Styles/Shared.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/Resources/Styles/MarkdownTemplates.xaml" />

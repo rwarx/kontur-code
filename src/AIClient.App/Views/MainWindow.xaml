@@ -10,7 +10,7 @@
                  xmlns:app="clr-namespace:AIClient.Application.Interfaces;assembly=AIClient.Application"
                  mc:Ignorable="d"
                  d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
-                 Title="AI Client"
+                 Title="Kontur Code"
                  Width="1240" Height="820"
                  MinWidth="760" MinHeight="520"
                  WindowStartupLocation="CenterScreen"
@@ -33,14 +33,19 @@
         <KeyBinding Key="Escape" Command="{Binding Chat.StopCommand}" />
     </ui:FluentWindow.InputBindings>
 
-    <Grid>
+    <!--
+        Shell typography: one font family cascades to everything inside the window through
+        TextElement inheritance, including popup content, which resolves it through the
+        logical tree. Product typography lives in Shared.xaml with the rest of the tokens.
+    -->
+    <Grid TextElement.FontFamily="{StaticResource FontUi}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <ui:TitleBar Grid.Row="0"
-                     Title="AI Client"
+                     Title="{DynamicResource S.App.Name}"
                      Icon="{ui:SymbolIcon Sparkle24}" />
 
         <Grid Grid.Row="1">
@@ -59,7 +64,7 @@
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
                           ResizeBehavior="PreviousAndNext"
-                          Background="{DynamicResource ControlStrokeColorDefaultBrush}"
+                          Background="{DynamicResource BorderSubtleBrush}"
                           Visibility="{Binding IsSidebarVisible, Converter={StaticResource BoolToVisibility}}" />
 
             <!-- Main area -->
@@ -75,18 +80,22 @@
                 <ui:InfoBar Grid.Row="0"
                             Severity="Warning"
                             IsClosable="False"
-                            Margin="16,0,16,10"
+                            Margin="16,8,16,0"
                             Title="{DynamicResource S.Main.Offline.Title}"
                             Message="{DynamicResource S.Main.Offline.Message}"
                             IsOpen="{Binding IsOffline}" />
 
-                <!-- Chat header: title, model selector, chat actions -->
+                <!--
+                    Session header. The session on screen, the model that answers, and the
+                    three per-conversation tools - nothing else earns a place up here.
+                -->
                 <Border Grid.Row="1"
-                        Padding="14,8"
+                        Height="46"
+                        Padding="12,0,10,0"
                         BorderThickness="0,0,0,1"
-                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}"
                         Visibility="{Binding IsChatVisible, Converter={StaticResource BoolToVisibility}}">
-                    <Grid>
+                    <Grid VerticalAlignment="Center">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
@@ -94,16 +103,16 @@
                         </Grid.ColumnDefinitions>
 
                         <ui:Button Grid.Column="0"
+                                   Style="{StaticResource IconButton}"
                                    Icon="{ui:SymbolIcon PanelLeft24}"
-                                   Appearance="Transparent"
-                                   Margin="0,0,8,0"
                                    ToolTip="{DynamicResource S.Main.ToggleSidebar.ToolTip}"
                                    Command="{Binding ToggleSidebarCommand}" />
 
                         <TextBlock Grid.Column="1"
                                    Text="{Binding Chat.Title}"
-                                   FontSize="15"
+                                   FontSize="14"
                                    FontWeight="SemiBold"
+                                   Margin="6,0,12,0"
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis" />
 
@@ -113,8 +122,8 @@
                                  a filter box and provider grouping, and a combo cannot host
                                  either without fighting its own keyboard handling. -->
                             <ui:Button x:Name="ModelButton"
-                                       Appearance="Secondary"
-                                       Margin="0,0,6,0"
+                                       Style="{StaticResource HeaderChipButton}"
+                                       Margin="0,0,4,0"
                                        ToolTip="{DynamicResource S.Main.ChangeModel.ToolTip}"
                                        Click="OnModelButtonClick">
                                 <StackPanel Orientation="Horizontal">
@@ -125,10 +134,12 @@
                                                VerticalAlignment="Center">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                                                 <Setter Property="Text" Value="{Binding Chat.SelectedModel.Name}" />
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding Chat.SelectedModel}" Value="{x:Null}">
                                                         <Setter Property="Text" Value="{DynamicResource S.Main.SelectModel}" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -136,8 +147,9 @@
                                     </TextBlock>
                                     <ui:SymbolIcon Symbol="ChevronDown24"
                                                    FontSize="12"
-                                                   Margin="8,0,0,0"
-                                                   VerticalAlignment="Center" />
+                                                   Margin="7,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextMutedBrush}" />
                                 </StackPanel>
                             </ui:Button>
 
@@ -150,13 +162,13 @@
                                 it has one, and the window opens the flyout then.
                             -->
                             <ui:Button x:Name="ContextButton"
+                                       Style="{StaticResource IconButton}"
                                        Icon="{ui:SymbolIcon DataHistogram24}"
-                                       Appearance="Transparent"
                                        ToolTip="{DynamicResource S.Main.Context.ToolTip}"
                                        Command="{Binding ShowContextCommand}" />
 
-                            <ui:Button Icon="{ui:SymbolIcon ArrowExportLtr24}"
-                                       Appearance="Transparent"
+                            <ui:Button Style="{StaticResource IconButton}"
+                                       Icon="{ui:SymbolIcon ArrowExportLtr24}"
                                        ToolTip="{DynamicResource S.Main.Export.ToolTip}"
                                        Click="OnExportButtonClick">
                                 <ui:Button.ContextMenu>
@@ -174,8 +186,8 @@
                                 </ui:Button.ContextMenu>
                             </ui:Button>
 
-                            <ui:Button Icon="{ui:SymbolIcon Settings24}"
-                                       Appearance="Transparent"
+                            <ui:Button Style="{StaticResource IconButton}"
+                                       Icon="{ui:SymbolIcon Settings24}"
                                        ToolTip="{DynamicResource S.Main.Settings.ToolTip}"
                                        Command="{Binding ShowSettingsCommand}" />
                         </StackPanel>
@@ -259,16 +271,7 @@
                AllowsTransparency="True"
                Focusable="False"
                PopupAnimation="Fade">
-            <Border Background="{DynamicResource ApplicationBackgroundBrush}"
-                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8"
-                    Margin="12"
-                    Padding="4">
-                <Border.Effect>
-                    <DropShadowEffect BlurRadius="18" ShadowDepth="3" Direction="270" Opacity="0.35" Color="Black" />
-                </Border.Effect>
-
+            <Border Style="{StaticResource FlyoutBorder}" Margin="12" Padding="4">
                 <views:ModelPickerView x:Name="ModelPicker"
                                        Width="440"
                                        MaxHeight="460"
@@ -288,16 +291,7 @@
                AllowsTransparency="True"
                Focusable="False"
                PopupAnimation="Fade">
-            <Border Background="{DynamicResource ApplicationBackgroundBrush}"
-                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8"
-                    Margin="12"
-                    Padding="4">
-                <Border.Effect>
-                    <DropShadowEffect BlurRadius="18" ShadowDepth="3" Direction="270" Opacity="0.35" Color="Black" />
-                </Border.Effect>
-
+            <Border Style="{StaticResource FlyoutBorder}" Margin="12" Padding="4">
                 <views:SessionContextView Width="400"
                                           MaxHeight="620"
                                           DataContext="{Binding SessionContext}" />

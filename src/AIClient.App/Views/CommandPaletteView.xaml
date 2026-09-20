@@ -16,20 +16,13 @@
     -->
     <Grid Background="#66000000" MouseLeftButtonDown="OnScrimClicked">
 
-        <Border MaxWidth="620"
+        <Border Style="{StaticResource FlyoutBorder}"
+                MaxWidth="620"
                 MaxHeight="440"
                 Margin="0,110,0,0"
                 VerticalAlignment="Top"
                 HorizontalAlignment="Center"
-                CornerRadius="10"
-                Background="{DynamicResource ApplicationBackgroundBrush}"
-                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-                BorderThickness="1"
                 MouseLeftButtonDown="OnPanelClicked">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="28" ShadowDepth="6" Opacity="0.35" Direction="270" />
-            </Border.Effect>
-
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -43,6 +36,8 @@
                             FontSize="15"
                             PlaceholderText="{DynamicResource S.Palette.Placeholder}"
                             Icon="{ui:SymbolIcon Search24}"
+                            BorderThickness="0"
+                            Background="Transparent"
                             PreviewKeyDown="OnQueryKeyDown"
                             Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -107,9 +102,8 @@
                 <Border Grid.Row="2"
                         Padding="12,7"
                         BorderThickness="0,1,0,0"
-                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
-                    <TextBlock Style="{StaticResource SubtleText}"
-                               FontSize="11"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}">
+                    <TextBlock Style="{StaticResource MutedText}"
                                Text="{DynamicResource S.Palette.Hints}" />
                 </Border>
             </Grid>

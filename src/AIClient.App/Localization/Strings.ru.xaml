@@ -6,6 +6,8 @@
          служба локализации проверяет соответствие при загрузке и пишет предупреждение в журнал. -->
 
     <!-- ===== Общие ===== -->
+    <sys:String x:Key="S.App.Name">Kontur Code</sys:String>
+    <sys:String x:Key="S.Chat.CopyCode">Копировать</sys:String>
     <sys:String x:Key="S.Common.Cancel">Отмена</sys:String>
     <sys:String x:Key="S.Common.Save">Сохранить</sys:String>
     <sys:String x:Key="S.Common.Close">Закрыть</sys:String>
@@ -41,6 +43,7 @@
     <sys:String x:Key="S.Main.Settings.ToolTip">Настройки (Ctrl+,)</sys:String>
 
     <!-- ===== Боковая панель ===== -->
+    <sys:String x:Key="S.Sidebar.Section.Recent">Недавние</sys:String>
     <sys:String x:Key="S.Sidebar.NewChat">Новый чат</sys:String>
     <sys:String x:Key="S.Sidebar.NewChat.ToolTip">Новый чат (Ctrl+N)</sys:String>
     <sys:String x:Key="S.Sidebar.Search.Placeholder">Поиск по чатам…</sys:String>

@@ -10,6 +10,8 @@
     -->
 
     <!-- ===== Common ===== -->
+    <sys:String x:Key="S.App.Name">Kontur Code</sys:String>
+    <sys:String x:Key="S.Chat.CopyCode">Copy</sys:String>
     <sys:String x:Key="S.Common.Cancel">Cancel</sys:String>
     <sys:String x:Key="S.Common.Save">Save</sys:String>
     <sys:String x:Key="S.Common.Close">Close</sys:String>
@@ -45,6 +47,7 @@
     <sys:String x:Key="S.Main.Settings.ToolTip">Settings (Ctrl+,)</sys:String>
 
     <!-- ===== Sidebar ===== -->
+    <sys:String x:Key="S.Sidebar.Section.Recent">Recent</sys:String>
     <sys:String x:Key="S.Sidebar.NewChat">New Chat</sys:String>
     <sys:String x:Key="S.Sidebar.NewChat.ToolTip">New chat (Ctrl+N)</sys:String>
     <sys:String x:Key="S.Sidebar.Search.Placeholder">Search chats…</sys:String>

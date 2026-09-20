@@ -4,71 +4,62 @@
                     xmlns:sys="clr-namespace:System;assembly=System.Runtime">
 
     <!--
-        Shared metrics. Kept as resources rather than repeated literals so the spacing
-        rhythm stays consistent and can be adjusted in one place.
+        Kontur Code component library.
+
+        Every style here is built from the semantic tokens in Tokens.Dark.xaml /
+        Tokens.Light.xaml (always via DynamicResource, so a theme swap re-resolves live) and
+        from the shared metrics below. Colours are never written into this file: a value that
+        differs between themes belongs in the token dictionaries, a value that does not is a
+        metric and lives further down this file.
     -->
+
+    <!-- ============================== Metrics ============================== -->
+
     <sys:Double x:Key="ContentMaxWidth">860</sys:Double>
     <Thickness x:Key="PanePadding">20,16,20,16</Thickness>
     <Thickness x:Key="CardPadding">14,12,14,12</Thickness>
     <CornerRadius x:Key="CardCorner">8</CornerRadius>
     <CornerRadius x:Key="ChipCorner">14</CornerRadius>
 
-    <FontFamily x:Key="CodeFont">Cascadia Code, Consolas, Courier New</FontFamily>
+    <!-- Corner scale: 4 (chips), 6 (inputs), 8 (cards), 10 (user message), 12 (composer). -->
+    <CornerRadius x:Key="R4">4</CornerRadius>
+    <CornerRadius x:Key="R6">6</CornerRadius>
+    <CornerRadius x:Key="R8">8</CornerRadius>
+    <CornerRadius x:Key="R10">10</CornerRadius>
+    <CornerRadius x:Key="R12">12</CornerRadius>
 
-    <!-- Sidebar -->
+    <!-- Typography. Segoe UI Variable on Windows 11, Segoe UI beneath it; code in Cascadia. -->
+    <FontFamily x:Key="FontUi">Segoe UI Variable Text, Segoe UI Variable, Segoe UI</FontFamily>
+    <FontFamily x:Key="FontUiDisplay">Segoe UI Variable Display, Segoe UI Variable, Segoe UI</FontFamily>
+    <FontFamily x:Key="CodeFont">Cascadia Code, Cascadia Mono, Consolas, Courier New</FontFamily>
 
-    <!--
-        Targets ui:Button rather than the framework Button: WPF-UI's control styles are what
-        give the shell its Fluent look, and BasedOn keeps the template while overriding only
-        the layout properties a sidebar row needs.
-    -->
-    <Style x:Key="SidebarButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
-        <Setter Property="HorizontalAlignment" Value="Stretch" />
-        <Setter Property="HorizontalContentAlignment" Value="Left" />
-        <Setter Property="Padding" Value="12,9" />
-        <Setter Property="Margin" Value="0,1" />
-        <Setter Property="Appearance" Value="Secondary" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-    </Style>
+    <!-- The one shadow a floating surface gets. Popups only: a shadow on scrolled content
+         is a per-frame cost for nothing. -->
+    <DropShadowEffect x:Key="FlyoutShadow"
+                      BlurRadius="24" ShadowDepth="5" Direction="270" Opacity="0.32" Color="#000000" />
 
-    <!-- Chat -->
-
-    <Style x:Key="MessageCard" TargetType="Border">
-        <Setter Property="CornerRadius" Value="{StaticResource CardCorner}" />
-        <Setter Property="Padding" Value="{StaticResource CardPadding}" />
-    </Style>
-
-    <!--
-        User messages sit in a tinted bubble; assistant messages run full width with no
-        container. Boxing a long answer in a card wastes horizontal space and makes code
-        blocks harder to read, which is the opposite of what a coding-focused client wants.
-    -->
-    <Style x:Key="UserMessageCard" TargetType="Border" BasedOn="{StaticResource MessageCard}">
-        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="HorizontalAlignment" Value="Right" />
-        <Setter Property="MaxWidth" Value="620" />
-    </Style>
-
-    <Style x:Key="MessageActionButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
-        <Setter Property="Appearance" Value="Secondary" />
-        <Setter Property="Padding" Value="7,4" />
-        <Setter Property="Margin" Value="0,0,4,0" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="FontSize" Value="12" />
-    </Style>
-
-    <!-- Text -->
+    <!-- ============================== Text ============================== -->
 
     <Style x:Key="SubtleText" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
 
+    <Style x:Key="MutedText" TargetType="TextBlock" BasedOn="{StaticResource SubtleText}">
+        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+        <Setter Property="FontSize" Value="11" />
+    </Style>
+
+    <!-- Small-caps section label: workspace headers, settings groups, inspector groups. -->
+    <Style x:Key="SectionLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+        <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+
+    <!-- Legacy alias: pages that predate SectionLabel keep working. -->
     <Style x:Key="SectionHeader" TargetType="TextBlock">
         <Setter Property="FontSize" Value="17" />
         <Setter Property="FontWeight" Value="SemiBold" />
@@ -78,72 +69,201 @@
     <Style x:Key="SettingLabel" TargetType="TextBlock">
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="FontSize" Value="13" />
     </Style>
 
-    <!-- Badges and chips -->
+    <!-- A quiet hairline used to separate stacked sections. -->
+    <Style x:Key="Hairline" TargetType="Border">
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource BorderSubtleBrush}" />
+    </Style>
+
+    <!-- ============================== Surfaces ============================== -->
+
+    <!-- Floating popup surface: model picker, context report, canvas flyouts. -->
+    <Style x:Key="FlyoutBorder" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource BgElevatedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource R10}" />
+        <Setter Property="Effect" Value="{StaticResource FlyoutShadow}" />
+    </Style>
+
+    <!-- A panel sitting on the base: sidebar, inspector, code panel. -->
+    <Style x:Key="PanelBorder" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource BgSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- A group box inside a page: settings sections. -->
+    <Style x:Key="GroupBorder" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource BgSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource R8}" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+
+    <!-- ============================== Buttons ============================== -->
+
+    <!--
+        Targets ui:Button rather than the framework Button: WPF-UI's control styles are what
+        give the shell its Fluent look, and BasedOn keeps the template while overriding only
+        the layout properties a sidebar row needs.
+    -->
+    <Style x:Key="SidebarButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Padding" Value="10,7" />
+        <Setter Property="Margin" Value="0,1" />
+        <Setter Property="CornerRadius" Value="{StaticResource R6}" />
+        <Setter Property="Appearance" Value="Transparent" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Borderless icon button for headers and toolbars. -->
+    <Style x:Key="IconButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+        <Setter Property="Appearance" Value="Transparent" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="6" />
+        <Setter Property="CornerRadius" Value="{StaticResource R6}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    </Style>
+
+    <!-- Compact header chip: model picker trigger. -->
+    <Style x:Key="HeaderChipButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+        <Setter Property="Appearance" Value="Secondary" />
+        <Setter Property="Padding" Value="10,5" />
+        <Setter Property="CornerRadius" Value="{StaticResource R6}" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <!-- Message hover actions. -->
+    <Style x:Key="MessageActionButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+        <Setter Property="Appearance" Value="Transparent" />
+        <Setter Property="Padding" Value="7,3" />
+        <Setter Property="Margin" Value="0,0,2,0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="{StaticResource R4}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ============================== Chat ============================== -->
+
+    <Style x:Key="MessageCard" TargetType="Border">
+        <Setter Property="CornerRadius" Value="{StaticResource R10}" />
+        <Setter Property="Padding" Value="{StaticResource CardPadding}" />
+    </Style>
+
+    <!--
+        User messages sit in a compact card aligned right; assistant messages run full width
+        with no container. Boxing a long answer in a card wastes horizontal space and makes
+        code blocks harder to read, which is the opposite of what a coding-focused client wants.
+    -->
+    <Style x:Key="UserMessageCard" TargetType="Border" BasedOn="{StaticResource MessageCard}">
+        <Setter Property="Background" Value="{DynamicResource BgActiveBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="12,9" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="MaxWidth" Value="620" />
+    </Style>
+
+    <!-- The assistant's identity line: the model that answered, quietly. -->
+    <Style x:Key="AssistantMetaText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Execution timeline row: one tool call. -->
+    <Style x:Key="ToolCallCard" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource BgSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource R6}" />
+        <Setter Property="Padding" Value="9,6" />
+        <Setter Property="Margin" Value="0,4,0,0" />
+    </Style>
+
+    <!-- The status dot that leads a timeline row. State colour set by triggers at the
+         point of use; the base is quiet on purpose. -->
+    <Style x:Key="ToolStatusDot" TargetType="Ellipse">
+        <Setter Property="Width" Value="7" />
+        <Setter Property="Height" Value="7" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Fill" Value="{DynamicResource TextMutedBrush}" />
+    </Style>
+
+    <Style x:Key="ToolNameText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource CodeFont}" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Code and wells. -->
+    <Style x:Key="CodeBlockContainer" TargetType="Border">
+        <Setter Property="CornerRadius" Value="{StaticResource R6}" />
+        <Setter Property="Margin" Value="0,8" />
+        <Setter Property="Background" Value="{DynamicResource BgInsetBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- Suggestions on the empty transcript. -->
+    <Style x:Key="SuggestionButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+        <Setter Property="Appearance" Value="Secondary" />
+        <Setter Property="Padding" Value="12,9" />
+        <Setter Property="Margin" Value="4" />
+        <Setter Property="MinWidth" Value="220" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="CornerRadius" Value="{StaticResource R8}" />
+        <Setter Property="Background" Value="{DynamicResource BgSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- ============================== Badges ============================== -->
 
     <Style x:Key="Badge" TargetType="Border">
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="CornerRadius" Value="{StaticResource R4}" />
         <Setter Property="Padding" Value="5,1" />
         <Setter Property="Margin" Value="0,0,4,0" />
-        <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource BgHoverBrush}" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
     <Style x:Key="BadgeText" TargetType="TextBlock">
         <Setter Property="FontSize" Value="10" />
-        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
     </Style>
 
     <Style x:Key="AttachmentChip" TargetType="Border">
-        <Setter Property="CornerRadius" Value="{StaticResource ChipCorner}" />
+        <Setter Property="CornerRadius" Value="{StaticResource R6}" />
         <Setter Property="Padding" Value="10,5" />
         <Setter Property="Margin" Value="0,0,6,6" />
-        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+        <Setter Property="Background" Value="{DynamicResource BgSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}" />
         <Setter Property="BorderThickness" Value="1" />
     </Style>
-
-    <!-- Approval and diff -->
-
-    <!--
-        Two tints rather than two text colours. A translucent wash over whatever the theme already
-        painted stays legible in both light and dark, which a fixed green on white does not - and the
-        diff in an approval card is the one piece of text in this app a user has to read carefully
-        before answering. The leading + and - carry the same information for anyone who cannot tell
-        the two hues apart.
-    -->
-    <SolidColorBrush x:Key="DiffAddedBrush" Color="#332EA043" />
-    <SolidColorBrush x:Key="DiffRemovedBrush" Color="#33F85149" />
-
-    <!--
-        The gate's accent. Amber rather than red: every question it asks is about something
-        irreversible, but most of them are a file the user asked to have edited, and a card that
-        looks like an error teaches them to dismiss errors.
-    -->
-    <SolidColorBrush x:Key="ApprovalAccentBrush" Color="#E3A008" />
-
-    <!-- Code blocks -->
-
-
-    <Style x:Key="CodeBlockContainer" TargetType="Border">
-        <Setter Property="CornerRadius" Value="6" />
-        <Setter Property="Margin" Value="0,8" />
-        <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
-        <Setter Property="BorderThickness" Value="1" />
-    </Style>
-
-    <!--
-        Syntax colours. Defined per theme rather than hardcoded so code stays legible in
-        both; adding a theme means adding a dictionary, not editing the highlighter.
-    -->
-    <SolidColorBrush x:Key="SyntaxKeywordBrush" Color="#569CD6" />
-    <SolidColorBrush x:Key="SyntaxTypeBrush" Color="#4EC9B0" />
-    <SolidColorBrush x:Key="SyntaxStringBrush" Color="#CE9178" />
-    <SolidColorBrush x:Key="SyntaxNumberBrush" Color="#B5CEA8" />
-    <SolidColorBrush x:Key="SyntaxCommentBrush" Color="#6A9955" />
-    <SolidColorBrush x:Key="SyntaxDirectiveBrush" Color="#C586C0" />
-    <SolidColorBrush x:Key="SyntaxFunctionBrush" Color="#DCDCAA" />
 
 </ResourceDictionary>

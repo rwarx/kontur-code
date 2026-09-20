@@ -45,14 +45,14 @@
                 <Border x:Name="Halo"
                         Margin="-3"
                         CornerRadius="11"
-                        BorderThickness="2"
-                        BorderBrush="{DynamicResource AccentTextFillColorSecondaryBrush}"
+                        BorderThickness="1.5"
+                        BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
                         Opacity="0" />
 
                 <Border x:Name="Card"
-                        CornerRadius="{StaticResource CardCorner}"
-                        Background="{DynamicResource ControlFillColorDefaultBrush}"
-                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        CornerRadius="{StaticResource R8}"
+                        Background="{DynamicResource BgSurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}"
                         BorderThickness="1">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -67,10 +67,11 @@
                         -->
                         <Border Grid.Column="0"
                                 Width="3"
-                                CornerRadius="8,0,0,8"
+                                Margin="1,7"
+                                CornerRadius="2"
                                 Background="{Binding KindBrush}" />
 
-                        <Grid Grid.Column="1" Margin="12,0,12,0" VerticalAlignment="Center">
+                        <Grid Grid.Column="1" Margin="10,0,12,0" VerticalAlignment="Center">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
@@ -91,12 +92,13 @@
                                        Text="{Binding Title}"
                                        FontSize="13"
                                        FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
                                        TextTrimming="CharacterEllipsis"
                                        VerticalAlignment="Center" />
 
                             <TextBlock Grid.Row="1" Grid.Column="1"
                                        Text="{Binding Subtitle}"
-                                       Style="{StaticResource SubtleText}"
+                                       Style="{StaticResource MutedText}"
                                        FontSize="11"
                                        Margin="0,3,0,0" />
                         </Grid>
@@ -107,12 +109,16 @@
             <DataTemplate.Triggers>
                 <DataTrigger Binding="{Binding IsHovered}" Value="True">
                     <Setter TargetName="Card" Property="Background"
-                            Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                            Value="{DynamicResource BgHoverBrush}" />
+                    <Setter TargetName="Card" Property="BorderBrush"
+                            Value="{DynamicResource BorderStrongBrush}" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding IsSelected}" Value="True">
                     <Setter TargetName="Halo" Property="Opacity" Value="1" />
                     <Setter TargetName="Card" Property="BorderBrush"
-                            Value="{DynamicResource AccentTextFillColorSecondaryBrush}" />
+                            Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                    <Setter TargetName="Card" Property="Background"
+                            Value="{DynamicResource BgElevatedBrush}" />
                 </DataTrigger>
 
                 <!--
@@ -134,12 +140,12 @@
             <Canvas>
                 <Path x:Name="Curve"
                       Data="{Binding Curve}"
-                      Stroke="{DynamicResource ControlStrokeColorDefaultBrush}"
+                      Stroke="{DynamicResource BorderStrongBrush}"
                       StrokeThickness="1.2" />
 
                 <Path x:Name="Head"
                       Data="{Binding Arrow}"
-                      Fill="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                      Fill="{DynamicResource BorderStrongBrush}" />
 
                 <!-- The kind is shown only for a relation the selection touches; always-on labels
                      turn a graph of any size into a wall of words. -->
@@ -148,24 +154,24 @@
                         Canvas.Top="{Binding LabelY}"
                         Width="80"
                         Visibility="{Binding IsHighlighted, Converter={StaticResource BoolToVisibility}}"
-                        Background="{DynamicResource ApplicationBackgroundBrush}"
+                        Background="{DynamicResource BgBaseBrush}"
                         CornerRadius="3"
                         Padding="4,1">
                     <TextBlock Text="{Binding KindLabel}"
                                FontSize="10"
                                TextAlignment="Center"
                                TextTrimming="CharacterEllipsis"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
                 </Border>
             </Canvas>
 
             <DataTemplate.Triggers>
                 <DataTrigger Binding="{Binding IsHighlighted}" Value="True">
                     <Setter TargetName="Curve" Property="Stroke"
-                            Value="{DynamicResource AccentTextFillColorSecondaryBrush}" />
+                            Value="{DynamicResource AccentFillColorDefaultBrush}" />
                     <Setter TargetName="Curve" Property="StrokeThickness" Value="1.8" />
                     <Setter TargetName="Head" Property="Fill"
-                            Value="{DynamicResource AccentTextFillColorSecondaryBrush}" />
+                            Value="{DynamicResource AccentFillColorDefaultBrush}" />
                 </DataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
@@ -186,9 +192,14 @@
             <Setter Property="Width" Value="32" />
             <Setter Property="Height" Value="30" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="FontSize" Value="14" />
+            <Setter Property="CornerRadius" Value="{StaticResource R6}" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
         <!-- The AI actions, on the canvas and in the inspector, are text and nothing else: an icon
@@ -199,7 +210,7 @@
             <Setter Property="Padding" Value="8,3" />
             <Setter Property="Margin" Value="0,0,2,0" />
             <Setter Property="FontSize" Value="11" />
-            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
         </Style>
 
         <Style x:Key="CanvasChromeButton" TargetType="{x:Type ui:Button}"
@@ -207,13 +218,13 @@
             <Setter Property="Appearance" Value="Transparent" />
             <Setter Property="Padding" Value="8,2" />
             <Setter Property="FontSize" Value="11" />
-            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
         </Style>
 
 
     </UserControl.Resources>
 
-    <Grid Background="{DynamicResource ApplicationBackgroundBrush}">
+    <Grid Background="{DynamicResource BgBaseBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -401,11 +412,14 @@
                         Canvas.Top="{Binding AiSurfaceY}"
                         Width="300"
                         Visibility="{Binding IsAiSurfaceVisible, Converter={StaticResource BoolToVisibility}}"
-                        Background="{DynamicResource ApplicationBackgroundBrush}"
-                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        Background="{DynamicResource BgElevatedBrush}"
+                        BorderBrush="{DynamicResource BorderStrongBrush}"
                         BorderThickness="1"
-                        CornerRadius="{StaticResource CardCorner}"
+                        CornerRadius="{StaticResource R8}"
                         Padding="6,5">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="16" ShadowDepth="3" Direction="270" Opacity="0.28" Color="#000000" />
+                    </Border.Effect>
                     <StackPanel>
 
                         <!-- One node: no menu, just the way in. The five questions are in the
@@ -451,10 +465,13 @@
                     VerticalAlignment="Bottom"
                     Margin="16"
                     Padding="4"
-                    Background="{DynamicResource ApplicationBackgroundBrush}"
-                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    Background="{DynamicResource BgElevatedBrush}"
+                    BorderBrush="{DynamicResource BorderStrongBrush}"
                     BorderThickness="1"
-                    CornerRadius="{StaticResource CardCorner}">
+                    CornerRadius="{StaticResource R10}">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="16" ShadowDepth="3" Direction="270" Opacity="0.28" Color="#000000" />
+                </Border.Effect>
                 <StackPanel Orientation="Horizontal">
 
                     <!--
@@ -489,22 +506,22 @@
                         </ui:Button>
                     </Grid>
 
-                    <Border Width="1" Margin="6,6" Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                    <Border Width="1" Margin="6,6" Background="{DynamicResource BorderSubtleBrush}" />
 
-                    <ui:Button Style="{StaticResource CanvasToolButton}" Content="+"
+                    <ui:Button Style="{StaticResource CanvasToolButton}" Icon="{ui:SymbolIcon ZoomIn24}"
                                AutomationProperties.Name="Zoom in"
                                ToolTip="{DynamicResource S.Canvas.Tool.ZoomIn.ToolTip}" Command="{Binding ZoomInCommand}" />
-                    <ui:Button Style="{StaticResource CanvasToolButton}" Content="−"
+                    <ui:Button Style="{StaticResource CanvasToolButton}" Icon="{ui:SymbolIcon ZoomOut24}"
                                AutomationProperties.Name="Zoom out"
                                ToolTip="{DynamicResource S.Canvas.Tool.ZoomOut.ToolTip}" Command="{Binding ZoomOutCommand}" />
-                    <ui:Button Style="{StaticResource CanvasToolButton}" Content="⊙"
+                    <ui:Button Style="{StaticResource CanvasToolButton}" Icon="{ui:SymbolIcon FullScreenMaximize24}"
                                AutomationProperties.Name="Zoom to selection"
                                ToolTip="{DynamicResource S.Canvas.Tool.ZoomSelection.ToolTip}" Command="{Binding ZoomToSelectionCommand}" />
-                    <ui:Button Style="{StaticResource CanvasToolButton}" Content="⛶"
+                    <ui:Button Style="{StaticResource CanvasToolButton}" Icon="{ui:SymbolIcon AutoFitWidth24}"
                                AutomationProperties.Name="Fit to content"
                                ToolTip="{DynamicResource S.Canvas.Tool.Fit.ToolTip}" Command="{Binding FitToContentCommand}" />
 
-                    <Border Width="1" Margin="6,6" Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                    <Border Width="1" Margin="6,6" Background="{DynamicResource BorderSubtleBrush}" />
 
                     <ui:Button Style="{StaticResource CanvasActionButton}"
                                VerticalAlignment="Center"
@@ -520,15 +537,15 @@
                     Margin="0,16,0,0"
                     Padding="12,5"
                     CornerRadius="14"
-                    Background="{DynamicResource ApplicationBackgroundBrush}"
-                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    Background="{DynamicResource BgElevatedBrush}"
+                    BorderBrush="{DynamicResource BorderStrongBrush}"
                     BorderThickness="1"
                     Visibility="{Binding IsIndexing, Converter={StaticResource BoolToVisibility}}">
                 <StackPanel Orientation="Horizontal">
                     <Ellipse Width="7" Height="7" Margin="0,0,8,0" VerticalAlignment="Center"
-                             Fill="{DynamicResource AccentTextFillColorSecondaryBrush}" />
+                             Fill="{DynamicResource AccentFillColorDefaultBrush}" />
                     <TextBlock Text="{Binding GraphStatus}" FontSize="12"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
                 </StackPanel>
             </Border>
 
@@ -536,22 +553,37 @@
             <StackPanel HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
+                <Border Width="46"
+                        Height="46"
+                        CornerRadius="{StaticResource R12}"
+                        HorizontalAlignment="Center"
+                        Margin="0,0,0,16"
+                        Background="{DynamicResource BgSurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}"
+                        BorderThickness="1">
+                    <ui:SymbolIcon Symbol="Flowchart24"
+                                   FontSize="20"
+                                   Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                </Border>
                 <TextBlock Text="{DynamicResource S.Canvas.Empty.Title}"
-                           FontSize="22"
+                           FontSize="21"
+                           FontWeight="SemiBold"
+                           FontFamily="{StaticResource FontUiDisplay}"
                            HorizontalAlignment="Center" />
                 <TextBlock Text="{DynamicResource S.Canvas.Empty.Graph}"
                            FontSize="13"
                            Margin="0,10,0,0"
                            HorizontalAlignment="Center"
-                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
                 <ui:Button Content="{DynamicResource S.Canvas.Empty.Index}"
                            Appearance="Primary"
                            Margin="0,20,0,0"
                            Padding="18,7"
+                           CornerRadius="{StaticResource R8}"
                            HorizontalAlignment="Center"
                            Command="{Binding IndexWorkspaceCommand}" />
                 <TextBlock Text="{DynamicResource S.Canvas.Empty.Note}"
-                           Style="{StaticResource SubtleText}"
+                           Style="{StaticResource MutedText}"
                            Margin="0,14,0,0"
                            HorizontalAlignment="Center" />
             </StackPanel>
@@ -572,7 +604,7 @@
                 Grid.ColumnSpan="2"
                 Height="28"
                 BorderThickness="0,1,0,0"
-                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                BorderBrush="{DynamicResource BorderSubtleBrush}">
             <Grid Margin="20,0,16,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -582,7 +614,7 @@
 
                 <TextBlock Grid.Column="0"
                            VerticalAlignment="Center"
-                           Style="{StaticResource SubtleText}"
+                           Style="{StaticResource MutedText}"
                            Text="{Binding GraphStatus}" />
 
                 <TextBlock Grid.Column="1"
@@ -596,14 +628,14 @@
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <TextBlock VerticalAlignment="Center"
-                               Style="{StaticResource SubtleText}"
+                               Style="{StaticResource MutedText}"
                                Text="{Binding SelectionStatus}" />
                     <Border Width="1" Height="12" Margin="10,0"
                             VerticalAlignment="Center"
-                            Background="{DynamicResource ControlStrokeColorDefaultBrush}"
+                            Background="{DynamicResource BorderStrongBrush}"
                             Visibility="{Binding SelectionStatus, Converter={StaticResource StringToVisibility}}" />
                     <TextBlock VerticalAlignment="Center"
-                               Style="{StaticResource SubtleText}"
+                               Style="{StaticResource MutedText}"
                                Text="{Binding ZoomText}" />
                 </StackPanel>
             </Grid>

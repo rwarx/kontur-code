@@ -14,7 +14,7 @@
     <!-- An overlay over the shell rather than a separate window: the user sees the app they
          just launched with the setup in front of it, instead of a dialog and then a
          still-empty application behind it. -->
-    <Grid Background="{DynamicResource ApplicationBackgroundBrush}">
+    <Grid Background="{DynamicResource BgBaseBrush}">
 
         <Grid MaxWidth="640"
               VerticalAlignment="Center"
@@ -36,14 +36,15 @@
                 <TextBlock Text="{DynamicResource S.FirstRun.Welcome.Title}"
                            FontSize="30"
                            FontWeight="SemiBold"
+                           FontFamily="{StaticResource FontUiDisplay}"
                            Margin="0,0,0,10" />
                 <TextBlock TextWrapping="Wrap"
                            FontSize="15"
-                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,0,0,22"
                            Text="{DynamicResource S.FirstRun.Welcome.Intro}" />
 
-                <ui:Card Padding="16">
+                <Border Style="{StaticResource GroupBorder}" Padding="16,14">
                     <StackPanel>
                         <TextBlock Text="{DynamicResource S.FirstRun.Welcome.Get.Title}" FontWeight="SemiBold" Margin="0,0,0,8" />
                         <TextBlock TextWrapping="Wrap" Margin="0,0,0,4"
@@ -55,7 +56,7 @@
                         <TextBlock TextWrapping="Wrap"
                                    Text="{DynamicResource S.FirstRun.Welcome.Get.4}" />
                     </StackPanel>
-                </ui:Card>
+                </Border>
             </StackPanel>
 
             <!-- ===== Connect a provider ===== -->
@@ -65,14 +66,14 @@
                            FontWeight="SemiBold"
                            Margin="0,0,0,8" />
                 <TextBlock TextWrapping="Wrap"
-                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,0,0,18"
                            Text="{DynamicResource S.FirstRun.Connect.Intro}" />
 
                 <ItemsControl ItemsSource="{Binding Providers}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <ui:Card Padding="16" Margin="0,0,0,10">
+                            <Border Style="{StaticResource GroupBorder}" Padding="16,14" Margin="0,0,0,10">
                                 <StackPanel>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -81,7 +82,7 @@
                                         </Grid.ColumnDefinitions>
 
                                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="15" />
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource TextPrimaryBrush}" />
                                             <TextBlock Style="{StaticResource SubtleText}"
                                                        Text="{Binding StatusText}"
                                                        Margin="0,1,0,0" />
@@ -95,7 +96,7 @@
                                                              Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
 
                                             <ui:SymbolIcon Symbol="CheckmarkCircle24"
-                                                           Foreground="#2EA043"
+                                                           Foreground="{DynamicResource SuccessBrush}"
                                                            Margin="0,0,10,0"
                                                            VerticalAlignment="Center"
                                                            Visibility="{Binding HasApiKey, Converter={StaticResource BoolToVisibility}}" />
@@ -139,7 +140,7 @@
                                                    Visibility="{Binding ApiKeyUrl, Converter={StaticResource StringToVisibility}}" />
                                     </StackPanel>
                                 </StackPanel>
-                            </ui:Card>
+                            </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -152,13 +153,11 @@
                            FontWeight="SemiBold"
                            Margin="0,0,0,8" />
                 <TextBlock TextWrapping="Wrap"
-                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,0,0,18"
                            Text="{DynamicResource S.FirstRun.Model.Intro}" />
 
-                <Border BorderThickness="1"
-                        CornerRadius="8"
-                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                <Border Style="{StaticResource GroupBorder}"
                         Padding="4">
                     <!-- The same picker control as the chat header, on the wizard's own
                          ViewModel instance, so a choice here is already the app's choice. -->

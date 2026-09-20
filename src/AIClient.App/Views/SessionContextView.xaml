@@ -36,10 +36,10 @@
         </Style>
 
         <!-- The legend's swatches, so a band's colour is declared once for bar and key alike. -->
-        <SolidColorBrush x:Key="BandUserBrush" Color="#4C8DFF" />
-        <SolidColorBrush x:Key="BandAssistantBrush" Color="#2EA043" />
-        <SolidColorBrush x:Key="BandToolBrush" Color="#E3A008" />
-        <SolidColorBrush x:Key="BandOtherBrush" Color="#8B7FD4" />
+        <SolidColorBrush x:Key="BandUserBrush" Color="#A371F7" />
+        <SolidColorBrush x:Key="BandAssistantBrush" Color="#3FB950" />
+        <SolidColorBrush x:Key="BandToolBrush" Color="#D29922" />
+        <SolidColorBrush x:Key="BandOtherBrush" Color="#5C6BC0" />
 
         <Style x:Key="LegendSwatch" TargetType="Border">
             <Setter Property="Width" Value="8" />
@@ -113,7 +113,7 @@
 
                 <!-- ===== The window and what fills it ===== -->
 
-                <Separator Margin="0,7,0,12" Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                <Separator Margin="0,7,0,12" Background="{DynamicResource BorderSubtleBrush}" />
 
                 <DockPanel Style="{StaticResource FieldRow}">
                     <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Window}" />
@@ -177,7 +177,7 @@
                         <TextBlock Style="{StaticResource FieldValue}"
                                    Text="{Binding Report.CacheReadTokens, Converter={StaticResource TokenCount}}" />
                         <TextBlock Style="{StaticResource FieldValue}"
-                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                   Foreground="{DynamicResource TextMutedBrush}"
                                    Margin="4,0"
                                    Text="/" />
                         <TextBlock Style="{StaticResource FieldValue}"
@@ -187,7 +187,7 @@
 
                 <!-- ===== Who said what ===== -->
 
-                <Separator Margin="0,7,0,12" Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                <Separator Margin="0,7,0,12" Background="{DynamicResource BorderSubtleBrush}" />
 
                 <DockPanel Style="{StaticResource FieldRow}">
                     <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.UserMessages}" />
@@ -216,7 +216,7 @@
 
                 <!-- ===== Money and dates ===== -->
 
-                <Separator Margin="0,7,0,12" Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                <Separator Margin="0,7,0,12" Background="{DynamicResource BorderSubtleBrush}" />
 
                 <DockPanel Style="{StaticResource FieldRow}">
                     <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Cost}" />
@@ -239,7 +239,7 @@
 
                 <!-- ===== Breakdown ===== -->
 
-                <Separator Margin="0,7,0,10" Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                <Separator Margin="0,7,0,10" Background="{DynamicResource BorderSubtleBrush}" />
 
                 <TextBlock Text="{DynamicResource S.Context.Breakdown}"
                            FontSize="12"
@@ -283,7 +283,7 @@
                                    Margin="0,0,4,0"
                                    Text="{DynamicResource S.Context.Band.User}" />
                         <TextBlock Style="{StaticResource LegendText}"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                    Text="{Binding Report.Breakdown.UserPercent, Converter={StaticResource BandShare}}" />
                     </StackPanel>
 
@@ -293,7 +293,7 @@
                                    Margin="0,0,4,0"
                                    Text="{DynamicResource S.Context.Band.Assistant}" />
                         <TextBlock Style="{StaticResource LegendText}"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                    Text="{Binding Report.Breakdown.AssistantPercent, Converter={StaticResource BandShare}}" />
                     </StackPanel>
 
@@ -303,7 +303,7 @@
                                    Margin="0,0,4,0"
                                    Text="{DynamicResource S.Context.Band.Tools}" />
                         <TextBlock Style="{StaticResource LegendText}"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                    Text="{Binding Report.Breakdown.ToolPercent, Converter={StaticResource BandShare}}" />
                     </StackPanel>
 
@@ -313,7 +313,7 @@
                                    Margin="0,0,4,0"
                                    Text="{DynamicResource S.Context.Band.Other}" />
                         <TextBlock Style="{StaticResource LegendText}"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                    Text="{Binding Report.Breakdown.OtherPercent, Converter={StaticResource BandShare}}" />
                     </StackPanel>
                 </WrapPanel>
@@ -344,7 +344,7 @@
         <StackPanel Grid.Row="2"
                     Margin="0,10,0,0"
                     Visibility="{Binding HasReport, Converter={StaticResource BoolToVisibility}}">
-            <Separator Margin="0,0,0,10" Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+            <Separator Margin="0,0,0,10" Background="{DynamicResource BorderSubtleBrush}" />
 
             <!--
                 Shown only when the chat is far enough through its window to be worth folding, and

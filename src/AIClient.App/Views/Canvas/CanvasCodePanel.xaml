@@ -32,7 +32,7 @@
             <Setter Property="Padding" Value="0" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
             <Setter Property="FontFamily" Value="{StaticResource CodeFont}" />
             <Setter Property="FontSize" Value="12" />
         </Style>
@@ -40,7 +40,7 @@
         <Style x:Key="CanvasCodeGutter" TargetType="{x:Type TextBox}"
                BasedOn="{StaticResource CanvasCodeText}">
             <Setter Property="TextAlignment" Value="Right" />
-            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
             <Setter Property="IsHitTestVisible" Value="False" />
             <Setter Property="VerticalScrollBarVisibility" Value="Hidden" />
             <Setter Property="HorizontalScrollBarVisibility" Value="Hidden" />
@@ -56,14 +56,14 @@
             <Setter Property="Padding" Value="0" />
             <Setter Property="FontSize" Value="14" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
         </Style>
 
     </UserControl.Resources>
 
     <Border BorderThickness="1,0,0,0"
-            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-            Background="{DynamicResource ApplicationBackgroundBrush}">
+            BorderBrush="{DynamicResource BorderSubtleBrush}"
+            Background="{DynamicResource BgSurfaceBrush}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -78,6 +78,7 @@
 
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
                     <TextBlock FontSize="13" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
                                TextTrimming="CharacterEllipsis"
                                Text="{Binding Title}" />
 
@@ -144,7 +145,7 @@
                            TextAlignment="Center"
                            TextWrapping="Wrap"
                            FontSize="12"
-                           Foreground="{StaticResource ApprovalAccentBrush}"
+                           Foreground="{DynamicResource ApprovalAccentBrush}"
                            Text="{Binding Error}"
                            Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}" />
             </Grid>

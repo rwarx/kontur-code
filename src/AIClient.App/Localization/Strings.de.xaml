@@ -6,6 +6,8 @@
         der Lokalisierungsdienst prüft die Übereinstimmung beim Laden und protokolliert Abweichungen. -->
 
     <!-- ===== Allgemein ===== -->
+    <sys:String x:Key="S.App.Name">Kontur Code</sys:String>
+    <sys:String x:Key="S.Chat.CopyCode">Kopieren</sys:String>
     <sys:String x:Key="S.Common.Cancel">Abbrechen</sys:String>
     <sys:String x:Key="S.Common.Save">Speichern</sys:String>
     <sys:String x:Key="S.Common.Close">Schließen</sys:String>
@@ -41,6 +43,7 @@
     <sys:String x:Key="S.Main.Settings.ToolTip">Einstellungen (Ctrl+,)</sys:String>
 
     <!-- ===== Seitenleiste ===== -->
+    <sys:String x:Key="S.Sidebar.Section.Recent">Letzte</sys:String>
     <sys:String x:Key="S.Sidebar.NewChat">Neuer Chat</sys:String>
     <sys:String x:Key="S.Sidebar.NewChat.ToolTip">Neuer Chat (Ctrl+N)</sys:String>
     <sys:String x:Key="S.Sidebar.Search.Placeholder">Chats durchsuchen…</sys:String>

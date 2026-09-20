@@ -351,6 +351,16 @@ public sealed partial class ChatViewModel : ObservableObject
         // The hint depends on the setting and the sentence; both parts are re-read.
         ApplyRenderingSettings();
 
+        // Tool-call state words are computed in the active language; the cards already on
+        // screen re-read theirs the same way the rest of the pane does.
+        foreach (var message in Messages)
+        {
+            foreach (var toolCall in message.ToolCalls)
+            {
+                toolCall.RefreshLocalized();
+            }
+        }
+
         // An unsaved chat carries the default title; a saved one carries the user's or the
         // generated one, which is translated for nobody.
         if (ConversationId is null)

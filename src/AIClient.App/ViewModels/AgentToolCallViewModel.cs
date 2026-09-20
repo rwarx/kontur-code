@@ -105,18 +105,24 @@ public sealed partial class AgentToolCallViewModel : ObservableObject
 
     public bool IsFinished => State is not (AgentToolCallState.Proposed or AgentToolCallState.Running);
 
-    /// <summary>The state in the words a user would use for it.</summary>
+    /// <summary>The state in the words a user would use for it, in the active language.</summary>
     public string StateText => State switch
     {
-        AgentToolCallState.Proposed => "Waiting",
-        AgentToolCallState.Running => "Running",
-        AgentToolCallState.Succeeded => "Done",
-        AgentToolCallState.Denied => "Not allowed",
-        AgentToolCallState.Abandoned => "Interrupted",
-        _ => "Failed",
+        AgentToolCallState.Proposed => Services.Localization.T("S.Tool.Waiting"),
+        AgentToolCallState.Running => Services.Localization.T("S.Tool.Running"),
+        AgentToolCallState.Succeeded => Services.Localization.T("S.Tool.Done"),
+        AgentToolCallState.Denied => Services.Localization.T("S.Tool.Denied"),
+        AgentToolCallState.Abandoned => Services.Localization.T("S.Tool.Interrupted"),
+        _ => Services.Localization.T("S.Tool.Failed"),
     };
 
     public bool HasBody => Body is { Length: > 0 };
+
+    /// <summary>
+    /// Re-reads the strings this card computes in the active language. Called from the chat
+    /// pane when the application language changes, for cards already on screen.
+    /// </summary>
+    public void RefreshLocalized() => OnPropertyChanged(nameof(StateText));
 
     public bool IsBodyDiff => HasBody && BodyLines.Count > 0;
 

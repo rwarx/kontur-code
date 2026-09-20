@@ -91,7 +91,46 @@ public sealed class AppThemeService : IAppThemeService
                 updateAccent: appearance.AccentColor is null);
         }
 
+        ApplyTokenDictionary();
+
         _logger.LogInformation("Theme set to {Mode} (rendering {Effective}).", mode, EffectiveTheme);
+    }
+
+    /// <summary>
+    /// Swaps the Kontur Code token dictionary (Tokens.Dark.xaml / Tokens.Light.xaml) so the
+    /// shell's own palette follows the effective WPF-UI theme. The dictionaries define the
+    /// same key set; replacing the entry in place re-resolves every DynamicResource token.
+    /// </summary>
+    private void ApplyTokenDictionary()
+    {
+        var resources = System.Windows.Application.Current?.Resources;
+        if (resources is null)
+        {
+            // Briefly null at startup before the Application exists, and during unit tests.
+            return;
+        }
+
+        var source = new Uri(
+            EffectiveTheme == ThemeMode.Light
+                ? "pack://application:,,,/Resources/Styles/Tokens.Light.xaml"
+                : "pack://application:,,,/Resources/Styles/Tokens.Dark.xaml");
+
+        var merged = resources.MergedDictionaries;
+        for (var i = 0; i < merged.Count; i++)
+        {
+            if (merged[i].Source?.OriginalString.Contains("/Tokens.", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                if (merged[i].Source == source)
+                {
+                    return;
+                }
+
+                merged[i] = new ResourceDictionary { Source = source };
+                return;
+            }
+        }
+
+        merged.Insert(0, new ResourceDictionary { Source = source });
     }
 
     private void ApplyAccent(string? accentColor)
