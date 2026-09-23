@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="AIClient.App.Views.CodeView"
+<UserControl x:Class="AIClient.App.Views.CodeView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -64,7 +64,7 @@
                                                    TextTrimming="CharacterEllipsis" />
                                         <Button Style="{StaticResource KcButtonTool}" Width="18" Height="18"
                                                 Margin="6,-2,-4,-2" Click="OnCloseTabClicked"
-                                                ToolTip="Close">
+                                                ToolTip="{DynamicResource S.Settings.Agent.Close}">
                                             <kontur:KonturIcon Kind="Close" Width="10" Height="10" GlyphThickness="2.7" />
                                         </Button>
                                     </StackPanel>
@@ -77,7 +77,7 @@
                 <Button Grid.Column="1" Style="{StaticResource KcButtonTool}" Width="26" Height="26" Margin="6,0,8,0"
                         Command="{Binding ReloadActiveCommand}"
                         Visibility="{Binding HasTabs, Converter={StaticResource BoolToVisibility}}"
-                        ToolTip="Reload (the agent may have rewritten the file)">
+                        ToolTip="{DynamicResource S.Code.Reload.ToolTip}">
                     <kontur:KonturIcon Kind="Refresh" Width="13" Height="13" />
                 </Button>
             </Grid>
@@ -90,11 +90,11 @@
                         Visibility="{Binding HasTabs, Converter={StaticResource InverseBoolToVisibility}}">
                 <kontur:KonturIcon Kind="Code" Width="34" Height="34" GlyphThickness="1.65"
                                    Foreground="{DynamicResource Brush.Accent}" HorizontalAlignment="Center" />
-                <TextBlock Text="No documents open" Style="{StaticResource Type.Section}"
+                <TextBlock Text="{DynamicResource S.Code.Empty.Title}" Style="{StaticResource Type.Section}"
                            HorizontalAlignment="Center" Margin="0,10,0,0" />
                 <TextBlock Style="{StaticResource Type.Caption}" Margin="0,6,0,0" HorizontalAlignment="Center"
                            Foreground="{DynamicResource Brush.TextSecondary}"
-                           Text="Open a file from the Files view, or select a node on the canvas." />
+                           Text="{DynamicResource S.Code.Empty.Hint}" />
             </StackPanel>
 
             <!-- The document: breadcrumbs, then line numbers + code, side by side and
@@ -120,8 +120,7 @@
                                    VerticalAlignment="Center" />
                         <Border Style="{StaticResource KcBadge}" Margin="10,0,0,0"
                                 Visibility="{Binding ActiveTab.IsTruncated, Converter={StaticResource BoolToVisibility}}">
-                            <TextBlock Style="{StaticResource KcBadgeText}"
-                                       Text="{Binding ActiveTab.TotalLines, StringFormat=first {0:0} lines}" />
+                            <TextBlock Style="{StaticResource KcBadgeText}"><Run Text="{DynamicResource S.Code.FirstLines.Start}" /><Run Text=" " /><Run Text="{Binding ActiveTab.TotalLines}" /><Run Text=" " /><Run Text="{DynamicResource S.Code.FirstLines.End}" /></TextBlock>
                         </Border>
                     </StackPanel>
                 </Border>

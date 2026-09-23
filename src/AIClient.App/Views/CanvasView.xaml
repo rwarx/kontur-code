@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="AIClient.App.Views.CanvasView"
+<UserControl x:Class="AIClient.App.Views.CanvasView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -38,48 +38,48 @@
                              Width="30" Height="28" Padding="0"
                              IsChecked="{Binding Canvas.IsSelectTool, Mode=OneWay}"
                              Command="{Binding Canvas.UseSelectToolCommand}"
-                             ToolTip="Select and move (V)">
+                             ToolTip="{DynamicResource S.Canvas.Tool.Select.Tip}">
                     <kontur:KonturIcon Kind="Pointer" Width="14" Height="14" />
                 </RadioButton>
                 <RadioButton Style="{StaticResource KcToggle}" GroupName="CanvasTool"
                              Width="30" Height="28" Padding="0"
                              IsChecked="{Binding Canvas.IsPanTool, Mode=OneWay}"
                              Command="{Binding Canvas.UsePanToolCommand}"
-                             ToolTip="Pan the canvas (H, or hold Space)">
+                             ToolTip="{DynamicResource S.Canvas.Tool.Pan.Tip}">
                     <kontur:KonturIcon Kind="Hand" Width="14" Height="14" />
                 </RadioButton>
                 <Separator Margin="2,4" />
                 <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.ZoomOutCommand}"
-                        ToolTip="Zoom out (scroll)">
+                        ToolTip="{DynamicResource S.Canvas.Tool.ZoomOut.Tip}">
                     <kontur:KonturIcon Kind="ZoomOut" Width="13" Height="13" />
                 </Button>
                 <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.ZoomResetCommand}"
-                        ToolTip="Zoom 100%">
+                        ToolTip="{DynamicResource S.Canvas.Tool.ZoomReset.Tip}">
                     <TextBlock Text="{Binding Canvas.ZoomPercent, StringFormat={}{0:0}%}"
                                Style="{StaticResource Type.Metadata}" MinWidth="38"
                                HorizontalAlignment="Center" />
                 </Button>
                 <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.ZoomInCommand}"
-                        ToolTip="Zoom in (scroll)">
+                        ToolTip="{DynamicResource S.Canvas.Tool.ZoomIn.Tip}">
                     <kontur:KonturIcon Kind="ZoomIn" Width="13" Height="13" />
                 </Button>
                 <Separator Margin="2,4" />
                 <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.FocusSelectionCommand}"
-                        ToolTip="Focus selection">
+                        ToolTip="{DynamicResource S.Canvas.Tool.Focus.Tip}">
                     <kontur:KonturIcon Kind="Focus" Width="13" Height="13" />
                 </Button>
                 <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.FitCommand}"
-                        ToolTip="Fit graph to view (double-click empty space)">
+                        ToolTip="{DynamicResource S.Canvas.Tool.Fit.Tip}">
                     <kontur:KonturIcon Kind="Fit" Width="13" Height="13" />
                 </Button>
                 <Separator Margin="2,4" />
                 <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.AutoLayoutCommand}"
-                        ToolTip="Auto layout">
+                        ToolTip="{DynamicResource S.Canvas.AutoLayout}">
                     <kontur:KonturIcon Kind="AutoLayout" Width="14" Height="14" />
                 </Button>
                 <Separator Margin="2,4" />
                 <Button Style="{StaticResource KcButtonTool}" Command="{Binding Canvas.AskAiCommand}"
-                        ToolTip="Ask AI about the selection (Ctrl+I)">
+                        ToolTip="{DynamicResource S.Canvas.Tool.Ask.Tip}">
                     <kontur:KonturIcon Kind="Sparkle" Width="13" Height="13"
                                        Foreground="{DynamicResource Brush.AccentText}" />
                 </Button>
@@ -107,12 +107,14 @@
                 Padding="8,4"
                 Visibility="{Binding Canvas.NodeCount, Converter={StaticResource NodeCountToVisibility}}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Style="{StaticResource Type.Metadata}"
-                           Text="{Binding Canvas.NodeCount, StringFormat={}{0} nodes}" />
-                <TextBlock Style="{StaticResource Type.Metadata}" Opacity="0.6" Text=" В· " />
-                <TextBlock Style="{StaticResource Type.Metadata}"
-                           Text="{Binding Canvas.EdgeCount, StringFormat={}{0} links}" />
-                <TextBlock Style="{StaticResource Type.Metadata}" Opacity="0.6" Text=" В· "
+                <TextBlock Style="{StaticResource Type.Metadata}">
+                    <Run Text="{Binding Canvas.NodeCount}" /><Run Text=" " /><Run Text="{DynamicResource S.Canvas.Unit.Nodes}" />
+                </TextBlock>
+                <TextBlock Style="{StaticResource Type.Metadata}" Opacity="0.6" Text=" · " />
+                <TextBlock Style="{StaticResource Type.Metadata}">
+                    <Run Text="{Binding Canvas.EdgeCount}" /><Run Text=" " /><Run Text="{DynamicResource S.Canvas.Unit.Links}" />
+                </TextBlock>
+                <TextBlock Style="{StaticResource Type.Metadata}" Opacity="0.6" Text=" · "
                            Visibility="{Binding Canvas.HasSelection, Converter={StaticResource BoolToVisibility}}" />
                 <TextBlock Style="{StaticResource Type.Accent}"
                            Text="{Binding Canvas.SelectionSummary}"
@@ -132,7 +134,7 @@
                 <kontur:KonturIcon Kind="Refresh" Width="12" Height="12"
                                    Foreground="{DynamicResource Brush.AccentText}"
                                    motion:Motion.Spin="True" />
-                <TextBlock Text="Indexing workspace…" Style="{StaticResource Type.Metadata}" Margin="7,0,0,0" />
+                <TextBlock Text="{DynamicResource S.Canvas.Status.IndexingWorkspace}" Style="{StaticResource Type.Metadata}" Margin="7,0,0,0" />
             </StackPanel>
         </Border>
 
@@ -154,22 +156,22 @@
                     <kontur:KonturIcon Kind="Canvas" Width="34" Height="34" GlyphThickness="1.65"
                                        Foreground="{DynamicResource Brush.Accent}" />
                 </StackPanel>
-                <TextBlock Text="The canvas is empty"
+                <TextBlock Text="{DynamicResource S.Canvas.Blank.Title}"
                            Style="{StaticResource Type.Section}" HorizontalAlignment="Center" />
                 <TextBlock Style="{StaticResource Type.CaptionWrap}" Margin="0,6,0,0" TextAlignment="Center"
                            Foreground="{DynamicResource Brush.TextSecondary}"
-                           Text="Open a workspace to see it as a map, or ask the agent for a plan and have it drawn here." />
+                           Text="{DynamicResource S.Canvas.Blank.Hint}" />
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
                     <Button Style="{StaticResource KcButtonPrimary}" Padding="14,8"
                             Command="{Binding OpenWorkspaceCommand}" MinWidth="150">
-                        <TextBlock Text="Open Workspace" FontWeight="SemiBold" />
+                        <TextBlock Text="{DynamicResource S.Canvas.Blank.Open}" FontWeight="SemiBold" />
                     </Button>
                     <Button Style="{StaticResource KcButtonGhost}" Padding="14,8" Margin="8,0,0,0" MinWidth="150"
                             Command="{Binding AskForPlanCommand}">
                         <StackPanel Orientation="Horizontal">
                             <kontur:KonturIcon Kind="Sparkle" Width="13" Height="13" />
-                            <TextBlock Text="Ask for a plan" Style="{StaticResource Type.Caption}" Margin="7,0,0,0" />
+                            <TextBlock Text="{DynamicResource S.Canvas.Blank.AskPlan}" Style="{StaticResource Type.Caption}" Margin="7,0,0,0" />
                         </StackPanel>
                     </Button>
                 </StackPanel>

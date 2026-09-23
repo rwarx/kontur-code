@@ -131,7 +131,7 @@
                         BorderThickness="0,1,0,0"
                         BorderBrush="{DynamicResource Brush.BorderFaint}">
                     <TextBlock Style="{StaticResource Type.Metadata}"
-                               Text="↑↓ to navigate · Enter to run · Esc to close" />
+                               Text="{DynamicResource S.Palette.Hints}" />
                 </Border>
             </Grid>
         </Border>

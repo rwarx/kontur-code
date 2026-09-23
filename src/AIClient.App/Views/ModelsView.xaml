@@ -29,11 +29,10 @@
             <StackPanel Orientation="Horizontal">
                 <kontur:KonturIcon Kind="Models" Width="14" Height="14"
                                    Foreground="{DynamicResource Brush.AccentText}" />
-                <TextBlock Text="Providers" Style="{StaticResource Type.Section}" Margin="9,0,0,0"
+                <TextBlock Text="{DynamicResource S.Mode.Title.Providers}" Style="{StaticResource Type.Section}" Margin="9,0,0,0"
                            VerticalAlignment="Center" />
-                <TextBlock Text="{Binding Providers.Count, StringFormat={}{0} providers}"
-                           Style="{StaticResource Type.Metadata}" Margin="12,0,0,0" Opacity="0.6"
-                           VerticalAlignment="Center" />
+                <TextBlock Style="{StaticResource Type.Metadata}" Margin="12,0,0,0" Opacity="0.6"
+                           VerticalAlignment="Center"><Run Text="{Binding Providers.Count}" /><Run Text=" " /><Run Text="{DynamicResource S.Models.Unit.Providers}" /></TextBlock>
             </StackPanel>
         </Border>
 
@@ -100,28 +99,28 @@
 
                                 <Button Grid.Column="3" Style="{StaticResource KcButtonGhost}" Padding="9,4" Margin="0,0,4,0"
                                         Command="{Binding BeginEditApiKeyCommand}"
-                                        ToolTip="Add or change the API key">
+                                        ToolTip="{DynamicResource S.Models.Key.ToolTip}">
                                     <StackPanel Orientation="Horizontal">
                                         <kontur:KonturIcon Kind="Edit" Width="12" Height="12" />
-                                        <TextBlock Text="Key" Style="{StaticResource Type.Metadata}" Margin="6,0,0,0" />
+                                        <TextBlock Text="{DynamicResource S.Models.Key}" Style="{StaticResource Type.Metadata}" Margin="6,0,0,0" />
                                     </StackPanel>
                                 </Button>
 
                                 <Button Grid.Column="4" Style="{StaticResource KcButtonGhost}" Padding="9,4" Margin="0,0,4,0"
                                         Command="{Binding DataContext.RefreshProviderCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                        CommandParameter="{Binding}" ToolTip="Fetch the catalogue from the provider">
+                                        CommandParameter="{Binding}" ToolTip="{DynamicResource S.Models.Refresh.ToolTip}">
                                     <StackPanel Orientation="Horizontal">
                                         <kontur:KonturIcon Kind="Refresh" Width="12" Height="12" />
-                                        <TextBlock Text="Refresh" Style="{StaticResource Type.Metadata}" Margin="6,0,0,0" />
+                                        <TextBlock Text="{DynamicResource S.Common.Refresh}" Style="{StaticResource Type.Metadata}" Margin="6,0,0,0" />
                                     </StackPanel>
                                 </Button>
 
                                 <Button Grid.Column="5" Style="{StaticResource KcButtonGhost}" Padding="9,4"
                                         Command="{Binding DataContext.TestProviderCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                        CommandParameter="{Binding}" ToolTip="Test the connection">
+                                        CommandParameter="{Binding}" ToolTip="{DynamicResource S.Models.Test.ToolTip}">
                                     <StackPanel Orientation="Horizontal">
                                         <kontur:KonturIcon Kind="Check" Width="12" Height="12" />
-                                        <TextBlock Text="Test" Style="{StaticResource Type.Metadata}" Margin="6,0,0,0" />
+                                        <TextBlock Text="{DynamicResource S.Models.Test}" Style="{StaticResource Type.Metadata}" Margin="6,0,0,0" />
                                     </StackPanel>
                                 </Button>
                             </Grid>
@@ -143,23 +142,23 @@
 
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="6,0,0,0">
                                         <Button Style="{StaticResource KcButtonGhost}" Padding="9,4" Margin="0,0,4,0"
-                                                Command="{Binding SaveApiKeyCommand}" ToolTip="Save">
+                                                Command="{Binding SaveApiKeyCommand}" ToolTip="{DynamicResource S.Common.Save}">
                                             <StackPanel Orientation="Horizontal">
                                                 <kontur:KonturIcon Kind="Check" Width="12" Height="12" />
-                                                <TextBlock Text="Save" Style="{StaticResource Type.Metadata}" Margin="6,0,0,0" />
+                                                <TextBlock Text="{DynamicResource S.Common.Save}" Style="{StaticResource Type.Metadata}" Margin="6,0,0,0" />
                                             </StackPanel>
                                         </Button>
                                         <Button Style="{StaticResource KcButtonGhost}" Padding="9,4"
-                                                Command="{Binding CancelEditApiKeyCommand}" ToolTip="Cancel">
+                                                Command="{Binding CancelEditApiKeyCommand}" ToolTip="{DynamicResource S.Common.Cancel}">
                                             <StackPanel Orientation="Horizontal">
                                                 <kontur:KonturIcon Kind="Close" Width="12" Height="12" />
-                                                <TextBlock Text="Cancel" Style="{StaticResource Type.Metadata}" Margin="6,0,0,0" />
+                                                <TextBlock Text="{DynamicResource S.Common.Cancel}" Style="{StaticResource Type.Metadata}" Margin="6,0,0,0" />
                                             </StackPanel>
                                         </Button>
                                     </StackPanel>
                                 </Grid>
 
-                                <TextBlock Text="Encrypted with Windows DPAPI under your user account. It is never written to the database, the log files or an export."
+                                <TextBlock Text="{DynamicResource S.Provider.KeyNote}"
                                            Style="{StaticResource Type.Metadata}"
                                            Opacity="0.6"
                                            TextWrapping="Wrap"
@@ -184,9 +183,9 @@
                 <Border Grid.Row="0" BorderBrush="{DynamicResource Brush.BorderFaint}"
                         BorderThickness="0,0,0,1" Padding="12,7">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Catalogue" Style="{StaticResource Type.Caption}" FontWeight="SemiBold"
+                        <TextBlock Text="{DynamicResource S.Models.Catalogue}" Style="{StaticResource Type.Caption}" FontWeight="SemiBold"
                                    VerticalAlignment="Center" />
-                        <TextBlock Text="Click a model to make it the default for new chats"
+                        <TextBlock Text="{DynamicResource S.Models.Catalogue.Hint}"
                                    Style="{StaticResource Type.Metadata}" Margin="10,0,0,0" Opacity="0.6"
                                    VerticalAlignment="Center" />
                     </StackPanel>

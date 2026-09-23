@@ -100,12 +100,12 @@
 
                                 <Border Style="{StaticResource KcBadge}"
                                         Visibility="{Binding SupportsImages, Converter={StaticResource BoolToVisibility}}">
-                                    <TextBlock Style="{StaticResource KcBadgeText}" Text="vision" />
+                                    <TextBlock Style="{StaticResource KcBadgeText}" Text="{DynamicResource S.Picker.Vision}" />
                                 </Border>
 
                                 <Border Style="{StaticResource KcBadge}"
                                         Visibility="{Binding SupportsTools, Converter={StaticResource BoolToVisibility}}">
-                                    <TextBlock Style="{StaticResource KcBadgeText}" Text="tools" />
+                                    <TextBlock Style="{StaticResource KcBadgeText}" Text="{DynamicResource S.Picker.Tools}" />
                                 </Border>
 
                                 <TextBlock Style="{StaticResource Type.Metadata}"
@@ -120,7 +120,7 @@
             <!-- No models: say what to do about it rather than showing an empty box. -->
             <StackPanel Margin="20,30"
                         Visibility="{Binding HasNoModels, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Text="No models available"
+                <TextBlock Text="{DynamicResource S.Picker.None.Title}"
                            Style="{StaticResource Type.Caption}"
                            FontWeight="SemiBold"
                            TextAlignment="Center"
@@ -129,7 +129,7 @@
                            TextAlignment="Center"
                            TextWrapping="Wrap"
                            TextTrimming="None"
-                           Text="Add an API key in Settings → Providers, then refresh the model list." />
+                           Text="{DynamicResource S.Picker.None.Hint}" />
             </StackPanel>
 
             <kontur:KonturIcon Kind="Refresh" Width="20" Height="20"

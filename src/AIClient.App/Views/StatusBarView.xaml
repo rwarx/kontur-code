@@ -32,7 +32,7 @@
                 <kontur:KonturIcon Kind="Folder" Width="12" Height="12"
                                    Foreground="{DynamicResource Brush.TextMuted}"
                                    VerticalAlignment="Center" />
-                <TextBlock Text="{Binding Workspace.WorkspaceName, FallbackValue='No workspace open'}"
+                <TextBlock Text="{Binding Workspace.WorkspaceName, FallbackValue={DynamicResource S.Main.Workspace.None}}"
                            Margin="7,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                            MaxWidth="280" ToolTip="{Binding Workspace.WorkspaceRoot}">
                     <TextBlock.Style>
@@ -40,7 +40,7 @@
                         <Style TargetType="TextBlock" BasedOn="{StaticResource Type.Metadata}">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding Workspace.HasWorkspace}" Value="False">
-                                    <Setter Property="Text" Value="No workspace open" />
+                                    <Setter Property="Text" Value="{DynamicResource S.Main.Workspace.None}" />
                                     <Setter Property="Opacity" Value="0.7" />
                                 </DataTrigger>
                             </Style.Triggers>

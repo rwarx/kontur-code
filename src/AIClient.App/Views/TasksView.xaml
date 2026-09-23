@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="AIClient.App.Views.TasksView"
+<UserControl x:Class="AIClient.App.Views.TasksView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -32,7 +32,7 @@
                 </Grid.ColumnDefinitions>
                 <kontur:KonturIcon Grid.Column="0" Kind="Tasks" Width="14" Height="14"
                                    Foreground="{DynamicResource Brush.AccentText}" />
-                <TextBlock Grid.Column="1" Text="Tasks &amp; Agents" Style="{StaticResource Type.Section}"
+                <TextBlock Grid.Column="1" Text="{DynamicResource S.Palette.ShowTasks}" Style="{StaticResource Type.Section}"
                            Margin="9,0,0,0" VerticalAlignment="Center" />
             </Grid>
         </Border>
@@ -58,9 +58,9 @@
                         </Style>
                     </Ellipse.Style>
                 </Ellipse>
-                <TextBlock Text="{Binding RunKind, FallbackValue='Chat'}" Style="{StaticResource Type.Caption}"
+                <TextBlock Text="{Binding RunKind, FallbackValue={DynamicResource S.Mode.Chat}}" Style="{StaticResource Type.Caption}"
                            FontWeight="SemiBold" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding StateText, FallbackValue='Idle'}" Style="{StaticResource Type.Metadata}"
+                <TextBlock Text="{Binding StateText, FallbackValue={DynamicResource S.Main.Ai.Idle}}" Style="{StaticResource Type.Metadata}"
                            Margin="10,0,0,0" VerticalAlignment="Center" Opacity="0.8" />
             </StackPanel>
         </Border>
@@ -127,11 +127,11 @@
                     Visibility="{Binding HasRows, Converter={StaticResource InverseBoolToVisibility}}">
             <kontur:KonturIcon Kind="Bot" Width="34" Height="34" GlyphThickness="1.65"
                                Foreground="{DynamicResource Brush.TextMuted}" HorizontalAlignment="Center" />
-            <TextBlock Text="No agent activity" Style="{StaticResource Type.Section}"
+            <TextBlock Text="{DynamicResource S.Tasks.Empty.Title}" Style="{StaticResource Type.Section}"
                        HorizontalAlignment="Center" Margin="0,10,0,0" />
             <TextBlock Style="{StaticResource Type.Caption}" Margin="0,6,0,0" HorizontalAlignment="Center"
                        Foreground="{DynamicResource Brush.TextSecondary}"
-                       Text="Tool calls and agent steps will appear here while a run is working." />
+                       Text="{DynamicResource S.Tasks.Empty.Hint}" />
         </StackPanel>
     </Grid>
 </UserControl>

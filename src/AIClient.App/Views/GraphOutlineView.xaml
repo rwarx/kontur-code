@@ -44,7 +44,7 @@
         <TextBox Grid.Row="1" Margin="10,8,10,4" MinHeight="28"
                  Style="{StaticResource KcInputPlaceholder}"
                  VerticalContentAlignment="Center"
-                 Tag="Filter by name or path"
+                 Tag="{DynamicResource S.Outline.Filter}"
                  Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" />
 
         <ListBox Grid.Row="2" ItemsSource="{Binding Groups}" Margin="4,0"

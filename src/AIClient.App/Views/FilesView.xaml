@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="AIClient.App.Views.FilesView"
+<UserControl x:Class="AIClient.App.Views.FilesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -39,11 +39,11 @@
                     </Grid.ColumnDefinitions>
                     <kontur:KonturIcon Grid.Column="0" Kind="Files" Width="14" Height="14"
                                        Foreground="{DynamicResource Brush.AccentText}" />
-                    <TextBlock Grid.Column="1" Text="{Binding RootName, FallbackValue='Files'}"
+                    <TextBlock Grid.Column="1" Text="{Binding RootName, FallbackValue={DynamicResource S.Nav.Files}}"
                                Style="{StaticResource Type.Section}" Margin="9,0,0,0" VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis" />
                     <Button Grid.Column="2" Style="{StaticResource KcButtonTool}" Width="24" Height="24"
-                            Command="{Binding RefreshCommand}" ToolTip="Refresh">
+                            Command="{Binding RefreshCommand}" ToolTip="{DynamicResource S.Common.Refresh}">
                         <kontur:KonturIcon Kind="Refresh" Width="13" Height="13" />
                     </Button>
                 </Grid>
@@ -149,7 +149,7 @@
                             <StackPanel Orientation="Horizontal">
                                 <kontur:KonturIcon Kind="Open" Width="13" Height="13"
                                                    Foreground="{DynamicResource Brush.TextOnAccent}" />
-                                <TextBlock Text="Open in Code" FontWeight="SemiBold" Margin="8,0,0,0" />
+                                <TextBlock Text="{DynamicResource S.Inspector.OpenInCode}" FontWeight="SemiBold" Margin="8,0,0,0" />
                             </StackPanel>
                         </Button>
                         <TextBlock Style="{StaticResource Type.Caption}" Margin="2,12,0,0"
@@ -158,7 +158,7 @@
 
                     <!-- Nothing selected: the honest empty state. -->
                     <TextBlock Style="{StaticResource Type.Caption}" Opacity="0.6"
-                               Text="Select a file to see it here."
+                               Text="{DynamicResource S.Files.Empty}"
                                Visibility="{Binding SelectedEntry, Converter={StaticResource InverseNullToVisibility}}"
                                VerticalAlignment="Top" />
                 </Grid>
