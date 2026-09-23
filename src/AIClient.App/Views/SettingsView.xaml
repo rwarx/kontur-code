@@ -305,6 +305,14 @@
 
                 <Border Style="{StaticResource KcCard}">
                     <StackPanel>
+                        <Grid Style="{StaticResource SettingRow}">
+                            <TextBlock Style="{StaticResource Type.Caption}" Text="{DynamicResource S.Settings.General.Language}" VerticalAlignment="Center" />
+                            <ComboBox HorizontalAlignment="Right"
+                                      MinWidth="160"
+                                      ItemsSource="{Binding Languages}"
+                                      SelectedItem="{Binding SelectedLanguage}"
+                                      DisplayMemberPath="NativeName" />
+                        </Grid>
                         <CheckBox Style="{StaticResource SettingCheck}"
                                   Content="{DynamicResource S.Settings.General.Reopen}"
                                   IsChecked="{Binding RestoreLastConversation}" />
