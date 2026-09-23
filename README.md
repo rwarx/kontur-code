@@ -1,29 +1,42 @@
-# AI Client
+# Kontur Code
+
+[Русская версия](README.ru.md)
 
 A native Windows desktop LLM client evolving into a spatial AI development environment. One window,
-your own API keys, your conversations in a local SQLite file.
+your own API keys, your conversations in a local SQLite file, and a workspace that turns the folder
+you point it at into a graph you can see.
 
-The architecture is the one an AI-assisted IDE needs — a domain that knows nothing about HTTP, a UI
-that cannot reach a provider, streaming that runs end to end as `IAsyncEnumerable<T>` — and the
+The architecture is the one an AI-assisted IDE needs - a domain that knows nothing about HTTP, a UI
+that cannot reach a provider, streaming that runs end to end as `IAsyncEnumerable<T>` - and the
 feature set is a workspace, an agent, a graph canvas, and a tool loop that reads and edits files
-under your supervision. Repository awareness and a code editor are later stages.
+under your supervision. The agent can see and change the repository through its git tools; a real
+code editor is a later stage.
 
 ## What it does
 
 - **Streaming chat.** Tokens appear as they arrive. Stop mid-answer and the partial text is kept,
   not discarded. Regenerate replaces the answer in place, optionally on a different model.
-- **Agent mode.** One button in the composer picks what the next message is — a plan, a plan to be
-  drawn, a build, or nothing — and sends it to a tool loop instead of straight to the model. It starts
-  on plan: the build can list, read, search, write, edit, move and delete files under one folder you
-  nominate, and asks before every change; a plan reads and writes nothing. See
-  [Agent mode](#agent-mode).
+- **Voice dictation.** `Ctrl+M` (or the microphone button) dictates into the composer on machines
+  with a Windows speech recognizer; where there is none, the app says so instead of pretending.
+- **Agent mode.** One button in the composer picks what the next message is - a plan, a plan to be
+  drawn, a build, or nothing - and sends it to a tool loop instead of straight to the model. It
+  starts on plan: the build can list, read, search, write, edit, move and delete files, run the
+  programs you have allowed, and work with git under one folder you nominate, asking before every
+  change; a plan reads and writes nothing. See [Agent mode](#agent-mode).
 - **Graph canvas.** A spatial view of your project: files, folders, modules, services, interfaces,
   and plans appear as nodes on an infinite canvas. Drag, zoom, pan, select, and connect. The graph
-  is persisted per workspace and survives restarts. Plans from the agent are drawn directly onto the
-  canvas as node+edge sets, ready to be confirmed or rejected.
-- **Workspace indexer.** Your folder is scanned and mapped to graph nodes automatically — code files,
-  views, data, tests, external references — with containment and dependency edges. The layout
-  preserves your canvas arrangement across refreshes.
+  is persisted per workspace and survives restarts. Plans from the agent are drawn directly onto
+  the canvas as node+edge sets, ready to be confirmed or rejected.
+- **Workspace surfaces.** The same workspace speaks in several registers - the canvas as a spatial
+  map, the graph as a structure, a file tree, a read-only code viewer for open documents, the
+  conversation, the provider catalogue, and a tasks view of agent activity - one command palette
+  or sidebar click apart (`Ctrl+Shift+P`).
+- **Workspace indexer.** Your folder is scanned and mapped to graph nodes automatically - code
+  files, views, data, tests, external references - with containment and dependency edges. The
+  layout preserves your canvas arrangement across refreshes.
+- **Context panel.** Token usage, cost estimate, the breakdown of what the model is holding, and a
+  **Compact session** button that folds older messages into a summary when the window fills up
+  (`Ctrl+Alt+I` shows or hides the panel).
 - **Markdown and code.** Headings, lists, tables, quotes and fenced code rendered as WPF content
   rather than HTML in a browser control, with syntax highlighting for the common languages.
 - **Sessions.** Create, rename, pin, search and delete conversations. Titles are generated from
@@ -35,9 +48,11 @@ under your supervision. Repository awareness and a code editor are later stages.
   connection before you rely on it.
 - **Attachments.** Text and source files are read, size-capped and inlined into the prompt.
   Binaries are refused even when renamed to `.txt`.
-- **Export.** A conversation to Markdown or JSON.
-- **Settings.** Appearance, chat defaults, sampling parameters, storage and attachment limits, the
-  agent's folder and its budgets, all persisted locally.
+- **Export.** A conversation to Markdown, JSON or plain text.
+- **Settings.** Appearance, interface language, chat defaults, sampling parameters, storage and
+  attachment limits, the agent's folder and its budgets, all persisted locally.
+- **Three languages.** English, Russian and German, chosen in Settings → General → Language and
+  applied live across the whole interface.
 - **Fluent shell.** Light, dark or follow-the-system theme, Mica backdrop, command palette.
 
 ## Requirements
@@ -118,19 +133,19 @@ was, so coming back to the agent returns to the mode last chosen.
 
 | Mode | Can | Cannot |
 | --- | --- | --- |
-| **Plan** | Read the folder, and record a plan with `submit_plan` | Write, move, delete or run anything |
+| **Plan** | Read the folder, and record a plan with `submit_plan` | Write, move, delete, run or commit anything |
 | **Plan + canvas** | The same, and hands the plan over as parts and dependencies to be drawn on the graph canvas | The same |
 | **Build** | Everything in the table below, asking first wherever it says so | Record a plan - that is what the other two are for |
 
 The mode is enforced rather than suggested. The tools a mode does not allow are left out of the
-request, and a call for one that arrives anyway is refused before its arguments are read — the offer
+request, and a call for one that arrives anyway is refused before its arguments are read - the offer
 is a courtesy, the mode is the rule. A refusal is a sentence the model can act on rather than an
 error, so a planning run that reached for `write_file` is told to finish the plan instead of the run
 ending.
 
 **Plan + canvas** records a structured plan and hands it to `CanvasPlanSink`, which builds a
 `GraphChangeSet` (plan node + part nodes + edges) and asks you to confirm before drawing it on the
-canvas. Once confirmed, the plan is part of the graph — undoable, persisted, and visible alongside
+canvas. Once confirmed, the plan is part of the graph - undoable, persisted, and visible alongside
 your workspace nodes.
 
 **Build** is the only mode that needs a folder, and choosing it without one asks which folder to use.
@@ -152,10 +167,16 @@ from what you have told it.
 | `move_file` | Moves or renames | Yes |
 | `delete_file` | Deletes a file or an empty folder | Yes |
 | `run_command` | Runs one allowed program in the folder and returns its output and exit code | Yes |
+| `git_status` | Branch, ahead/behind tracking, and every changed file with its staged and unstaged state | No |
+| `git_diff` | Unified diff of staged changes, unstaged changes, one file, or two refs | No |
+| `git_commit` | Stages all changes and creates a commit with the message the model gives | Yes |
+| `git_checkout` | Creates a new branch from HEAD and switches to it, or switches to an existing one | Yes |
+| `git_revert` | Creates a new commit that undoes a previous one; without an argument, the last commit | Yes |
 
 Reads are refused outside the folder, and so are the paths that carry credentials or version-control
 internals - `.git`, `.env`, key and certificate files - whether they are named directly, reached
-through `..`, or reached through a symlink pointing out of the tree.
+through `..`, or reached through a symlink pointing out of the tree. The git tools run against the
+repository that contains the folder and never leave it.
 
 Every tool marked *Yes* stops and asks, every time. The question leads with one
 line naming the effect - `Create src/Widget.cs`, `Overwrite 42 lines in src/Widget.cs`,
@@ -219,7 +240,12 @@ tree and the binding engine - and cleared the moment it is saved. `SecureStorage
 | `Ctrl+K` | Search sessions |
 | `Ctrl+Shift+P` | Command palette |
 | `Ctrl+B` | Toggle the sidebar |
+| `Ctrl+G` | Open the canvas |
+| `Ctrl+M` | Dictate / stop dictating |
+| `Ctrl+I` | Ask the AI about what is selected |
+| `Ctrl+Alt+I` | Toggle the context panel |
 | `Ctrl+,` | Settings |
+| `Alt+Left` / `Alt+Right` | Back / forward navigation |
 | `Esc` | Stop the answer being streamed |
 | `Enter` / `Shift+Enter` | Send / newline (swappable in Settings) |
 
@@ -229,9 +255,9 @@ tree and the binding engine - and cleared the moment it is saved. `SecureStorage
 dotnet test
 ```
 
-745 tests against a real migrated SQLite file, real DPAPI, and fake HTTP handlers replaying recorded
+832 tests against a real migrated SQLite file, real DPAPI, and fake HTTP handlers replaying recorded
 provider responses. A fresh clone with no key and no network passes: the eight tests that need a
-live provider skip themselves and say so.
+live provider skip themselves and say so (824 pass, 8 skip).
 
 To run those eight as well, put a key in the environment first:
 
@@ -285,15 +311,13 @@ tests/AIClient.Tests         The suite above.
 Dependencies point one way: App → Application → Domain, with Infrastructure implementing the
 interfaces the two middle layers declare and registering itself through a single
 `AddInfrastructure` call. The App project references no provider type and no `DbContext`: the agent
-loop it drives lives in Application and is reached through `IAgentService`, which is what kept
-adding an agent from having to be threaded through the UI, and is what a future editor will use too.
+loop it drives lives in Application and is reached through `IAgentService`.
 [ARCHITECTURE.md](ARCHITECTURE.md) has the diagram, the streaming pipeline and the reasoning.
 [DEVELOPMENT.md](DEVELOPMENT.md) covers migrations, configuration and the conventions.
 
 ## Not in this version
 
-No editor, no file tree, no repository awareness, no MCP, no image input, no plugins. The agent can
-read files, change them and run the programs you have allowed, but there is no shell and no way for
-it to ask for one. Multiple agents, background runs and a diff-review pane are later stages — the
-layering is the reason they can arrive without a rewrite, but none of it is here yet, and the
-feature list above is the whole of it.
+No full code editor - the Code surface reads files and shows them, it does not edit them - no MCP,
+no image input, no plugins, and no shell behind `run_command`. Multiple agents, background runs and
+a diff-review pane are later stages - the layering is the reason they can arrive without a rewrite,
+but none of it is here yet, and the feature list above is the whole of it.
