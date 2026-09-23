@@ -196,8 +196,8 @@ public sealed class ProviderCatalogueTests
 
         await ModelsOf(ProviderHarness.OpenRouter(handler));
 
-        Assert.Equal("AI Client", handler.LastRequest.Header("X-Title"));
-        Assert.NotNull(handler.LastRequest.Header("HTTP-Referer"));
+        Assert.Equal("Kontur Code", handler.LastRequest.Header("X-Title"));
+        Assert.Equal("https://github.com/rwarx/kontur-code", handler.LastRequest.Header("HTTP-Referer"));
     }
 
     [Fact]

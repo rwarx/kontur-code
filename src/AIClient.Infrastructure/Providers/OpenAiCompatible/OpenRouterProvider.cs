@@ -43,8 +43,8 @@ public sealed class OpenRouterProvider : OpenAiCompatibleProvider
     /// </summary>
     protected override void ConfigureRequest(HttpRequestMessage request)
     {
-        request.Headers.TryAddWithoutValidation("HTTP-Referer", "https://github.com/aiclient/aiclient");
-        request.Headers.TryAddWithoutValidation("X-Title", "AI Client");
+        request.Headers.TryAddWithoutValidation("HTTP-Referer", "https://github.com/rwarx/kontur-code");
+        request.Headers.TryAddWithoutValidation("X-Title", "Kontur Code");
     }
 
     protected override IReadOnlyList<AIModelDescriptor> ParseModels(JsonDocument document)
