@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using AIClient.App.Services;
 using AIClient.App.ViewModels;
 
 namespace AIClient.App.ViewModels;
@@ -128,6 +129,9 @@ public sealed partial class TasksViewModel : ObservableObject
         }
     }
 
+    /// <summary>Recomputes the header words after a language switch.</summary>
+    public void OnLanguageChanged() => Rebuild();
+
     private void Rebuild()
     {
         IsRunning = _chat.IsGenerating;
@@ -136,16 +140,16 @@ public sealed partial class TasksViewModel : ObservableObject
         RunKind = _chat.IsAgentMode
             ? _chat.SelectedAgentMode switch
             {
-                Application.DTOs.AgentMode.Build => "Agent · build",
-                Application.DTOs.AgentMode.PlanCanvas => "Agent · plan + canvas",
-                Application.DTOs.AgentMode.Plan => "Agent · plan",
-                _ => "Agent",
+                Application.DTOs.AgentMode.Build => Localization.T("S.Tasks.Kind.Build"),
+                Application.DTOs.AgentMode.PlanCanvas => Localization.T("S.Tasks.Kind.PlanCanvas"),
+                Application.DTOs.AgentMode.Plan => Localization.T("S.Tasks.Kind.Plan"),
+                _ => Localization.T("S.Tasks.Kind.Agent"),
             }
-            : "Chat";
+            : Localization.T("S.Mode.Chat");
 
         StateText = _chat.IsGenerating
-            ? _chat.IsAgentMode ? "Working" : "Answering"
-            : IsApprovalPending ? "Waiting for you" : "Idle";
+            ? _chat.IsAgentMode ? Localization.T("S.AiState.Working") : Localization.T("S.AiState.Answering")
+            : IsApprovalPending ? Localization.T("S.Tasks.WaitingForYou") : Localization.T("S.Main.Ai.Idle");
 
         Rows.Clear();
 

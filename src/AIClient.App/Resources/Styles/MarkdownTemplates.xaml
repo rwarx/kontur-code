@@ -68,8 +68,8 @@
                                 FontSize="11"
                                 Background="Transparent"
                                 BorderThickness="0"
-                                ToolTip="Copy code"
-                                Content="Copy"
+                                ToolTip="{DynamicResource S.Markdown.CopyCode}"
+                                Content="{DynamicResource S.Common.Copy}"
                                 Command="{Binding DataContext.CopyTextCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding Code}" />
                     </Grid>

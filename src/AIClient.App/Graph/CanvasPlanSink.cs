@@ -107,10 +107,9 @@ public sealed class CanvasPlanSink : IAgentPlanSink
         var edgeCount = changeSet.Changes.OfType<AddEdge>().Count();
 
         return await _dialogs.ConfirmAsync(
-            "Draw this plan on the canvas?",
-            $"'{Trim(plan.Title, 80)}' — {nodeCount} nodes, {edgeCount} connections. "
-            + "You can undo it from the timeline.",
-            "Draw").ConfigureAwait(true);
+            Localization.T("S.Canvas.PlanConfirm.Title"),
+            Localization.T("S.Canvas.PlanConfirm.Message", Trim(plan.Title, 80), nodeCount, edgeCount),
+            Localization.T("S.Canvas.PlanConfirm.Button")).ConfigureAwait(true);
     }
 
     /// <summary>

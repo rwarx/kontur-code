@@ -359,7 +359,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Adding a custom provider failed.");
-            NewProviderProblem = "The provider could not be added.";
+            NewProviderProblem = _localization.T("S.Settings.Providers.AddFailed");
         }
         finally
         {
@@ -376,10 +376,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
 
         var confirmed = await _dialogs.ConfirmAsync(
-            $"Remove {provider.Name}",
-            $"{provider.Name} and its cached models will be deleted, along with the stored API key. "
-            + "Built-in providers cannot be removed.",
-            "Remove").ConfigureAwait(true);
+            Localization.T("S.Settings.Providers.RemoveConfirm.Title", provider.Name),
+            Localization.T("S.Settings.Providers.RemoveConfirm.Message", provider.Name),
+            _localization.T("S.Provider.Remove")).ConfigureAwait(true);
 
         if (!confirmed)
         {
@@ -653,7 +652,13 @@ public sealed partial class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(Shortcuts));
         OnPropertyChanged(nameof(WorkspaceLabel));
         OnPropertyChanged(nameof(VersionText));
+        OnPropertyChanged(nameof(NewProviderProblem));
         AllowedCommandsProblem = CommandListProblem(AllowedCommands, AllowCommands);
+
+        foreach (var provider in Providers)
+        {
+            provider.OnLanguageChanged();
+        }
     }
 
     private IReadOnlyList<ShortcutInfo> BuildShortcuts() =>

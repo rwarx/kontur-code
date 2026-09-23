@@ -19,7 +19,7 @@ public static class GraphWords
     /// Picks a pipe-separated form: two forms everywhere, three for Russian
     /// (singular | few | many), chosen by the usual Slavic count rules.
     /// </summary>
-    private static string Form(string key, int count)
+    public static string Form(string key, int count)
     {
         var forms = Localization.T(key).Split('|');
 

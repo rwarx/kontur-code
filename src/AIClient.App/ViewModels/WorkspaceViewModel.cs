@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AIClient.App.Graph;
+using AIClient.App.Services;
 using AIClient.Application.Graph;
 using AIClient.Application.Interfaces;
 using AIClient.Domain.Graph;
@@ -129,6 +130,9 @@ public sealed partial class WorkspaceViewModel : ObservableObject
     [RelayCommand]
     public void SwitchMode(WorkspaceMode mode) => Mode = mode;
 
+    /// <summary>Hands a language switch down to the file tree, whose empty state is code-built.</summary>
+    public void OnLanguageChanged() => Files.OnLanguageChanged();
+
     /// <summary>
     /// The empty canvas's second door: ask the agent for a plan to draw. Lands in the
     /// composer as a starting point, not a sent message - the user decides.
@@ -143,7 +147,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject
     [RelayCommand]
     private async Task OpenWorkspaceAsync(CancellationToken cancellationToken)
     {
-        var folder = await _dialogs.OpenFolderAsync("Choose the workspace folder").ConfigureAwait(true);
+        var folder = await _dialogs.OpenFolderAsync(Localization.T("S.Workspace.Open.Title")).ConfigureAwait(true);
 
         if (folder is null)
         {
@@ -154,7 +158,9 @@ public sealed partial class WorkspaceViewModel : ObservableObject
 
         if (!result.Success)
         {
-            await _dialogs.ShowErrorAsync("Cannot open that folder", result.Error ?? "It was refused.").ConfigureAwait(true);
+            await _dialogs.ShowErrorAsync(
+                Localization.T("S.Workspace.Open.ErrorTitle"),
+                result.Error ?? Localization.T("S.Workspace.Open.Refused")).ConfigureAwait(true);
             return;
         }
 

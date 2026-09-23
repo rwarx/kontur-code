@@ -615,4 +615,39 @@
     <sys:String x:Key="S.Outline.Filter">Фильтр по имени или пути</sys:String>
     <sys:String x:Key="S.Settings.About.VersionWord">Версия</sys:String>
 
+    <sys:String x:Key="S.Common.Remove">Удалить</sys:String>
+    <sys:String x:Key="S.Markdown.CopyCode">Копировать код</sys:String>
+    <sys:String x:Key="S.Files.Empty.NoWorkspace">Рабочее пространство не открыто.</sys:String>
+    <sys:String x:Key="S.Files.Empty.NoWorkspace.Hint">Рабочее пространство не открыто.&#10;Откройте папку, чтобы увидеть её здесь.</sys:String>
+    <sys:String x:Key="S.Files.Empty.Folder">Эта папка пуста (или всё в ней игнорируется).</sys:String>
+    <sys:String x:Key="S.Models.Saved">Сохранено.</sys:String>
+    <sys:String x:Key="S.Models.KeySaveFailed">Не удалось сохранить API-ключ.</sys:String>
+    <sys:String x:Key="S.Settings.Providers.AddFailed">Не удалось добавить провайдера.</sys:String>
+    <sys:String x:Key="S.Settings.Providers.RemoveConfirm.Title">Удалить {0}</sys:String>
+    <sys:String x:Key="S.Settings.Providers.RemoveConfirm.Message">{0} и его кэшированные модели будут удалены вместе с сохранённым API-ключем. Встроенные провайдеры удалить нельзя.</sys:String>
+    <sys:String x:Key="S.Workspace.Open.Title">Выберите папку рабочего пространства</sys:String>
+    <sys:String x:Key="S.Workspace.Open.ErrorTitle">Не удалось открыть эту папку</sys:String>
+    <sys:String x:Key="S.Workspace.Open.Refused">В открытии отказано.</sys:String>
+    <sys:String x:Key="S.History.MoveNode">Переместить узел</sys:String>
+    <sys:String x:Key="S.History.MoveNodes">{0} узлов перемещено</sys:String>
+    <sys:String x:Key="S.History.RemoveNode">Удалить узел</sys:String>
+    <sys:String x:Key="S.History.RemoveNodes">{0} узлов удалено</sys:String>
+    <sys:String x:Key="S.History.Undo">Отменить</sys:String>
+    <sys:String x:Key="S.History.Redo">Вернуть</sys:String>
+    <sys:String x:Key="S.History.CloseGraph">Закрыть граф рабочего пространства</sys:String>
+    <sys:String x:Key="S.History.RefreshGraph">Обновить граф рабочего пространства</sys:String>
+    <sys:String x:Key="S.Canvas.PlanConfirm.Title">Отрисовать этот план на холсте?</sys:String>
+    <sys:String x:Key="S.Canvas.PlanConfirm.Message">«{0}» — узлов: {1}, связей: {2}. Отменить можно из таймлайна.</sys:String>
+    <sys:String x:Key="S.Canvas.PlanConfirm.Button">Отрисовать</sys:String>
+    <sys:String x:Key="S.Tasks.Kind.Build">Агент · сборка</sys:String>
+    <sys:String x:Key="S.Tasks.Kind.PlanCanvas">Агент · план + холст</sys:String>
+    <sys:String x:Key="S.Tasks.Kind.Plan">Агент · план</sys:String>
+    <sys:String x:Key="S.Tasks.Kind.Agent">Агент</sys:String>
+    <sys:String x:Key="S.Tasks.WaitingForYou">Ждёт вашего решения</sys:String>
+
+    <sys:String x:Key="S.ProviderRow.Catalogue.None">нет моделей в кэше</sys:String>
+    <sys:String x:Key="S.ProviderRow.Catalogue.Many">{0} модель|{0} модели|{0} моделей</sys:String>
+    <sys:String x:Key="S.ProviderRow.KeySaved">ключ сохранён</sys:String>
+    <sys:String x:Key="S.ProviderRow.NoKey">без ключа</sys:String>
+
 </ResourceDictionary>

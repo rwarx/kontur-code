@@ -147,7 +147,7 @@ public sealed class GraphService : IGraphService
         _model.Restore(target);
         Remember(_redo, current);
 
-        RecordStep("Undo", $"Restored version {target.Version}: {target.Nodes.Count} nodes, {target.Edges.Count} edges.",
+        RecordStep("S.History.Undo", $"Restored version {target.Version}: {target.Nodes.Count} nodes, {target.Edges.Count} edges.",
             GraphChangeOrigin.Undo, target);
 
         SnapshotChanged?.Invoke(this, new GraphSnapshotChangedEventArgs(Current, isReload: false));
@@ -181,7 +181,7 @@ public sealed class GraphService : IGraphService
         _model.Restore(target);
         Remember(_undo, current);
 
-        RecordStep("Redo", $"Restored version {target.Version}: {target.Nodes.Count} nodes, {target.Edges.Count} edges.",
+        RecordStep("S.History.Redo", $"Restored version {target.Version}: {target.Nodes.Count} nodes, {target.Edges.Count} edges.",
             GraphChangeOrigin.Redo, target);
 
         SnapshotChanged?.Invoke(this, new GraphSnapshotChangedEventArgs(Current, isReload: false));

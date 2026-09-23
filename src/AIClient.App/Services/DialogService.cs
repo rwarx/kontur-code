@@ -65,15 +65,15 @@ public sealed class DialogService : IDialogService
         return dialog.ShowDialog() == true ? dialog.FolderName : null;
     }
 
-    public async Task<bool> ConfirmAsync(string title, string message, string confirmText = "Delete")
+    public async Task<bool> ConfirmAsync(string title, string message, string? confirmText = null)
     {
         var result = await _contentDialogService.ShowSimpleDialogAsync(
             new SimpleContentDialogCreateOptions
             {
                 Title = title,
                 Content = message,
-                PrimaryButtonText = confirmText,
-                CloseButtonText = "Cancel",
+                PrimaryButtonText = confirmText ?? Localization.T("S.Common.Delete"),
+                CloseButtonText = Localization.T("S.Common.Cancel"),
             },
             CancellationToken.None).ConfigureAwait(true);
 
@@ -93,7 +93,7 @@ public sealed class DialogService : IDialogService
             {
                 Title = title,
                 Content = content,
-                CloseButtonText = "Close",
+                CloseButtonText = Localization.T("S.Common.Close"),
             },
             CancellationToken.None).ConfigureAwait(true);
     }
@@ -136,7 +136,7 @@ public sealed class DialogService : IDialogService
 
         panel.Children.Add(new Wpf.Ui.Controls.CardExpander
         {
-            Header = new TextBlock { Text = "Technical details" },
+            Header = new TextBlock { Text = Localization.T("S.Common.TechnicalDetails") },
             Content = new System.Windows.Controls.TextBox
             {
                 Text = technicalDetails,

@@ -615,4 +615,39 @@
     <sys:String x:Key="S.Outline.Filter">Nach Name oder Pfad filtern</sys:String>
     <sys:String x:Key="S.Settings.About.VersionWord">Version</sys:String>
 
+    <sys:String x:Key="S.Common.Remove">Entfernen</sys:String>
+    <sys:String x:Key="S.Markdown.CopyCode">Code kopieren</sys:String>
+    <sys:String x:Key="S.Files.Empty.NoWorkspace">Kein Arbeitsbereich geöffnet.</sys:String>
+    <sys:String x:Key="S.Files.Empty.NoWorkspace.Hint">Kein Arbeitsbereich geöffnet.&#10;Öffnen Sie einen Ordner, um ihn hier zu sehen.</sys:String>
+    <sys:String x:Key="S.Files.Empty.Folder">Dieser Ordner ist leer (oder alles darin wird ignoriert).</sys:String>
+    <sys:String x:Key="S.Models.Saved">Gespeichert.</sys:String>
+    <sys:String x:Key="S.Models.KeySaveFailed">Der API-Schlüssel konnte nicht gespeichert werden.</sys:String>
+    <sys:String x:Key="S.Settings.Providers.AddFailed">Der Anbieter konnte nicht hinzugefügt werden.</sys:String>
+    <sys:String x:Key="S.Settings.Providers.RemoveConfirm.Title">{0} entfernen</sys:String>
+    <sys:String x:Key="S.Settings.Providers.RemoveConfirm.Message">{0} und seine zwischengespeicherten Modelle werden zusammen mit dem gespeicherten API-Schlüssel gelöscht. Eingebaute Anbieter können nicht entfernt werden.</sys:String>
+    <sys:String x:Key="S.Workspace.Open.Title">Arbeitsordner auswählen</sys:String>
+    <sys:String x:Key="S.Workspace.Open.ErrorTitle">Ordner kann nicht geöffnet werden</sys:String>
+    <sys:String x:Key="S.Workspace.Open.Refused">Der Vorgang wurde abgelehnt.</sys:String>
+    <sys:String x:Key="S.History.MoveNode">Knoten verschieben</sys:String>
+    <sys:String x:Key="S.History.MoveNodes">{0} Knoten verschoben</sys:String>
+    <sys:String x:Key="S.History.RemoveNode">Knoten entfernen</sys:String>
+    <sys:String x:Key="S.History.RemoveNodes">{0} Knoten entfernt</sys:String>
+    <sys:String x:Key="S.History.Undo">Rückgängig</sys:String>
+    <sys:String x:Key="S.History.Redo">Wiederherstellen</sys:String>
+    <sys:String x:Key="S.History.CloseGraph">Arbeitsbereichs-Graph schließen</sys:String>
+    <sys:String x:Key="S.History.RefreshGraph">Arbeitsbereichs-Graph aktualisieren</sys:String>
+    <sys:String x:Key="S.Canvas.PlanConfirm.Title">Diesen Plan auf der Leinwand zeichnen?</sys:String>
+    <sys:String x:Key="S.Canvas.PlanConfirm.Message">'{0}' - {1} Knoten, {2} Verbindungen. Sie können das im Verlauf rückgängig machen.</sys:String>
+    <sys:String x:Key="S.Canvas.PlanConfirm.Button">Zeichnen</sys:String>
+    <sys:String x:Key="S.Tasks.Kind.Build">Agent · Build</sys:String>
+    <sys:String x:Key="S.Tasks.Kind.PlanCanvas">Agent · Plan + Leinwand</sys:String>
+    <sys:String x:Key="S.Tasks.Kind.Plan">Agent · Plan</sys:String>
+    <sys:String x:Key="S.Tasks.Kind.Agent">Agent</sys:String>
+    <sys:String x:Key="S.Tasks.WaitingForYou">Wartet auf Sie</sys:String>
+
+    <sys:String x:Key="S.ProviderRow.Catalogue.None">keine Modelle zwischengespeichert</sys:String>
+    <sys:String x:Key="S.ProviderRow.Catalogue.Many">{0} Modell|{0} Modelle</sys:String>
+    <sys:String x:Key="S.ProviderRow.KeySaved">Schlüssel gespeichert</sys:String>
+    <sys:String x:Key="S.ProviderRow.NoKey">kein Schlüssel</sys:String>
+
 </ResourceDictionary>

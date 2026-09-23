@@ -99,7 +99,7 @@ public sealed partial class ProviderSettingsViewModel : ObservableObject, IApiKe
     /// the key's length would leak how long it is, and reading it back to count characters
     /// would mean decrypting a secret purely to draw dots.
     /// </summary>
-    public string ApiKeyDisplay => HasApiKey ? "••••••••••••••••••••" : "Not configured";
+    public string ApiKeyDisplay => HasApiKey ? "••••••••••••••••••••" : Localization.T("S.Provider.NotConfigured");
 
     public bool CanSaveApiKey => ApiKeyInput.Trim().Length > 0 && !IsBusy;
 
@@ -107,19 +107,28 @@ public sealed partial class ProviderSettingsViewModel : ObservableObject, IApiKe
 
     public string StatusText => ConnectionState switch
     {
-        ConnectionState.NotConfigured => "No API key",
-        ConnectionState.Testing => "Testing…",
-        ConnectionState.Connected => StatusMessage ?? "Connected",
-        ConnectionState.Failed => StatusMessage ?? "Connection failed",
-        _ => HasApiKey ? "Not tested" : "No API key",
+        ConnectionState.NotConfigured => Localization.T("S.Provider.NoKey"),
+        ConnectionState.Testing => Localization.T("S.Provider.Testing"),
+        ConnectionState.Connected => StatusMessage ?? Localization.T("S.Provider.Connected"),
+        ConnectionState.Failed => StatusMessage ?? Localization.T("S.Provider.Failed"),
+        _ => HasApiKey ? Localization.T("S.Provider.NotTested") : Localization.T("S.Provider.NoKey"),
     };
 
     public string ModelSummary => CachedModelCount switch
     {
-        0 => "No models cached",
-        1 => "1 model cached",
-        _ => $"{CachedModelCount} models cached",
+        0 => Localization.T("S.Provider.Models.None"),
+        1 => Localization.T("S.Provider.Models.One"),
+        _ => Localization.T("S.Provider.Models.Many", CachedModelCount),
     };
+
+    /// <summary>Re-raises the computed words after a language switch.</summary>
+    public void OnLanguageChanged()
+    {
+        OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(ModelSummary));
+        OnPropertyChanged(nameof(ApiKeyDisplay));
+        OnPropertyChanged(nameof(StatusMessage));
+    }
 
     [RelayCommand(CanExecute = nameof(CanSaveApiKey))]
     private async Task SaveApiKeyAsync()
@@ -155,9 +164,9 @@ public sealed partial class ProviderSettingsViewModel : ObservableObject, IApiKe
     private async Task RemoveApiKeyAsync()
     {
         var confirmed = await _dialogs.ConfirmAsync(
-            $"Remove {Name} API key",
-            $"The stored key for {Name} will be deleted. Cached models are kept but cannot be used until a new key is added.",
-            "Remove").ConfigureAwait(true);
+            Localization.T("S.Provider.RemoveKey.Title", Name),
+            Localization.T("S.Provider.RemoveKey.Message", Name),
+            Localization.T("S.Provider.Remove")).ConfigureAwait(true);
 
         if (!confirmed)
         {
@@ -191,7 +200,7 @@ public sealed partial class ProviderSettingsViewModel : ObservableObject, IApiKe
     {
         IsBusy = true;
         ConnectionState = ConnectionState.Testing;
-        StatusMessage = "Testing…";
+        StatusMessage = Localization.T("S.Provider.Testing");
         TechnicalDetails = null;
 
         try
@@ -212,7 +221,7 @@ public sealed partial class ProviderSettingsViewModel : ObservableObject, IApiKe
             _logger.LogError(ex, "Connection test for {Provider} failed unexpectedly.", Id);
 
             ConnectionState = ConnectionState.Failed;
-            StatusMessage = "The connection test could not be completed.";
+            StatusMessage = Localization.T("S.Provider.TestIncomplete");
             TechnicalDetails = ex.Message;
         }
         finally
@@ -233,7 +242,7 @@ public sealed partial class ProviderSettingsViewModel : ObservableObject, IApiKe
             CachedModelCount = models.Count;
             ModelsRefreshedAt = DateTimeOffset.UtcNow;
             ConnectionState = ConnectionState.Connected;
-            StatusMessage = $"{models.Count} models available.";
+            StatusMessage = Localization.T("S.Provider.ModelsAvailable", models.Count);
             TechnicalDetails = null;
         }
         catch (Domain.Models.AIProviderException ex)
@@ -247,7 +256,7 @@ public sealed partial class ProviderSettingsViewModel : ObservableObject, IApiKe
             _logger.LogError(ex, "Refreshing models for {Provider} failed.", Id);
 
             ConnectionState = ConnectionState.Failed;
-            StatusMessage = "The model list could not be refreshed.";
+            StatusMessage = Localization.T("S.Provider.RefreshFailed");
             TechnicalDetails = ex.Message;
         }
         finally

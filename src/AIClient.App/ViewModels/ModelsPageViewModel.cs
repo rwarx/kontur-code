@@ -61,6 +61,15 @@ public sealed partial class ModelsPageViewModel : ObservableObject
         _providers.ModelsChanged += OnModelsChanged;
     }
 
+    /// <summary>Re-raises the provider rows' words after a language switch.</summary>
+    public void OnLanguageChanged()
+    {
+        foreach (var row in Providers)
+        {
+            row.OnLanguageChanged();
+        }
+    }
+
     [RelayCommand]
     public async Task LoadAsync(CancellationToken cancellationToken)
     {
@@ -193,10 +202,12 @@ public sealed partial class ProviderRowViewModel : ObservableObject, IApiKeyEntr
     };
 
     public string CatalogueLabel => CachedModelCount == 0
-        ? "no models cached"
-        : $"{CachedModelCount} models";
+        ? Localization.T("S.ProviderRow.Catalogue.None")
+        : GraphWords.Form("S.ProviderRow.Catalogue.Many", CachedModelCount);
 
-    public string KeyLabel => HasApiKey ? "key saved" : "no key";
+    public string KeyLabel => HasApiKey
+        ? Localization.T("S.ProviderRow.KeySaved")
+        : Localization.T("S.ProviderRow.NoKey");
 
     public bool CanSaveApiKey => ApiKeyInput.Trim().Length > 0 && !IsBusy;
 
@@ -219,12 +230,12 @@ public sealed partial class ProviderRowViewModel : ObservableObject, IApiKeyEntr
             await _registry.SetApiKeyAsync(Id, key).ConfigureAwait(true);
 
             HasApiKey = true;
-            StatusMessage = "Saved.";
+            StatusMessage = Localization.T("S.Models.Saved");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Saving the API key for {Provider} failed.", Id);
-            StatusMessage = "Could not save the API key.";
+            StatusMessage = Localization.T("S.Models.KeySaveFailed");
             State = ProviderRowState.Failed;
         }
         finally
@@ -243,7 +254,7 @@ public sealed partial class ProviderRowViewModel : ObservableObject, IApiKeyEntr
         {
             _logger.LogWarning(ex, "Connection test after saving the API key for {Provider} failed.", Id);
             State = ProviderRowState.Failed;
-            StatusMessage = "Connection test could not be completed.";
+            StatusMessage = Localization.T("S.Provider.TestIncomplete");
         }
     }
 
@@ -262,6 +273,14 @@ public sealed partial class ProviderRowViewModel : ObservableObject, IApiKeyEntr
     }
 
     partial void OnHasApiKeyChanged(bool value) => OnPropertyChanged(nameof(KeyLabel));
+
+    /// <summary>Re-raises the row's computed words after a language switch.</summary>
+    public void OnLanguageChanged()
+    {
+        OnPropertyChanged(nameof(StatusMessage));
+        OnPropertyChanged(nameof(KeyLabel));
+        OnPropertyChanged(nameof(CatalogueLabel));
+    }
 }
 
 public enum ProviderRowState

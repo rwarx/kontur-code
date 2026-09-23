@@ -140,7 +140,7 @@ public sealed class WorkspaceGraphIndexer
 
         var changeSet = new GraphChangeSet
         {
-            Title = "Close workspace graph",
+            Title = "S.History.CloseGraph",
             Description = $"Workspace closed; {changes.Count} node(s) removed.",
             Origin = GraphChangeOrigin.Indexer,
             Changes = changes,
@@ -249,7 +249,7 @@ public sealed class WorkspaceGraphIndexer
 
         var changeSet = new GraphChangeSet
         {
-            Title = "Refresh workspace graph",
+            Title = "S.History.RefreshGraph",
             Description = description,
             Origin = GraphChangeOrigin.Indexer,
             Changes = changes,

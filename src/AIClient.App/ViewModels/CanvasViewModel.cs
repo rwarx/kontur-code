@@ -136,7 +136,9 @@ public sealed partial class CanvasViewModel : ObservableObject, CanvasController
         {
             _ = ApplyAsync(new GraphChangeSet
             {
-                Title = positions.Count == 1 ? "Move node" : $"Move {positions.Count} nodes",
+                Title = positions.Count == 1
+                    ? Localization.T("S.History.MoveNode")
+                    : Localization.T("S.History.MoveNodes", positions.Count),
                 Origin = GraphChangeOrigin.User,
                 Changes = changes,
             });
@@ -152,7 +154,9 @@ public sealed partial class CanvasViewModel : ObservableObject, CanvasController
 
         _ = ApplyAsync(new GraphChangeSet
         {
-            Title = nodeIds.Count == 1 ? "Remove node" : $"Remove {nodeIds.Count} nodes",
+            Title = nodeIds.Count == 1
+                ? Localization.T("S.History.RemoveNode")
+                : Localization.T("S.History.RemoveNodes", nodeIds.Count),
             Description = "Removed from the canvas by the user.",
             Origin = GraphChangeOrigin.User,
             Changes = nodeIds.Select(id => new RemoveNode(id) as GraphChange).ToList(),
@@ -242,7 +246,7 @@ public sealed partial class CanvasViewModel : ObservableObject, CanvasController
 
         await ApplyAsync(new GraphChangeSet
         {
-            Title = "Auto layout",
+            Title = Localization.T("S.Canvas.AutoLayout"),
             Description = "Nodes re-arranged by an automatic layout.",
             Origin = GraphChangeOrigin.User,
             Changes = changes,

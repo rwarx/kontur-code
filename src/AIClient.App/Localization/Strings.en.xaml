@@ -619,4 +619,39 @@
     <sys:String x:Key="S.Outline.Filter">Filter by name or path</sys:String>
     <sys:String x:Key="S.Settings.About.VersionWord">Version</sys:String>
 
+    <sys:String x:Key="S.Common.Remove">Remove</sys:String>
+    <sys:String x:Key="S.Markdown.CopyCode">Copy code</sys:String>
+    <sys:String x:Key="S.Files.Empty.NoWorkspace">No workspace is open.</sys:String>
+    <sys:String x:Key="S.Files.Empty.NoWorkspace.Hint">No workspace is open.&#10;Open a folder to see it here.</sys:String>
+    <sys:String x:Key="S.Files.Empty.Folder">This folder is empty (or everything in it is ignored).</sys:String>
+    <sys:String x:Key="S.Models.Saved">Saved.</sys:String>
+    <sys:String x:Key="S.Models.KeySaveFailed">Could not save the API key.</sys:String>
+    <sys:String x:Key="S.Settings.Providers.AddFailed">The provider could not be added.</sys:String>
+    <sys:String x:Key="S.Settings.Providers.RemoveConfirm.Title">Remove {0}</sys:String>
+    <sys:String x:Key="S.Settings.Providers.RemoveConfirm.Message">{0} and its cached models will be deleted, along with the stored API key. Built-in providers cannot be removed.</sys:String>
+    <sys:String x:Key="S.Workspace.Open.Title">Choose the workspace folder</sys:String>
+    <sys:String x:Key="S.Workspace.Open.ErrorTitle">Cannot open that folder</sys:String>
+    <sys:String x:Key="S.Workspace.Open.Refused">It was refused.</sys:String>
+    <sys:String x:Key="S.History.MoveNode">Move node</sys:String>
+    <sys:String x:Key="S.History.MoveNodes">Move {0} nodes</sys:String>
+    <sys:String x:Key="S.History.RemoveNode">Remove node</sys:String>
+    <sys:String x:Key="S.History.RemoveNodes">Remove {0} nodes</sys:String>
+    <sys:String x:Key="S.History.Undo">Undo</sys:String>
+    <sys:String x:Key="S.History.Redo">Redo</sys:String>
+    <sys:String x:Key="S.History.CloseGraph">Close workspace graph</sys:String>
+    <sys:String x:Key="S.History.RefreshGraph">Refresh workspace graph</sys:String>
+    <sys:String x:Key="S.Canvas.PlanConfirm.Title">Draw this plan on the canvas?</sys:String>
+    <sys:String x:Key="S.Canvas.PlanConfirm.Message">'{0}' — {1} nodes, {2} connections. You can undo it from the timeline.</sys:String>
+    <sys:String x:Key="S.Canvas.PlanConfirm.Button">Draw</sys:String>
+    <sys:String x:Key="S.Tasks.Kind.Build">Agent · build</sys:String>
+    <sys:String x:Key="S.Tasks.Kind.PlanCanvas">Agent · plan + canvas</sys:String>
+    <sys:String x:Key="S.Tasks.Kind.Plan">Agent · plan</sys:String>
+    <sys:String x:Key="S.Tasks.Kind.Agent">Agent</sys:String>
+    <sys:String x:Key="S.Tasks.WaitingForYou">Waiting for you</sys:String>
+
+    <sys:String x:Key="S.ProviderRow.Catalogue.None">no models cached</sys:String>
+    <sys:String x:Key="S.ProviderRow.Catalogue.Many">{0} model|{0} models</sys:String>
+    <sys:String x:Key="S.ProviderRow.KeySaved">key saved</sys:String>
+    <sys:String x:Key="S.ProviderRow.NoKey">no key</sys:String>
+
 </ResourceDictionary>

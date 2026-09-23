@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AIClient.App.Controls;
+using AIClient.App.Services;
 using AIClient.Application.DTOs;
 using AIClient.Application.Interfaces;
 using AIClient.Application.Markdown;
@@ -213,7 +214,7 @@ public sealed partial class CodeTabViewModel : ObservableObject
         if (!result.Success || result.Value is null)
         {
             State = CodeLoadState.Failed;
-            Error = result.Error ?? "The file could not be read.";
+            Error = result.Error ?? Localization.T("S.Code.CouldNotRead");
             return;
         }
 

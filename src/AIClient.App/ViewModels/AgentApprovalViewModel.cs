@@ -1,3 +1,4 @@
+using AIClient.App.Services;
 using AIClient.Application.DTOs;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -68,14 +69,14 @@ public sealed partial class AgentApprovalViewModel : ObservableObject
     /// </remarks>
     public string Headline => Request.Summary is { Length: > 0 } summary
         ? summary
-        : $"Run {Request.ToolName} with the arguments below";
+        : Localization.T("S.Approval.Headline.Fallback", Request.ToolName);
 
     /// <summary>What is at stake, in the plainest words available.</summary>
     public string Consequence => Request.Risk switch
     {
-        AgentToolRisk.Execute => "Runs a program on this computer.",
-        AgentToolRisk.Write => "Changes files in the folder you opened.",
-        _ => "Reads from the folder you opened.",
+        AgentToolRisk.Execute => Localization.T("S.Approval.Consequence.Execute"),
+        AgentToolRisk.Write => Localization.T("S.Approval.Consequence.Write"),
+        _ => Localization.T("S.Approval.Consequence.Read"),
     };
 
     public string ArgumentsJson => Request.ArgumentsJson;

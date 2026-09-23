@@ -22,8 +22,8 @@ public interface IDialogService
     /// <param name="initialDirectory">Where to start, when there is somewhere sensible.</param>
     string? OpenFolder(string title, string? initialDirectory = null);
 
-    /// <summary>Yes/no confirmation. True when the user confirms.</summary>
-    Task<bool> ConfirmAsync(string title, string message, string confirmText = "Delete");
+    /// <summary>Yes/no confirmation. True when the user confirms. A null confirm text uses the localized default.</summary>
+    Task<bool> ConfirmAsync(string title, string message, string? confirmText = null);
 
     /// <summary>Informational dialog with an optional collapsed technical section.</summary>
     Task ShowErrorAsync(string title, string message, string? technicalDetails = null);

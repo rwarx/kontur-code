@@ -715,6 +715,9 @@ public sealed partial class MainViewModel : ObservableObject
         FirstRun.OnLanguageChanged();
         CommandPalette.OnLanguageChanged();
         SessionContext.OnLanguageChanged();
+        Tasks.OnLanguageChanged();
+        ModelsPage.OnLanguageChanged();
+        Workspace.OnLanguageChanged();
         Workspace.Canvas.RefreshLanguage();
         Workspace.Context.RefreshLanguage();
         MirrorAiState();

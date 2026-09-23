@@ -244,9 +244,13 @@ public sealed partial class ContextPanelViewModel : ObservableObject
 
         foreach (var entry in _graph.Timeline.Take(12))
         {
-            Timeline.Add(entry);
+            Timeline.Add(entry with { Title = ResolveTimelineTitle(entry.Title) });
         }
     }
+
+    /// <summary>The application writes timeline titles as keys; text travels as text.</summary>
+    private static string ResolveTimelineTitle(string title) =>
+        title.StartsWith("S.", StringComparison.Ordinal) ? Localization.T(title) : title;
 
     // ------------------------------------------------------------ workspace
 
@@ -295,6 +299,7 @@ public sealed partial class ContextPanelViewModel : ObservableObject
     {
         Reinspect();
         RebuildWorkspaceSummary();
+        RefreshTimeline();
         OnPropertyChanged(nameof(SelectionSummary));
         OnPropertyChanged(nameof(Mode));
     }

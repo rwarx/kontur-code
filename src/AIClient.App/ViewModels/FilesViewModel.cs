@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AIClient.App.Controls;
+using AIClient.App.Services;
 using AIClient.Application.DTOs;
 using AIClient.Application.Interfaces;
 using AIClient.Domain.Workspace;
@@ -61,6 +62,9 @@ public sealed partial class FilesViewModel : ObservableObject
         _workspace.RootChanged += OnRootChanged;
         SyncRoot();
     }
+
+    /// <summary>Re-reads the empty-state wording after a language switch.</summary>
+    public void OnLanguageChanged() => SyncRoot();
 
     private FileNodeViewModel? _selectedEntry;
 
@@ -123,8 +127,8 @@ public sealed partial class FilesViewModel : ObservableObject
             : string.Empty;
 
         EmptyMessage = HasRoot
-            ? "This folder is empty (or everything in it is ignored)."
-            : "No workspace is open.\nOpen a folder to see it here.";
+            ? Localization.T("S.Files.Empty.Folder")
+            : Localization.T("S.Files.Empty.NoWorkspace.Hint");
     }
 
     private void RebuildRoot(WorkspaceResult<WorkspaceListing> result)
