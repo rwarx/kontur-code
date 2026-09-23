@@ -1,4 +1,4 @@
-<UserControl x:Class="AIClient.App.Views.SessionContextView"
+﻿<UserControl x:Class="AIClient.App.Views.SessionContextView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -113,7 +113,7 @@
 
                 <!-- ===== The window and what fills it ===== -->
 
-                <Separator Margin="0,7,0,12" Background="{DynamicResource BorderSubtleBrush}" />
+                <Separator Margin="0,7,0,12" Background="{DynamicResource Brush.BorderFaint}" />
 
                 <DockPanel Style="{StaticResource FieldRow}">
                     <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Window}" />
@@ -177,7 +177,7 @@
                         <TextBlock Style="{StaticResource FieldValue}"
                                    Text="{Binding Report.CacheReadTokens, Converter={StaticResource TokenCount}}" />
                         <TextBlock Style="{StaticResource FieldValue}"
-                                   Foreground="{DynamicResource TextMutedBrush}"
+                                   Foreground="{DynamicResource Brush.TextMuted}"
                                    Margin="4,0"
                                    Text="/" />
                         <TextBlock Style="{StaticResource FieldValue}"
@@ -187,7 +187,7 @@
 
                 <!-- ===== Who said what ===== -->
 
-                <Separator Margin="0,7,0,12" Background="{DynamicResource BorderSubtleBrush}" />
+                <Separator Margin="0,7,0,12" Background="{DynamicResource Brush.BorderFaint}" />
 
                 <DockPanel Style="{StaticResource FieldRow}">
                     <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.UserMessages}" />
@@ -216,7 +216,7 @@
 
                 <!-- ===== Money and dates ===== -->
 
-                <Separator Margin="0,7,0,12" Background="{DynamicResource BorderSubtleBrush}" />
+                <Separator Margin="0,7,0,12" Background="{DynamicResource Brush.BorderFaint}" />
 
                 <DockPanel Style="{StaticResource FieldRow}">
                     <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Cost}" />
@@ -239,7 +239,7 @@
 
                 <!-- ===== Breakdown ===== -->
 
-                <Separator Margin="0,7,0,10" Background="{DynamicResource BorderSubtleBrush}" />
+                <Separator Margin="0,7,0,10" Background="{DynamicResource Brush.BorderFaint}" />
 
                 <TextBlock Text="{DynamicResource S.Context.Breakdown}"
                            FontSize="12"
@@ -283,7 +283,7 @@
                                    Margin="0,0,4,0"
                                    Text="{DynamicResource S.Context.Band.User}" />
                         <TextBlock Style="{StaticResource LegendText}"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Foreground="{DynamicResource Brush.TextPrimary}"
                                    Text="{Binding Report.Breakdown.UserPercent, Converter={StaticResource BandShare}}" />
                     </StackPanel>
 
@@ -293,7 +293,7 @@
                                    Margin="0,0,4,0"
                                    Text="{DynamicResource S.Context.Band.Assistant}" />
                         <TextBlock Style="{StaticResource LegendText}"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Foreground="{DynamicResource Brush.TextPrimary}"
                                    Text="{Binding Report.Breakdown.AssistantPercent, Converter={StaticResource BandShare}}" />
                     </StackPanel>
 
@@ -303,7 +303,7 @@
                                    Margin="0,0,4,0"
                                    Text="{DynamicResource S.Context.Band.Tools}" />
                         <TextBlock Style="{StaticResource LegendText}"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Foreground="{DynamicResource Brush.TextPrimary}"
                                    Text="{Binding Report.Breakdown.ToolPercent, Converter={StaticResource BandShare}}" />
                     </StackPanel>
 
@@ -313,7 +313,7 @@
                                    Margin="0,0,4,0"
                                    Text="{DynamicResource S.Context.Band.Other}" />
                         <TextBlock Style="{StaticResource LegendText}"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Foreground="{DynamicResource Brush.TextPrimary}"
                                    Text="{Binding Report.Breakdown.OtherPercent, Converter={StaticResource BandShare}}" />
                     </StackPanel>
                 </WrapPanel>
@@ -344,7 +344,7 @@
         <StackPanel Grid.Row="2"
                     Margin="0,10,0,0"
                     Visibility="{Binding HasReport, Converter={StaticResource BoolToVisibility}}">
-            <Separator Margin="0,0,0,10" Background="{DynamicResource BorderSubtleBrush}" />
+            <Separator Margin="0,0,0,10" Background="{DynamicResource Brush.BorderFaint}" />
 
             <!--
                 Shown only when the chat is far enough through its window to be worth folding, and
@@ -390,3 +390,4 @@
         </StackPanel>
     </Grid>
 </UserControl>
+
