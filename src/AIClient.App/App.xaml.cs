@@ -91,6 +91,7 @@ public partial class App : System.Windows.Application
         {
             // A failure here means the app cannot run at all - a database that cannot be
             // opened, most likely. Say so plainly instead of vanishing.
+            TryLog(ex, "Startup failed.");
             ShowFatalError(ex);
             Shutdown(1);
         }

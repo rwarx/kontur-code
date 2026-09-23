@@ -6,6 +6,7 @@
               xmlns:kontur="clr-namespace:AIClient.App.Controls"
               xmlns:motion="clr-namespace:AIClient.App.Controls"
               xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+              xmlns:loc="clr-namespace:AIClient.App.Markup"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
              Background="{DynamicResource Brush.Surface0}"
@@ -32,7 +33,7 @@
                 <kontur:KonturIcon Kind="Folder" Width="12" Height="12"
                                    Foreground="{DynamicResource Brush.TextMuted}"
                                    VerticalAlignment="Center" />
-                <TextBlock Text="{Binding Workspace.WorkspaceName, FallbackValue={DynamicResource S.Main.Workspace.None}}"
+                <TextBlock Text="{Binding Workspace.WorkspaceName, FallbackValue={loc:Loc S.Main.Workspace.None}}"
                            Margin="7,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                            MaxWidth="280" ToolTip="{Binding Workspace.WorkspaceRoot}">
                     <TextBlock.Style>
@@ -77,9 +78,9 @@
                 </StackPanel>
 
                 <!-- The active model, as the picker last set it. -->
-                <TextBlock Text="{Binding Chat.SelectedModel.Name, FallbackValue={DynamicResource S.Status.NoModel}, TargetNullValue={DynamicResource S.Status.NoModel}}"
+                <TextBlock Text="{Binding Chat.SelectedModel.Name, FallbackValue={loc:Loc S.Status.NoModel}, TargetNullValue={loc:Loc S.Status.NoModel}}"
                            Style="{StaticResource Type.Metadata}"
-                           ToolTip="{Binding Chat.SelectedModel.ProviderName, FallbackValue={DynamicResource S.Status.PickModel}}"
+                           ToolTip="{Binding Chat.SelectedModel.ProviderName, FallbackValue={loc:Loc S.Status.PickModel}}"
                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="200" />
 
                 <Rectangle Width="1" Height="12" Fill="{DynamicResource Brush.BorderFaint}"

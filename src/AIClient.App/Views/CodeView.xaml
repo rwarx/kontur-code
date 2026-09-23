@@ -120,7 +120,7 @@
                                    VerticalAlignment="Center" />
                         <Border Style="{StaticResource KcBadge}" Margin="10,0,0,0"
                                 Visibility="{Binding ActiveTab.IsTruncated, Converter={StaticResource BoolToVisibility}}">
-                            <TextBlock Style="{StaticResource KcBadgeText}"><Run Text="{DynamicResource S.Code.FirstLines.Start}" /><Run Text=" " /><Run Text="{Binding ActiveTab.TotalLines}" /><Run Text=" " /><Run Text="{DynamicResource S.Code.FirstLines.End}" /></TextBlock>
+                             <TextBlock Style="{StaticResource KcBadgeText}"><Run Text="{DynamicResource S.Code.FirstLines.Start}" /><Run Text=" " /><Run Text="{Binding ActiveTab.TotalLines, Mode=OneWay}" /><Run Text=" " /><Run Text="{DynamicResource S.Code.FirstLines.End}" /></TextBlock>
                         </Border>
                     </StackPanel>
                 </Border>

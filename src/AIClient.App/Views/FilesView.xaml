@@ -5,6 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:kontur="clr-namespace:AIClient.App.Controls"
              xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+             xmlns:loc="clr-namespace:AIClient.App.Markup"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:FilesViewModel}"
              Background="{DynamicResource Brush.Surface0}"
@@ -39,7 +40,7 @@
                     </Grid.ColumnDefinitions>
                     <kontur:KonturIcon Grid.Column="0" Kind="Files" Width="14" Height="14"
                                        Foreground="{DynamicResource Brush.AccentText}" />
-                    <TextBlock Grid.Column="1" Text="{Binding RootName, FallbackValue={DynamicResource S.Nav.Files}}"
+                    <TextBlock Grid.Column="1" Text="{Binding RootName, FallbackValue={loc:Loc S.Nav.Files}}"
                                Style="{StaticResource Type.Section}" Margin="9,0,0,0" VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis" />
                     <Button Grid.Column="2" Style="{StaticResource KcButtonTool}" Width="24" Height="24"

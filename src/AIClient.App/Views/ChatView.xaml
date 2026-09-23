@@ -9,6 +9,7 @@
               xmlns:md="clr-namespace:AIClient.App.Markdown"
               xmlns:motion="clr-namespace:AIClient.App.Controls"
               xmlns:dto="clr-namespace:AIClient.Application.DTOs;assembly=AIClient.Application"
+              xmlns:loc="clr-namespace:AIClient.App.Markup"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:ChatViewModel}"
              d:DesignHeight="700" d:DesignWidth="900">
@@ -1130,7 +1131,7 @@
                                     <TextBlock Style="{StaticResource Type.Metadata}"
                                                Foreground="{DynamicResource Brush.TextSecondary}"
                                                VerticalAlignment="Center"
-                                               Text="{Binding SelectedModel.Name, FallbackValue={DynamicResource S.Main.SelectModel}, TargetNullValue={DynamicResource S.Main.SelectModel}}" />
+                                               Text="{Binding SelectedModel.Name, FallbackValue={loc:Loc S.Main.SelectModel}, TargetNullValue={loc:Loc S.Main.SelectModel}}" />
                                     <kontur:KonturIcon Kind="ChevronDown" Width="10" Height="10" GlyphThickness="2.7"
                                                        VerticalAlignment="Center" Margin="5,0,0,0" />
                                 </StackPanel>

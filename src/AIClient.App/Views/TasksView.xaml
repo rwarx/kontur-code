@@ -6,6 +6,7 @@
               xmlns:kontur="clr-namespace:AIClient.App.Controls"
               xmlns:motion="clr-namespace:AIClient.App.Controls"
               xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+              xmlns:loc="clr-namespace:AIClient.App.Markup"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:TasksViewModel}"
              Background="{DynamicResource Brush.Surface0}"
@@ -58,9 +59,9 @@
                         </Style>
                     </Ellipse.Style>
                 </Ellipse>
-                <TextBlock Text="{Binding RunKind, FallbackValue={DynamicResource S.Mode.Chat}}" Style="{StaticResource Type.Caption}"
+                <TextBlock Text="{Binding RunKind, FallbackValue={loc:Loc S.Mode.Chat}}" Style="{StaticResource Type.Caption}"
                            FontWeight="SemiBold" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding StateText, FallbackValue={DynamicResource S.Main.Ai.Idle}}" Style="{StaticResource Type.Metadata}"
+                <TextBlock Text="{Binding StateText, FallbackValue={loc:Loc S.Main.Ai.Idle}}" Style="{StaticResource Type.Metadata}"
                            Margin="10,0,0,0" VerticalAlignment="Center" Opacity="0.8" />
             </StackPanel>
         </Border>

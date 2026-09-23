@@ -8,6 +8,7 @@
                   xmlns:kontur="clr-namespace:AIClient.App.Controls"
                   xmlns:motion="clr-namespace:AIClient.App.Controls"
                   xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+                  xmlns:loc="clr-namespace:AIClient.App.Markup"
                  mc:Ignorable="d"
                  d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
                  Title="{DynamicResource S.App.Name}"
@@ -100,12 +101,12 @@
 
                         <Button Style="{StaticResource KcButtonGhost}" Margin="16,0,0,0"
                                 Padding="9,4" MinHeight="26"
-                                ToolTip="{Binding Workspace.WorkspaceRoot, FallbackValue={DynamicResource S.Main.Workspace.OpenFallback}}"
+                                ToolTip="{Binding Workspace.WorkspaceRoot, FallbackValue={loc:Loc S.Main.Workspace.OpenFallback}}"
                                 Command="{Binding Workspace.OpenWorkspaceCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <kontur:KonturIcon Kind="Folder" Width="13" Height="13"
                                                    Foreground="{DynamicResource Brush.TextSecondary}" />
-                                <TextBlock Text="{Binding Workspace.WorkspaceName, FallbackValue={DynamicResource S.Main.Workspace.None}}"
+                                <TextBlock Text="{Binding Workspace.WorkspaceName, FallbackValue={loc:Loc S.Main.Workspace.None}}"
                                            Style="{StaticResource Type.Caption}" Margin="7,0,0,0" MaxWidth="160"
                                            TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                             </StackPanel>
@@ -120,7 +121,7 @@
                                 <Binding Path="Workspace.Context.IsAiWorking" />
                             </motion:Motion.Pulse>
                         </Ellipse>
-                        <TextBlock Text="{Binding Workspace.Context.AiStateText, FallbackValue={DynamicResource S.Main.Ai.Idle}}"
+                        <TextBlock Text="{Binding Workspace.Context.AiStateText, FallbackValue={loc:Loc S.Main.Ai.Idle}}"
                                    Style="{StaticResource Type.Metadata}" VerticalAlignment="Center"
                                    MaxWidth="140" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
@@ -206,7 +207,7 @@
                             <StackPanel Orientation="Horizontal">
                                 <kontur:KonturIcon Kind="Models" Width="13" Height="13"
                                                    Foreground="{DynamicResource Brush.AccentText}" />
-                                <TextBlock Text="{Binding Chat.SelectedModel.Name, FallbackValue={DynamicResource S.Main.SelectModel}, TargetNullValue={DynamicResource S.Main.SelectModel}}"
+                                <TextBlock Text="{Binding Chat.SelectedModel.Name, FallbackValue={loc:Loc S.Main.SelectModel}, TargetNullValue={loc:Loc S.Main.SelectModel}}"
                                            Style="{StaticResource Type.Caption}" MaxWidth="180" Margin="7,0,0,0"
                                            TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                 <kontur:KonturIcon Kind="ChevronDown" Width="10" Height="10" GlyphThickness="2.7"

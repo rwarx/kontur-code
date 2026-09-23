@@ -750,7 +750,7 @@
                     <StackPanel>
                         <TextBlock Text="{DynamicResource S.App.Name}" Style="{StaticResource Type.Body}" FontWeight="SemiBold" />
                         <TextBlock Style="{StaticResource Type.Metadata}"
-                                   Margin="0,2,0,10"><Run Text="{DynamicResource S.Settings.About.VersionWord}" /><Run Text=" " /><Run Text="{Binding AppVersion}" /></TextBlock>
+                                   Margin="0,2,0,10"><Run Text="{DynamicResource S.Settings.About.VersionWord}" /><Run Text=" " /><Run Text="{Binding AppVersion, Mode=OneWay}" /></TextBlock>
                         <TextBlock Style="{StaticResource Type.Metadata}"
                                    TextWrapping="Wrap"
                                    TextTrimming="None"

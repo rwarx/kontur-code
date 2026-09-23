@@ -108,11 +108,11 @@
                 Visibility="{Binding Canvas.NodeCount, Converter={StaticResource NodeCountToVisibility}}">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource Type.Metadata}">
-                    <Run Text="{Binding Canvas.NodeCount}" /><Run Text=" " /><Run Text="{DynamicResource S.Canvas.Unit.Nodes}" />
+                     <Run Text="{Binding Canvas.NodeCount, Mode=OneWay}" /><Run Text=" " /><Run Text="{DynamicResource S.Canvas.Unit.Nodes}" />
                 </TextBlock>
                 <TextBlock Style="{StaticResource Type.Metadata}" Opacity="0.6" Text=" · " />
                 <TextBlock Style="{StaticResource Type.Metadata}">
-                    <Run Text="{Binding Canvas.EdgeCount}" /><Run Text=" " /><Run Text="{DynamicResource S.Canvas.Unit.Links}" />
+                     <Run Text="{Binding Canvas.EdgeCount, Mode=OneWay}" /><Run Text=" " /><Run Text="{DynamicResource S.Canvas.Unit.Links}" />
                 </TextBlock>
                 <TextBlock Style="{StaticResource Type.Metadata}" Opacity="0.6" Text=" · "
                            Visibility="{Binding Canvas.HasSelection, Converter={StaticResource BoolToVisibility}}" />

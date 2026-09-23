@@ -6,6 +6,7 @@
              xmlns:kontur="clr-namespace:AIClient.App.Controls"
              xmlns:vm="clr-namespace:AIClient.App.ViewModels"
              xmlns:conv="clr-namespace:AIClient.App.Converters"
+             xmlns:loc="clr-namespace:AIClient.App.Markup"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
              d:DesignHeight="800" d:DesignWidth="232"
@@ -119,7 +120,7 @@
                        Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBoolToVisibility}}" />
             <Button Padding="9,6" Margin="0,1"
                     Command="{Binding Workspace.OpenWorkspaceCommand}"
-                    ToolTip="{Binding Workspace.WorkspaceRoot, FallbackValue={DynamicResource S.Sidebar.OpenFolder.Fallback}}">
+                    ToolTip="{Binding Workspace.WorkspaceRoot, FallbackValue={loc:Loc S.Sidebar.OpenFolder.Fallback}}">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource KcButtonGhost}">
                         <Setter Property="HorizontalContentAlignment" Value="Left" />

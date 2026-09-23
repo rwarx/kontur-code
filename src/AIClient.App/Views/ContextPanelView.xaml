@@ -6,6 +6,7 @@
               xmlns:kontur="clr-namespace:AIClient.App.Controls"
               xmlns:motion="clr-namespace:AIClient.App.Controls"
               xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+              xmlns:loc="clr-namespace:AIClient.App.Markup"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:ContextPanelViewModel}"
              Background="{DynamicResource Brush.Surface1}"
@@ -56,7 +57,7 @@
                 <TextBlock Grid.Column="1" Margin="9,0,0,0" VerticalAlignment="Center"
                            Style="{StaticResource Type.Section}">
                     <TextBlock.Text>
-                        <Binding Path="Mode" FallbackValue="{DynamicResource S.Inspector.Mode.Workspace}"
+                        <Binding Path="Mode" FallbackValue="{loc:Loc S.Inspector.Mode.Workspace}"
                                  Converter="{StaticResource ContextPanelModeLabel}" />
                     </TextBlock.Text>
                 </TextBlock>
@@ -80,12 +81,12 @@
                     </StackPanel.Style>
 
                     <StackPanel Margin="12,10">
-                        <TextBlock Text="{Binding WorkspaceName, FallbackValue={DynamicResource S.Main.Workspace.None}}"
+                        <TextBlock Text="{Binding WorkspaceName, FallbackValue={loc:Loc S.Main.Workspace.None}}"
                                    Style="{StaticResource Type.Section}" TextTrimming="CharacterEllipsis" />
                         <TextBlock Text="{Binding WorkspaceRoot}" Style="{StaticResource Type.Metadata}"
                                    TextTrimming="CharacterEllipsis" Margin="0,3,0,0" Opacity="0.7"
                                    ToolTip="{Binding WorkspaceRoot}" />
-                        <TextBlock Text="{Binding GraphSummary, FallbackValue={DynamicResource S.Inspector.GraphEmpty}}"
+                        <TextBlock Text="{Binding GraphSummary, FallbackValue={loc:Loc S.Inspector.GraphEmpty}}"
                                    Style="{StaticResource Type.Caption}" Margin="0,8,0,0"
                                    Foreground="{DynamicResource Brush.TextSecondary}" />
                     </StackPanel>
@@ -277,7 +278,7 @@
                                                Foreground="{DynamicResource Brush.AccentText}" />
                             <TextBlock Text="{DynamicResource S.Inspector.Mode.Edge}" Style="{StaticResource Type.Section}" Margin="10,0,0,0" />
                         </StackPanel>
-                        <TextBlock Text="{Binding InspectedEdge.Kind, FallbackValue={DynamicResource S.Edge.Relates}}"
+                        <TextBlock Text="{Binding InspectedEdge.Kind, FallbackValue={loc:Loc S.Edge.Relates}}"
                                    Style="{StaticResource Type.Accent}" Margin="25,6,0,0" />
                         <TextBlock Text="{DynamicResource S.Inspector.Connection.Hint}"
                                    Style="{StaticResource Type.CaptionWrap}" Margin="25,6,0,0"
@@ -340,7 +341,7 @@
                         <StackPanel Orientation="Horizontal">
                             <kontur:KonturIcon Kind="Sparkle" Width="15" Height="15"
                                                Foreground="{DynamicResource Brush.AccentText}" />
-                            <TextBlock Text="{Binding AiStateText, FallbackValue={DynamicResource S.Main.Ai.Idle}}"
+                            <TextBlock Text="{Binding AiStateText, FallbackValue={loc:Loc S.Main.Ai.Idle}}"
                                        Style="{StaticResource Type.Section}" Margin="10,0,0,0" />
                             <Ellipse Width="7" Height="7" Margin="8,2,0,0" VerticalAlignment="Center"
                                      Fill="{DynamicResource Brush.Running}"
