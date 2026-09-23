@@ -30,6 +30,7 @@ Violation = compile error (`net10.0` makes `System.Windows` unreferenceable from
 |---|---|---|
 | MVVM | App | CommunityToolkit.Mvvm source generators |
 | Streaming | Domain → App | `AIStreamEvent` → `ChatTurnEvent`/`AgentEvent` → ViewModel collections |
+| Localization | App | `Strings.{en,ru,de}.xaml` → `{DynamicResource}` / `Localization.T` / `{loc:Loc}` in fallback slots, `LanguageChanged` refresh |
 | DbContext | Infrastructure | Factory-based (`IDbContextFactory<T>`), no shared context |
 | Closed event hierarchies | Domain | `AIStreamEvent`, `AgentEvent`, `GraphChange`, `AgentRunTransition` — new kinds = additive |
 | Risk-based approval | Application | Tools declare `AgentToolRisk`; gate runs before execution |
@@ -75,7 +76,8 @@ dotnet build AIClient.slnx -warnaserror
 dotnet test
 ```
 
-745+ tests. Real SQLite, real DPAPI, fake HTTP handlers. Live tests skip without keys.
+834 tests (826 pass, 8 live skips). Real SQLite, real DPAPI, fake HTTP handlers. Live tests skip
+without keys.
 
 ## CI
 
@@ -117,3 +119,17 @@ All three files (migration, designer, snapshot) must be in the same commit.
 
 **Add a graph node kind:** Add to `GraphNodeKind` enum, update `WorkspaceGraphIndexer` kind mapping,
 update `CanvasPalette` brush/glyph.
+
+**Add a UI string:** Add the key to all three `Strings.{en,ru,de}.xaml` (584 keys each, no BOM, XML
+must stay balanced), then `{DynamicResource Key}` in XAML or `Localization.T("Key")` in C# and
+`T(key, args)` for formats (formats only when args are given). In a Binding's
+`FallbackValue`/`TargetNullValue` use `{loc:Loc Key}` — `DynamicResource` throws there because the
+slot belongs to the Binding, not a DependencyObject. `Run.Text` binds TwoWay by default: getter-only
+paths need `Mode=OneWay`. After a language switch, `LanguageChanged` refreshes the views; frozen
+values (canvas titles parsed at construction) are accepted where re-binding would cost more than the
+rare stale line.
+
+**Smoke the shell, not just the process:** `dotnet test` never parses the XAML. Launch
+`AIClient.exe`, wait ~9s, close it, and require `Application started` with no `[ERR]` in
+`%APPDATA%\AIClient\logs` — a live process alone can mean the fatal "could not start" dialog is
+holding it.

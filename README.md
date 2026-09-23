@@ -255,9 +255,9 @@ tree and the binding engine - and cleared the moment it is saved. `SecureStorage
 dotnet test
 ```
 
-832 tests against a real migrated SQLite file, real DPAPI, and fake HTTP handlers replaying recorded
+834 tests against a real migrated SQLite file, real DPAPI, and fake HTTP handlers replaying recorded
 provider responses. A fresh clone with no key and no network passes: the eight tests that need a
-live provider skip themselves and say so (824 pass, 8 skip).
+live provider skip themselves and say so (826 pass, 8 skip).
 
 To run those eight as well, put a key in the environment first:
 
