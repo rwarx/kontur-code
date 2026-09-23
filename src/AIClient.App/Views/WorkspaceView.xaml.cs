@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using AIClient.App.ViewModels;
+using Localization = AIClient.App.Services.Localization;
 
 namespace AIClient.App.Views;
 
@@ -16,22 +17,22 @@ public partial class WorkspaceView : UserControl
 {
     private bool _suppressTabEvents;
 
-    private sealed record ModeTab(WorkspaceMode Mode, string Label, string ToolTip);
+    private sealed record ModeTab(WorkspaceMode Mode, string LabelKey, string ToolTipKey);
 
     private static readonly ModeTab[] Tabs =
     [
-        new(WorkspaceMode.Canvas, "Canvas", "The workspace as a spatial map"),
-        new(WorkspaceMode.Graph, "Graph", "The same map as a structure"),
-        new(WorkspaceMode.Files, "Files", "The workspace's file tree"),
-        new(WorkspaceMode.Code, "Code", "Open documents"),
-        new(WorkspaceMode.Chat, "Chat", "The conversation"),
+        new(WorkspaceMode.Canvas, "S.Mode.Canvas", "S.Mode.Canvas.ToolTip"),
+        new(WorkspaceMode.Graph, "S.Mode.Graph", "S.Mode.Graph.ToolTip"),
+        new(WorkspaceMode.Files, "S.Mode.Files", "S.Mode.Files.ToolTip"),
+        new(WorkspaceMode.Code, "S.Mode.Code", "S.Mode.Code.ToolTip"),
+        new(WorkspaceMode.Chat, "S.Mode.Chat", "S.Mode.Chat.ToolTip"),
     ];
 
-    private static readonly string[] PageTitles =
+    private static readonly string[] PageTitleKeys =
     [
-        "Providers",
-        "Tasks & Agents",
-        "Settings",
+        "S.Mode.Title.Providers",
+        "S.Mode.Title.Tasks",
+        "S.Mode.Title.Settings",
     ];
 
     public WorkspaceView()
@@ -42,10 +43,10 @@ public partial class WorkspaceView : UserControl
         {
             var item = new ListBoxItem
             {
-                Content = tab.Label,
                 Tag = tab,
-                ToolTip = tab.ToolTip,
             };
+            item.SetResourceReference(ContentControl.ContentProperty, tab.LabelKey);
+            item.SetResourceReference(FrameworkElement.ToolTipProperty, tab.ToolTipKey);
 
             ModeTabs.Items.Add(item);
         }
@@ -61,14 +62,18 @@ public partial class WorkspaceView : UserControl
         if (e.OldValue is MainViewModel previous)
         {
             previous.Workspace.PropertyChanged -= OnWorkspacePropertyChanged;
+            previous.LanguageRefreshed -= OnLanguageRefreshed;
         }
 
         if (e.NewValue is MainViewModel current)
         {
             current.Workspace.PropertyChanged += OnWorkspacePropertyChanged;
+            current.LanguageRefreshed += OnLanguageRefreshed;
             SyncSelection();
         }
     }
+
+    private void OnLanguageRefreshed(object? sender, EventArgs e) => SyncSelection();
 
     private void OnWorkspacePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
@@ -92,9 +97,9 @@ public partial class WorkspaceView : UserControl
 
         PageTitle.Text = main.Workspace.Mode switch
         {
-            WorkspaceMode.Models => PageTitles[0],
-            WorkspaceMode.Tasks => PageTitles[1],
-            WorkspaceMode.Settings => PageTitles[2],
+            WorkspaceMode.Models => Localization.T(PageTitleKeys[0]),
+            WorkspaceMode.Tasks => Localization.T(PageTitleKeys[1]),
+            WorkspaceMode.Settings => Localization.T(PageTitleKeys[2]),
             _ => string.Empty,
         };
 

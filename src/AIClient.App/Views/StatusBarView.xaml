@@ -55,7 +55,7 @@
                                        Foreground="{DynamicResource Brush.AccentText}"
                                        VerticalAlignment="Center"
                                        motion:Motion.Spin="True" />
-                    <TextBlock Text="Indexing…" Style="{StaticResource Type.Metadata}"
+                    <TextBlock Text="{DynamicResource S.Status.Indexing}" Style="{StaticResource Type.Metadata}"
                                Foreground="{DynamicResource Brush.AccentText}"
                                Margin="5,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>
@@ -71,15 +71,15 @@
                                        Foreground="{DynamicResource Brush.AccentText}"
                                        VerticalAlignment="Center"
                                        motion:Motion.Pulse="True" />
-                    <TextBlock Text="Generating…" Style="{StaticResource Type.Metadata}"
+                    <TextBlock Text="{DynamicResource S.Status.Generating}" Style="{StaticResource Type.Metadata}"
                                Foreground="{DynamicResource Brush.AccentText}"
                                Margin="5,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>
 
                 <!-- The active model, as the picker last set it. -->
-                <TextBlock Text="{Binding Chat.SelectedModel.Name, FallbackValue='No model', TargetNullValue='No model'}"
+                <TextBlock Text="{Binding Chat.SelectedModel.Name, FallbackValue={DynamicResource S.Status.NoModel}, TargetNullValue={DynamicResource S.Status.NoModel}}"
                            Style="{StaticResource Type.Metadata}"
-                           ToolTip="{Binding Chat.SelectedModel.ProviderName, FallbackValue='Pick a model in the Providers surface'}"
+                           ToolTip="{Binding Chat.SelectedModel.ProviderName, FallbackValue={DynamicResource S.Status.PickModel}}"
                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="200" />
 
                 <Rectangle Width="1" Height="12" Fill="{DynamicResource Brush.BorderFaint}"
@@ -94,15 +94,9 @@
 
                 <StackPanel Orientation="Horizontal"
                             Visibility="{Binding Workspace.HasWorkspace, Converter={StaticResource BoolToVisibility}}">
-                    <!-- Contents. -->
-                    <TextBlock Style="{StaticResource Type.Metadata}" VerticalAlignment="Center" Margin="0,0,12,0">
-                        <TextBlock.Text>
-                            <MultiBinding StringFormat="{}{0} nodes · {1} connections" FallbackValue="empty canvas">
-                                <Binding Path="Workspace.Canvas.NodeCount" />
-                                <Binding Path="Workspace.Canvas.EdgeCount" />
-                            </MultiBinding>
-                        </TextBlock.Text>
-                    </TextBlock>
+                <!-- Contents. -->
+                <TextBlock Style="{StaticResource Type.Metadata}" VerticalAlignment="Center" Margin="0,0,12,0"
+                           Text="{Binding Workspace.Canvas.CountSummary}" />
 
                     <!-- Zoom, as the canvas last reported it. -->
                     <TextBlock Style="{StaticResource Type.Metadata}" VerticalAlignment="Center" Margin="0,0,12,0"
@@ -113,14 +107,14 @@
                 <Button Style="{StaticResource KcButtonTool}"
                         Command="{Binding Workspace.Canvas.UndoCommand}"
                         IsEnabled="{Binding Workspace.Canvas.CanUndo}"
-                        ToolTip="Undo (Ctrl+Z)"
+                        ToolTip="{DynamicResource S.Status.Undo.ToolTip}"
                         VerticalAlignment="Center">
                     <kontur:KonturIcon Kind="Undo" Width="12" Height="12" />
                 </Button>
                 <Button Style="{StaticResource KcButtonTool}"
                         Command="{Binding Workspace.Canvas.RedoCommand}"
                         IsEnabled="{Binding Workspace.Canvas.CanRedo}"
-                        ToolTip="Redo (Ctrl+Y)"
+                        ToolTip="{DynamicResource S.Status.Redo.ToolTip}"
                         VerticalAlignment="Center">
                     <kontur:KonturIcon Kind="Redo" Width="12" Height="12" />
                 </Button>

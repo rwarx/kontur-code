@@ -7,6 +7,7 @@ using AIClient.App.Services;
 using AIClient.Application.Graph;
 using AIClient.Application.Interfaces;
 using AIClient.Domain.Graph;
+using Localization = AIClient.App.Services.Localization;
 
 namespace AIClient.App.ViewModels;
 
@@ -315,10 +316,24 @@ public sealed partial class CanvasViewModel : ObservableObject, CanvasController
 
         SelectionSummary = _controller.SelectedNodeIds.Count switch
         {
-            0 => _controller.SelectedEdgeId is null ? string.Empty : "1 connection",
-            1 => "1 node",
-            _ => $"{_controller.SelectedNodeIds.Count} nodes",
+            0 => _controller.SelectedEdgeId is null ? string.Empty : Localization.T("S.Status.Selection.OneConnection"),
+            1 => Localization.T("S.Status.Selection.OneNode"),
+            _ => Localization.T("S.Status.Selection.Nodes", _controller.SelectedNodeIds.Count),
         };
+
+        OnPropertyChanged(nameof(CountSummary));
+    }
+
+    /// <summary>Node and edge counts as one localized line for the status bar.</summary>
+    public string CountSummary => NodeCount == 0 && EdgeCount == 0
+        ? Localization.T("S.Status.Counts.Empty")
+        : Localization.T("S.Status.Counts", NodeCount, EdgeCount);
+
+    /// <summary>Re-reads the computed strings after a language switch.</summary>
+    public void RefreshLanguage()
+    {
+        OnPropertyChanged(nameof(CountSummary));
+        OnPropertyChanged(nameof(SelectionSummary));
     }
 
     /// <summary>Subscribes the view's canvas element to the controller; called once on load.</summary>

@@ -62,13 +62,13 @@
                         <TextBlock Text="What you get" Style="{StaticResource Type.Caption}" FontWeight="SemiBold"
                                    Foreground="{DynamicResource Brush.TextPrimary}" Margin="0,0,0,8" />
                         <TextBlock TextWrapping="Wrap" Style="{StaticResource Type.Metadata}" Margin="0,0,0,4"
-                                   Text="вЂў Streaming answers with Markdown and syntax highlighting" />
+                                   Text="• Streaming answers with Markdown and syntax highlighting" />
                         <TextBlock TextWrapping="Wrap" Style="{StaticResource Type.Metadata}" Margin="0,0,0,4"
-                                   Text="вЂў Conversations saved locally and searchable" />
+                                   Text="• Conversations saved locally and searchable" />
                         <TextBlock TextWrapping="Wrap" Style="{StaticResource Type.Metadata}" Margin="0,0,0,4"
-                                   Text="вЂў Several providers side by side, behind one model picker" />
+                                   Text="• Several providers side by side, behind one model picker" />
                         <TextBlock TextWrapping="Wrap" Style="{StaticResource Type.Metadata}"
-                                   Text="вЂў API keys encrypted with Windows DPAPI, never written to the database" />
+                                   Text="• API keys encrypted with Windows DPAPI, never written to the database" />
                     </StackPanel>
                 </Border>
             </StackPanel>

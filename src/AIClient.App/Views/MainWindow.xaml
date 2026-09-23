@@ -10,7 +10,7 @@
                   xmlns:vm="clr-namespace:AIClient.App.ViewModels"
                  mc:Ignorable="d"
                  d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
-                 Title="Kontur Code"
+                 Title="{DynamicResource S.App.Name}"
                  Width="1360" Height="860"
                  MinWidth="900" MinHeight="560"
                  WindowStartupLocation="CenterScreen"
@@ -81,7 +81,7 @@
                         <Button Style="{StaticResource KcButtonTool}" Width="26" Height="26"
                                 Margin="0,0,8,0"
                                 Command="{Binding ToggleSidebarCommand}"
-                                ToolTip="Show or hide the sidebar (Ctrl+B)">
+                                ToolTip="{DynamicResource S.Main.ToggleSidebar.ToolTip}">
                             <kontur:MorphIcon First="CollapsePanel" Second="ExpandPanel"
                                               IsSecond="{Binding IsSidebarVisible, Converter={StaticResource InverseBool}}"
                                               Width="13" Height="13" />
@@ -95,17 +95,17 @@
                             <Image Source="/Assets/logo.png"
                                    RenderOptions.BitmapScalingMode="HighQuality" />
                         </Border>
-                        <TextBlock Text="Kontur Code" Style="{StaticResource Type.Title}" Margin="9,0,0,0"
+                        <TextBlock Text="{DynamicResource S.App.Name}" Style="{StaticResource Type.Title}" Margin="9,0,0,0"
                                    VerticalAlignment="Center" />
 
                         <Button Style="{StaticResource KcButtonGhost}" Margin="16,0,0,0"
                                 Padding="9,4" MinHeight="26"
-                                ToolTip="{Binding Workspace.WorkspaceRoot, FallbackValue='Open a workspace folder'}"
+                                ToolTip="{Binding Workspace.WorkspaceRoot, FallbackValue={DynamicResource S.Main.Workspace.OpenFallback}}"
                                 Command="{Binding Workspace.OpenWorkspaceCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <kontur:KonturIcon Kind="Folder" Width="13" Height="13"
                                                    Foreground="{DynamicResource Brush.TextSecondary}" />
-                                <TextBlock Text="{Binding Workspace.WorkspaceName, FallbackValue='No workspace'}"
+                                <TextBlock Text="{Binding Workspace.WorkspaceName, FallbackValue={DynamicResource S.Main.Workspace.None}}"
                                            Style="{StaticResource Type.Caption}" Margin="7,0,0,0" MaxWidth="160"
                                            TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                             </StackPanel>
@@ -120,7 +120,7 @@
                                 <Binding Path="Workspace.Context.IsAiWorking" />
                             </motion:Motion.Pulse>
                         </Ellipse>
-                        <TextBlock Text="{Binding Workspace.Context.AiStateText, FallbackValue='Idle'}"
+                        <TextBlock Text="{Binding Workspace.Context.AiStateText, FallbackValue={DynamicResource S.Main.Ai.Idle}}"
                                    Style="{StaticResource Type.Metadata}" VerticalAlignment="Center"
                                    MaxWidth="140" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
@@ -135,18 +135,18 @@
                 <ui:TitleBar.CenterContent>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Button Style="{StaticResource KcButtonTool}" Width="26" Height="26"
-                                Command="{Binding GoBackCommand}" ToolTip="Go back (Alt+Left)">
+                                Command="{Binding GoBackCommand}" ToolTip="{DynamicResource S.Main.GoBack.ToolTip}">
                             <kontur:KonturIcon Kind="ChevronLeft" Width="13" Height="13" GlyphThickness="2.4" />
                         </Button>
                         <Button Style="{StaticResource KcButtonTool}" Width="26" Height="26" Margin="1,0,0,0"
-                                Command="{Binding GoForwardCommand}" ToolTip="Go forward (Alt+Right)">
+                                Command="{Binding GoForwardCommand}" ToolTip="{DynamicResource S.Main.GoForward.ToolTip}">
                             <kontur:KonturIcon Kind="ChevronRight" Width="13" Height="13" GlyphThickness="2.4" />
                         </Button>
 
                         <Button Style="{StaticResource KcButtonGhost}" Padding="0" Margin="8,0,0,0"
                                 HorizontalContentAlignment="Stretch"
                                 Command="{Binding ToggleCommandPaletteCommand}"
-                                ToolTip="Search and commands (Ctrl+Shift+P)">
+                                ToolTip="{DynamicResource S.Main.Palette.ToolTip}">
                             <Border Background="{DynamicResource Brush.SurfaceSunken}"
                                     BorderBrush="{DynamicResource Brush.Border}"
                                     BorderThickness="1"
@@ -161,7 +161,7 @@
                                     <kontur:KonturIcon Grid.Column="0" Kind="Search" Width="13" Height="13"
                                                        VerticalAlignment="Center"
                                                        Foreground="{DynamicResource Brush.TextMuted}" />
-                                    <TextBlock Grid.Column="1" Text="Search Kontur Code"
+                                    <TextBlock Grid.Column="1" Text="{DynamicResource S.Main.Search.Placeholder}"
                                                Style="{StaticResource Type.Caption}"
                                                Foreground="{DynamicResource Brush.TextSecondary}"
                                                VerticalAlignment="Center" HorizontalAlignment="Center" />
@@ -178,8 +178,8 @@
                 <ui:TitleBar.TrailingContent>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Button Style="{StaticResource KcButtonGhost}" Padding="8,4" MinHeight="26"
-                                Margin="0,0,4,0" Command="{Binding ToggleContextPanelCommand}"
-                                ToolTip="Show or hide Inspector (Ctrl+Alt+I)">
+                                Margin="0,0,4,0"                                 Command="{Binding ToggleContextPanelCommand}"
+                                ToolTip="{DynamicResource S.Main.Inspector.ToolTip}">
                             <StackPanel Orientation="Horizontal">
                                 <kontur:MorphIcon First="ExpandPanel" Second="CollapsePanel"
                                                   IsSecond="{Binding IsContextPanelVisible}"
@@ -195,18 +195,18 @@
                                         </Style>
                                     </kontur:MorphIcon.Style>
                                 </kontur:MorphIcon>
-                                <TextBlock Text="Inspector" Style="{StaticResource Type.Caption}" Margin="6,0,0,0"
+                                <TextBlock Text="{DynamicResource S.Main.Inspector}" Style="{StaticResource Type.Caption}" Margin="6,0,0,0"
                                            VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
 
                         <Button x:Name="ModelButton" Style="{StaticResource KcButtonGhost}" Padding="9,4"
                                 MinHeight="26" Margin="0,0,8,0" VerticalAlignment="Center"
-                                Click="OnModelButtonClick" ToolTip="Change model">
+                                Click="OnModelButtonClick" ToolTip="{DynamicResource S.Main.ChangeModel.ToolTip}">
                             <StackPanel Orientation="Horizontal">
                                 <kontur:KonturIcon Kind="Models" Width="13" Height="13"
                                                    Foreground="{DynamicResource Brush.AccentText}" />
-                                <TextBlock Text="{Binding Chat.SelectedModel.Name, FallbackValue='Select a model', TargetNullValue='Select a model'}"
+                                <TextBlock Text="{Binding Chat.SelectedModel.Name, FallbackValue={DynamicResource S.Main.SelectModel}, TargetNullValue={DynamicResource S.Main.SelectModel}}"
                                            Style="{StaticResource Type.Caption}" MaxWidth="180" Margin="7,0,0,0"
                                            TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                 <kontur:KonturIcon Kind="ChevronDown" Width="10" Height="10" GlyphThickness="2.7"

@@ -715,8 +715,13 @@ public sealed partial class MainViewModel : ObservableObject
         FirstRun.OnLanguageChanged();
         CommandPalette.OnLanguageChanged();
         SessionContext.OnLanguageChanged();
+        Workspace.Canvas.RefreshLanguage();
+        LanguageRefreshed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Raised so the view can open the context flyout, once its report has been built.</summary>
     public event EventHandler? ContextRequested;
+
+    /// <summary>Raised after a language switch so views with code-built rows can rebuild them.</summary>
+    public event EventHandler? LanguageRefreshed;
 }

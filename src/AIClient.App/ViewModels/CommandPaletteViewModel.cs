@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Data;
+using AIClient.App.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -146,33 +147,33 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
 
     private static IEnumerable<PaletteEntry> BuildEntries() =>
     [
-        new(PaletteCommand.NewChat, "New Chat", "Chat", "Ctrl+N", "create start"),
-        new(PaletteCommand.SearchChats, "Search Chats", "Chat", "Ctrl+K", "find filter"),
-        new(PaletteCommand.ChangeModel, "Change Model", "Chat", null, "provider switch llm"),
-        new(PaletteCommand.AskAiAboutSelection, "Ask AI About Selection", "AI", "Ctrl+I", "explain graph context"),
-        new(PaletteCommand.OpenSettings, "Settings", "Application", "Ctrl+,", "preferences options"),
-        new(PaletteCommand.ToggleTheme, "Toggle Theme", "Application", null, "dark light appearance"),
-        new(PaletteCommand.ToggleContextPanel, "Toggle Context Panel", "Application", null, "inspector sidebar right"),
-        new(PaletteCommand.ToggleSidebar, "Toggle Sidebar", "Application", "Ctrl+B", "navigation collapse"),
-        new(PaletteCommand.ExportMarkdown, "Export Chat as Markdown", "Export", null, "save md"),
-        new(PaletteCommand.ExportJson, "Export Chat as JSON", "Export", null, "save json"),
-        new(PaletteCommand.ExportText, "Export Chat as Text", "Export", null, "save txt plain"),
+        new(PaletteCommand.NewChat, Localization.T("S.Palette.NewChat"), Localization.T("S.Palette.Category.Chat"), "Ctrl+N", "create start"),
+        new(PaletteCommand.SearchChats, Localization.T("S.Palette.SearchChats"), Localization.T("S.Palette.Category.Chat"), "Ctrl+K", "find filter"),
+        new(PaletteCommand.ChangeModel, Localization.T("S.Palette.ChangeModel"), Localization.T("S.Palette.Category.Chat"), null, "provider switch llm"),
+        new(PaletteCommand.AskAiAboutSelection, Localization.T("S.Palette.AskAiAboutSelection"), Localization.T("S.Palette.Category.AI"), "Ctrl+I", "explain graph context"),
+        new(PaletteCommand.OpenSettings, Localization.T("S.Palette.OpenSettings"), Localization.T("S.Palette.Category.Application"), "Ctrl+,", "preferences options"),
+        new(PaletteCommand.ToggleTheme, Localization.T("S.Palette.ToggleTheme"), Localization.T("S.Palette.Category.Application"), null, "dark light appearance"),
+        new(PaletteCommand.ToggleContextPanel, Localization.T("S.Palette.ToggleContextPanel"), Localization.T("S.Palette.Category.Application"), null, "inspector sidebar right"),
+        new(PaletteCommand.ToggleSidebar, Localization.T("S.Palette.ToggleSidebar"), Localization.T("S.Palette.Category.Application"), "Ctrl+B", "navigation collapse"),
+        new(PaletteCommand.ExportMarkdown, Localization.T("S.Palette.ExportMarkdown"), Localization.T("S.Palette.Category.Export"), null, "save md"),
+        new(PaletteCommand.ExportJson, Localization.T("S.Palette.ExportJson"), Localization.T("S.Palette.Category.Export"), null, "save json"),
+        new(PaletteCommand.ExportText, Localization.T("S.Palette.ExportText"), Localization.T("S.Palette.Category.Export"), null, "save txt plain"),
 
         // The workspace's modes, in the order the tab strip shows them.
-        new(PaletteCommand.SwitchToCanvas, "Go to Canvas", "Workspace", null, "graph spatial nodes"),
-        new(PaletteCommand.SwitchToGraph, "Go to Graph Outline", "Workspace", null, "structure list"),
-        new(PaletteCommand.SwitchToFiles, "Go to Files", "Workspace", null, "tree folder"),
-        new(PaletteCommand.SwitchToCode, "Go to Code", "Workspace", null, "editor tabs"),
-        new(PaletteCommand.SwitchToChat, "Go to Chat", "Workspace", null, "conversation"),
-        new(PaletteCommand.ShowModels, "Providers", "Workspace", null, "provider catalogue models"),
-        new(PaletteCommand.ShowTasks, "Tasks & Agents", "Workspace", null, "activity tools"),
+        new(PaletteCommand.SwitchToCanvas, Localization.T("S.Palette.SwitchToCanvas"), Localization.T("S.Palette.Category.Workspace"), null, "graph spatial nodes"),
+        new(PaletteCommand.SwitchToGraph, Localization.T("S.Palette.SwitchToGraph"), Localization.T("S.Palette.Category.Workspace"), null, "structure list"),
+        new(PaletteCommand.SwitchToFiles, Localization.T("S.Palette.SwitchToFiles"), Localization.T("S.Palette.Category.Workspace"), null, "tree folder"),
+        new(PaletteCommand.SwitchToCode, Localization.T("S.Palette.SwitchToCode"), Localization.T("S.Palette.Category.Workspace"), null, "editor tabs"),
+        new(PaletteCommand.SwitchToChat, Localization.T("S.Palette.SwitchToChat"), Localization.T("S.Palette.Category.Workspace"), null, "conversation"),
+        new(PaletteCommand.ShowModels, Localization.T("S.Palette.ShowModels"), Localization.T("S.Palette.Category.Workspace"), null, "provider catalogue models"),
+        new(PaletteCommand.ShowTasks, Localization.T("S.Palette.ShowTasks"), Localization.T("S.Palette.Category.Workspace"), null, "activity tools"),
 
-        new(PaletteCommand.OpenWorkspace, "Open Workspace Folder", "Graph", null, "folder project repository"),
-        new(PaletteCommand.CloseWorkspace, "Close Workspace", "Graph", null, "folder"),
-        new(PaletteCommand.RefreshGraph, "Refresh Workspace Graph", "Graph", null, "reindex sync"),
-        new(PaletteCommand.FitGraph, "Fit Graph to View", "Graph", null, "zoom frame all"),
-        new(PaletteCommand.UndoGraph, "Undo Graph Change", "Graph", "Ctrl+Z", "revert timeline"),
-        new(PaletteCommand.RedoGraph, "Redo Graph Change", "Graph", "Ctrl+Y", "restore timeline"),
+        new(PaletteCommand.OpenWorkspace, Localization.T("S.Palette.OpenWorkspace"), Localization.T("S.Palette.Category.Graph"), null, "folder project repository"),
+        new(PaletteCommand.CloseWorkspace, Localization.T("S.Palette.CloseWorkspace"), Localization.T("S.Palette.Category.Graph"), null, "folder"),
+        new(PaletteCommand.RefreshGraph, Localization.T("S.Palette.RefreshGraph"), Localization.T("S.Palette.Category.Graph"), null, "reindex sync"),
+        new(PaletteCommand.FitGraph, Localization.T("S.Palette.FitGraph"), Localization.T("S.Palette.Category.Graph"), null, "zoom frame all"),
+        new(PaletteCommand.UndoGraph, Localization.T("S.Palette.UndoGraph"), Localization.T("S.Palette.Category.Graph"), "Ctrl+Z", "revert timeline"),
+        new(PaletteCommand.RedoGraph, Localization.T("S.Palette.RedoGraph"), Localization.T("S.Palette.Category.Graph"), "Ctrl+Y", "restore timeline"),
     ];
 
     partial void OnQueryChanged(string value)

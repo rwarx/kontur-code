@@ -1,8 +1,11 @@
 using System.Windows;
 using System.Windows.Controls;
 using AIClient.App.Controls;
+using AIClient.App.Services;
 using AIClient.App.ViewModels;
 using AIClient.Application.DTOs;
+using CommunityToolkit.Mvvm.ComponentModel;
+using Localization = AIClient.App.Services.Localization;
 
 namespace AIClient.App.Views;
 
@@ -26,17 +29,17 @@ public partial class SidebarView : UserControl
 {
     private bool _suppressNavEvents;
 
-    private sealed record NavItem(WorkspaceMode Mode, IconKind Icon, string Label, string ToolTip);
+    private sealed record NavItem(WorkspaceMode Mode, IconKind Icon, string LabelKey, string ToolTipKey);
 
     private static readonly NavItem[] Nav =
     [
-        new(WorkspaceMode.Canvas, IconKind.Canvas, "Canvas", "The workspace as a spatial map (Ctrl+Shift+P → Canvas)"),
-        new(WorkspaceMode.Graph, IconKind.Graph, "Graph", "The same map as a structure"),
-        new(WorkspaceMode.Files, IconKind.Files, "Files", "The workspace's file tree"),
-        new(WorkspaceMode.Code, IconKind.Code, "Code", "Open documents"),
-        new(WorkspaceMode.Chat, IconKind.Chat, "Chat", "The conversation"),
-        new(WorkspaceMode.Models, IconKind.Models, "Providers", "Providers and the model catalogue"),
-        new(WorkspaceMode.Tasks, IconKind.Tasks, "Tasks", "Agent activity"),
+        new(WorkspaceMode.Canvas, IconKind.Canvas, "S.Nav.Canvas", "S.Nav.Canvas.ToolTip"),
+        new(WorkspaceMode.Graph, IconKind.Graph, "S.Nav.Graph", "S.Nav.Graph.ToolTip"),
+        new(WorkspaceMode.Files, IconKind.Files, "S.Nav.Files", "S.Nav.Files.ToolTip"),
+        new(WorkspaceMode.Code, IconKind.Code, "S.Nav.Code", "S.Nav.Code.ToolTip"),
+        new(WorkspaceMode.Chat, IconKind.Chat, "S.Nav.Chat", "S.Nav.Chat.ToolTip"),
+        new(WorkspaceMode.Models, IconKind.Models, "S.Nav.Models", "S.Nav.Models.ToolTip"),
+        new(WorkspaceMode.Tasks, IconKind.Tasks, "S.Nav.Tasks", "S.Nav.Tasks.ToolTip"),
     ];
 
     public SidebarView()
@@ -52,8 +55,8 @@ public partial class SidebarView : UserControl
                 Content = new NavRow(item),
                 ContentTemplate = (DataTemplate)FindResource("NavItemTemplate"),
                 Tag = item,
-                ToolTip = item.ToolTip,
             };
+            row.SetResourceReference(FrameworkElement.ToolTipProperty, item.ToolTipKey);
 
             NavList.Items.Add(row);
         }
@@ -63,13 +66,15 @@ public partial class SidebarView : UserControl
     }
 
     /// <summary>One nav row: icon and label, laid out to the shared template.</summary>
-    private sealed class NavRow(NavItem item)
+    private sealed class NavRow(NavItem item) : ObservableObject
     {
         public IconKind Icon => item.Icon;
 
-        public string Label => item.Label;
+        public string Label => Localization.T(item.LabelKey);
 
-        public override string ToString() => item.Label;
+        public void RefreshLanguage() => OnPropertyChanged(nameof(Label));
+
+        public override string ToString() => Label;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e) => SyncSelection();
@@ -79,12 +84,22 @@ public partial class SidebarView : UserControl
         if (e.OldValue is MainViewModel previous)
         {
             previous.Workspace.PropertyChanged -= OnWorkspacePropertyChanged;
+            previous.LanguageRefreshed -= OnLanguageRefreshed;
         }
 
         if (e.NewValue is MainViewModel current)
         {
             current.Workspace.PropertyChanged += OnWorkspacePropertyChanged;
+            current.LanguageRefreshed += OnLanguageRefreshed;
             SyncSelection();
+        }
+    }
+
+    private void OnLanguageRefreshed(object? sender, EventArgs e)
+    {
+        foreach (var row in NavList.Items.OfType<ListBoxItem>().Select(item => item.Content).OfType<NavRow>())
+        {
+            row.RefreshLanguage();
         }
     }
 

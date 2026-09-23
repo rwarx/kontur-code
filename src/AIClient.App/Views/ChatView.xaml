@@ -361,7 +361,7 @@
                                            Foreground="{DynamicResource Brush.AccentText}"
                                            VerticalAlignment="Center"
                                            motion:Motion.Pulse="True" />
-                        <TextBlock Text="ThinkingвЂ¦" Style="{StaticResource Type.Caption}"
+                        <TextBlock Text="Thinking…" Style="{StaticResource Type.Caption}"
                                    Foreground="{DynamicResource Brush.TextSecondary}"
                                    Margin="8,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>

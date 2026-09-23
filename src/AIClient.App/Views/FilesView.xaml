@@ -130,7 +130,7 @@
                             <kontur:KonturIcon Kind="{Binding SelectedEntry.Kind, TargetNullValue=File}"
                                                Width="16" Height="16"
                                                Foreground="{DynamicResource Brush.AccentText}" />
-                            <TextBlock Text="{Binding SelectedEntry.Name, TargetNullValue='вЂ”'}"
+                            <TextBlock Text="{Binding SelectedEntry.Name, TargetNullValue='—'}"
                                        Style="{StaticResource Type.Section}" Margin="10,0,0,0" />
                         </StackPanel>
                         <TextBlock Text="{Binding SelectedEntry.Path, TargetNullValue=''}"

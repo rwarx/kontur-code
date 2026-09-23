@@ -73,12 +73,12 @@
                     <Image Source="/Assets/logo.png"
                            RenderOptions.BitmapScalingMode="HighQuality" />
                 </Border>
-                <TextBlock Text="Workspace" Style="{StaticResource Type.Section}" Margin="9,0,0,0"
+                <TextBlock Text="{DynamicResource S.Sidebar.Section.Workspace}" Style="{StaticResource Type.Section}" Margin="9,0,0,0"
                            VerticalAlignment="Center" />
             </StackPanel>
             <Button Grid.Column="1" Style="{StaticResource KcButtonTool}" Width="24" Height="24"
                     Command="{Binding ToggleSidebarCommand}"
-                    ToolTip="Hide the sidebar (Ctrl+B)">
+                    ToolTip="{DynamicResource S.Sidebar.Hide.ToolTip}">
                 <kontur:KonturIcon Kind="CollapsePanel" Width="13" Height="13" />
             </Button>
         </Grid>
@@ -86,7 +86,7 @@
         <!-- New chat. Collapsed, the label goes and the plus centres in the rail. -->
         <Button Grid.Row="1" Margin="10,2,10,8"
                 Padding="10,7" MinHeight="34"
-                Command="{Binding NewChatCommand}" ToolTip="New chat (Ctrl+N)">
+                Command="{Binding NewChatCommand}" ToolTip="{DynamicResource S.Sidebar.NewChat.ToolTip}">
             <Button.Style>
                 <Style TargetType="Button" BasedOn="{StaticResource KcButtonPrimary}">
                     <Setter Property="HorizontalContentAlignment" Value="Left" />
@@ -100,7 +100,7 @@
             <StackPanel Orientation="Horizontal">
                 <kontur:KonturIcon Kind="Plus" Width="14" Height="14"
                                    Foreground="{DynamicResource Brush.TextOnAccent}" />
-                <TextBlock Text="New Chat" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"
+                <TextBlock Text="{DynamicResource S.Sidebar.NewChat}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"
                            Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBoolToVisibility}}" />
             </StackPanel>
         </Button>
@@ -115,11 +115,11 @@
         <!-- Workspace block: the folder, its two actions, and its health. In the rail
              the two actions survive as centred icon-only rows; the section title goes. -->
         <StackPanel Grid.Row="3" Margin="10,10,10,6">
-            <TextBlock Text="Workspace" Style="{StaticResource Type.Overline}" Margin="2,0,0,4"
+            <TextBlock Text="{DynamicResource S.Sidebar.Section.Workspace}" Style="{StaticResource Type.Overline}" Margin="2,0,0,4"
                        Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBoolToVisibility}}" />
             <Button Padding="9,6" Margin="0,1"
                     Command="{Binding Workspace.OpenWorkspaceCommand}"
-                    ToolTip="{Binding Workspace.WorkspaceRoot, FallbackValue='Choose a folder to map'}">
+                    ToolTip="{Binding Workspace.WorkspaceRoot, FallbackValue={DynamicResource S.Sidebar.OpenFolder.Fallback}}">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource KcButtonGhost}">
                         <Setter Property="HorizontalContentAlignment" Value="Left" />
@@ -132,14 +132,14 @@
                 </Button.Style>
                 <StackPanel Orientation="Horizontal">
                     <kontur:KonturIcon Kind="Open" Width="14" Height="14" />
-                    <TextBlock Text="Open Folder" Style="{StaticResource Type.Caption}" Margin="9,0,0,0"
+                    <TextBlock Text="{DynamicResource S.Sidebar.OpenFolder}" Style="{StaticResource Type.Caption}" Margin="9,0,0,0"
                                VerticalAlignment="Center"
                                Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBoolToVisibility}}" />
                 </StackPanel>
             </Button>
             <Button Padding="9,6" Margin="0,1"
                     Command="{Binding Workspace.RefreshGraphCommand}"
-                    ToolTip="Re-read the workspace into the graph">
+                    ToolTip="{DynamicResource S.Sidebar.Refresh.ToolTip}">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource KcButtonGhost}">
                         <Setter Property="HorizontalContentAlignment" Value="Left" />
@@ -153,7 +153,7 @@
                 <StackPanel Orientation="Horizontal">
                     <kontur:KonturIcon Kind="Refresh" Width="14" Height="14"
                                        Foreground="{DynamicResource Brush.AccentText}" />
-                    <TextBlock Text="Refresh Graph" Style="{StaticResource Type.Caption}" Margin="9,0,0,0"
+                    <TextBlock Text="{DynamicResource S.Sidebar.RefreshGraph}" Style="{StaticResource Type.Caption}" Margin="9,0,0,0"
                                VerticalAlignment="Center"
                                Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBoolToVisibility}}" />
                 </StackPanel>
@@ -170,16 +170,16 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" Text="Sessions" Style="{StaticResource Type.Overline}"
+            <TextBlock Grid.Row="0" Text="{DynamicResource S.Sidebar.Section.Sessions}" Style="{StaticResource Type.Overline}"
                        Margin="12,0,0,4"
                        Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBoolToVisibility}}" />
 
             <TextBox x:Name="SearchBox" Grid.Row="1" Margin="10,0,10,6" MinHeight="28"
                      Style="{StaticResource KcInputPlaceholder}"
                      VerticalContentAlignment="Center"
-                     Tag="Search chats (Ctrl+K)"
+                     Tag="{DynamicResource S.Sidebar.Search.Placeholder}"
                      Text="{Binding Sessions.SearchQuery, UpdateSourceTrigger=PropertyChanged}"
-                     ToolTip="Search chats (Ctrl+K)"
+                     ToolTip="{DynamicResource S.Sidebar.Search.ToolTip}"
                      Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBoolToVisibility}}" />
 
             <ListBox x:Name="SessionList" Grid.Row="2"
@@ -228,16 +228,16 @@
                 </ListBox.ItemTemplate>
                 <ListBox.ContextMenu>
                     <ContextMenu>
-                        <MenuItem Header="Open" Command="{Binding Data.Sessions.OpenCommand, Source={StaticResource Root}}"
+                        <MenuItem Header="{DynamicResource S.Sidebar.Menu.Open}" Command="{Binding Data.Sessions.OpenCommand, Source={StaticResource Root}}"
                                   CommandParameter="{Binding}" />
-                        <MenuItem Header="RenameвЂ¦"
+                        <MenuItem Header="{DynamicResource S.Sidebar.Menu.Rename}"
                                   Command="{Binding Data.Sessions.RenameCommand, Source={StaticResource Root}}"
                                   CommandParameter="{Binding}" />
-                        <MenuItem Header="Pin"
+                        <MenuItem Header="{DynamicResource S.Sidebar.Menu.Pin}"
                                   Command="{Binding Data.Sessions.TogglePinCommand, Source={StaticResource Root}}"
                                   CommandParameter="{Binding}" />
                         <Separator />
-                        <MenuItem Header="Delete"
+                        <MenuItem Header="{DynamicResource S.Sidebar.Menu.Delete}"
                                   Command="{Binding Data.Sessions.DeleteCommand, Source={StaticResource Root}}"
                                   CommandParameter="{Binding}" />
                     </ContextMenu>
@@ -262,11 +262,11 @@
                     </Style>
                 </StackPanel.Style>
                 <Button Style="{StaticResource KcButtonTool}" Command="{Binding ShowSettingsCommand}"
-                        ToolTip="Settings (Ctrl+,)">
+                        ToolTip="{DynamicResource S.Sidebar.Settings.ToolTip}">
                     <kontur:KonturIcon Kind="Settings" Width="14" Height="14" />
                 </Button>
                 <Button Style="{StaticResource KcButtonTool}" Command="{Binding ToggleThemeCommand}"
-                        ToolTip="Toggle theme">
+                        ToolTip="{DynamicResource S.Sidebar.Theme.ToolTip}">
                     <!-- Sun in dark mode (click buys light), moon in light mode. The 90°
                          turn between them is the morphicon-congruent pair. -->
                     <kontur:MorphIcon First="Sun" Second="Moon"
@@ -274,7 +274,7 @@
                                       Width="14" Height="14" />
                 </Button>
                 <Button Style="{StaticResource KcButtonTool}" Command="{Binding ToggleCommandPaletteCommand}"
-                        ToolTip="Command palette (Ctrl+Shift+P)">
+                        ToolTip="{DynamicResource S.Sidebar.Palette.ToolTip}">
                     <kontur:KonturIcon Kind="Command" Width="14" Height="14" />
                 </Button>
             </StackPanel>

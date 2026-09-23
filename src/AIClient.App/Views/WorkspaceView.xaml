@@ -34,7 +34,7 @@
                 Visibility="{Binding IsOffline, Converter={StaticResource BoolToVisibility}}">
             <TextBlock Style="{StaticResource Type.Caption}"
                        Foreground="{DynamicResource Brush.Warning}"
-                       Text="No internet connection. Saved conversations, the workspace and settings stay available; new messages will fail until it returns." />
+                       Text="{DynamicResource S.Workspace.Offline}" />
         </Border>
 
         <!--
@@ -53,10 +53,10 @@
                 <!-- Page header for Models / Tasks / Settings. -->
                 <StackPanel Orientation="Horizontal" Visibility="{Binding Workspace.IsSpatialMode, Converter={StaticResource InverseBoolToVisibility}}">
                     <Button Style="{StaticResource KcButtonGhost}" Padding="8,5" Margin="0,4,4,4"
-                            Click="OnBackToCanvas" ToolTip="Back to the canvas">
+                            Click="OnBackToCanvas" ToolTip="{DynamicResource S.Workspace.BackToCanvas}">
                         <StackPanel Orientation="Horizontal">
                             <kontur:KonturIcon Kind="ChevronLeft" Width="12" Height="12" />
-                            <TextBlock Text="Workspace" Style="{StaticResource Type.Caption}" Margin="6,0,0,0"
+                            <TextBlock Text="{DynamicResource S.Workspace.BackLabel}" Style="{StaticResource Type.Caption}" Margin="6,0,0,0"
                                        VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>

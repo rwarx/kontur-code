@@ -1,5 +1,5 @@
 ﻿<!--
-    Kontur Code design system вЂ” control styles.
+    Kontur Code design system — control styles.
 
     Plain WPF controls, styled from the semantic tokens only: no literal colours, no
     literal sizes outside the spacing/radius dictionaries. WPF-UI keeps the window chrome

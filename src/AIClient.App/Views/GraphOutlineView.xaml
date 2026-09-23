@@ -32,10 +32,10 @@
                 </Grid.ColumnDefinitions>
                 <kontur:KonturIcon Grid.Column="0" Kind="Graph" Width="14" Height="14"
                                    Foreground="{DynamicResource Brush.AccentText}" />
-                <TextBlock Grid.Column="1" Text="Graph outline" Style="{StaticResource Type.Section}"
+                <TextBlock Grid.Column="1" Text="{DynamicResource S.Outline.Title}" Style="{StaticResource Type.Section}"
                            Margin="9,0,0,0" VerticalAlignment="Center" />
                 <Button Grid.Column="2" Style="{StaticResource KcButtonTool}" Width="24" Height="24"
-                        Command="{Binding ClearFilterCommand}" ToolTip="Clear filter">
+                        Command="{Binding ClearFilterCommand}" ToolTip="{DynamicResource S.Outline.ClearFilter}">
                     <kontur:KonturIcon Kind="Close" Width="12" Height="12" />
                 </Button>
             </Grid>

@@ -123,7 +123,7 @@
                            Margin="0,30"
                            TextAlignment="Center"
                            Style="{StaticResource SubtleText}"
-                           Text="No matching commands."
+                           Text="{DynamicResource S.Palette.NoMatches}"
                            Visibility="{Binding HasNoMatches, Converter={StaticResource BoolToVisibility}}" />
 
                 <Border Grid.Row="2"
