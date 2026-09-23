@@ -580,8 +580,8 @@ public sealed partial class MainViewModel : ObservableObject
     private void MirrorAiState()
     {
         var stateText = Chat.IsGenerating
-            ? Chat.IsAgentMode ? "Working" : "Answering"
-            : Chat.Approval.IsAsking ? "Waiting for approval" : "Idle";
+            ? Chat.IsAgentMode ? Localization.T("S.AiState.Working") : Localization.T("S.AiState.Answering")
+            : Chat.Approval.IsAsking ? Localization.T("S.AiState.WaitingApproval") : Localization.T("S.Main.Ai.Idle");
 
         Workspace.Context.SetAiState(
             Chat.IsGenerating,
@@ -716,6 +716,8 @@ public sealed partial class MainViewModel : ObservableObject
         CommandPalette.OnLanguageChanged();
         SessionContext.OnLanguageChanged();
         Workspace.Canvas.RefreshLanguage();
+        Workspace.Context.RefreshLanguage();
+        MirrorAiState();
         LanguageRefreshed?.Invoke(this, EventArgs.Empty);
     }
 

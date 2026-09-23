@@ -528,4 +528,47 @@
     <sys:String x:Key="S.Palette.Category.Graph">Graph</sys:String>
     <sys:String x:Key="S.Palette.Category.AI">KI</sys:String>
 
+    <!-- ===== Chat- und Inspektor-Wortschatz (Chat-Phase) ===== -->
+    <sys:String x:Key="S.AiState.Working">Arbeitet</sys:String>
+    <sys:String x:Key="S.AiState.Answering">Antwortet</sys:String>
+    <sys:String x:Key="S.AiState.WaitingApproval">Wartet auf Freigabe</sys:String>
+    <sys:String x:Key="S.Banner.Dismiss">Ausblenden</sys:String>
+    <sys:String x:Key="S.Edge.Contains">enthält</sys:String>
+    <sys:String x:Key="S.Edge.Depends">hängt ab von</sys:String>
+    <sys:String x:Key="S.Edge.Calls">ruft auf</sys:String>
+    <sys:String x:Key="S.Edge.Implements">implementiert</sys:String>
+    <sys:String x:Key="S.Edge.Relates">bezieht sich auf</sys:String>
+    <sys:String x:Key="S.Edge.Plans">plant</sys:String>
+    <sys:String x:Key="S.Inspector.ApprovalWatch">Die Freigabekarte unter dem Eingabefeld ist der Ort, an dem der Agent vor Änderungen nachfragt. Antworten Sie dort; dieses Panel beobachtet nur.</sys:String>
+    <sys:String x:Key="S.Inspector.Ask.Architecture">Architektur erklären</sys:String>
+    <sys:String x:Key="S.Inspector.Ask.Dependencies">Abhängigkeiten erklären</sys:String>
+    <sys:String x:Key="S.Inspector.Ask.Tests">Tests vorschlagen</sys:String>
+    <sys:String x:Key="S.Inspector.AskAI">KI</sys:String>
+    <sys:String x:Key="S.Inspector.AskSelection">KI zu dieser Auswahl befragen</sys:String>
+    <sys:String x:Key="S.Inspector.Connection.Hint">Beide Enden liegen auf der Leinwand; wählen Sie einen der Knoten, um ihn vollständig zu untersuchen.</sys:String>
+    <sys:String x:Key="S.Inspector.Focus.Tip">Auf der Leinwand fokussieren</sys:String>
+    <sys:String x:Key="S.Inspector.GraphEmpty">Noch kein Graph</sys:String>
+    <sys:String x:Key="S.Inspector.Mode.AiActivity">KI-Aktivität</sys:String>
+    <sys:String x:Key="S.Inspector.Mode.Edge">Verbindung</sys:String>
+    <sys:String x:Key="S.Inspector.Mode.Node">Knoten</sys:String>
+    <sys:String x:Key="S.Inspector.Mode.Selection">Auswahl</sys:String>
+    <sys:String x:Key="S.Inspector.Mode.Workspace">Arbeitsbereich</sys:String>
+    <sys:String x:Key="S.Inspector.OpenInCode">In Code öffnen</sys:String>
+    <sys:String x:Key="S.Inspector.Relations">Beziehungen</sys:String>
+    <sys:String x:Key="S.Inspector.Timeline">Zeitachse</sys:String>
+    <sys:String x:Key="S.Kind.Note">Notiz|Notizen</sys:String>
+    <sys:String x:Key="S.Kind.File">Datei|Dateien</sys:String>
+    <sys:String x:Key="S.Kind.Folder">Ordner|Ordner</sys:String>
+    <sys:String x:Key="S.Kind.Module">Modul|Module</sys:String>
+    <sys:String x:Key="S.Kind.Service">Dienst|Dienste</sys:String>
+    <sys:String x:Key="S.Kind.Interface">Schnittstelle|Schnittstellen</sys:String>
+    <sys:String x:Key="S.Kind.Data">Daten|Daten</sys:String>
+    <sys:String x:Key="S.Kind.View">Bildschirm|Bildschirme</sys:String>
+    <sys:String x:Key="S.Kind.Test">Test|Tests</sys:String>
+    <sys:String x:Key="S.Kind.Plan">Plan|Pläne</sys:String>
+    <sys:String x:Key="S.Kind.Task">Aufgabe|Aufgaben</sys:String>
+    <sys:String x:Key="S.Kind.Agent">Agent|Agenten</sys:String>
+    <sys:String x:Key="S.Kind.Model">Modell|Modelle</sys:String>
+    <sys:String x:Key="S.Kind.External">Extern|Extern</sys:String>
+
 </ResourceDictionary>

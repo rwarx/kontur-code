@@ -399,11 +399,11 @@ public sealed class ContextPanelModeLabelConverter : IValueConverter
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         value?.ToString() switch
         {
-            nameof(AIClient.App.ViewModels.ContextPanelMode.Node) => "Node",
-            nameof(AIClient.App.ViewModels.ContextPanelMode.Edge) => "Connection",
-            nameof(AIClient.App.ViewModels.ContextPanelMode.Selection) => "Selection",
-            nameof(AIClient.App.ViewModels.ContextPanelMode.AiActivity) => "AI activity",
-            _ => "Workspace",
+            nameof(AIClient.App.ViewModels.ContextPanelMode.Node) => Services.Localization.T("S.Inspector.Mode.Node"),
+            nameof(AIClient.App.ViewModels.ContextPanelMode.Edge) => Services.Localization.T("S.Inspector.Mode.Edge"),
+            nameof(AIClient.App.ViewModels.ContextPanelMode.Selection) => Services.Localization.T("S.Inspector.Mode.Selection"),
+            nameof(AIClient.App.ViewModels.ContextPanelMode.AiActivity) => Services.Localization.T("S.Inspector.Mode.AiActivity"),
+            _ => Services.Localization.T("S.Inspector.Mode.Workspace"),
         };
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>

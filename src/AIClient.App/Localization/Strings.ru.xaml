@@ -528,4 +528,47 @@
     <sys:String x:Key="S.Palette.Category.Graph">Граф</sys:String>
     <sys:String x:Key="S.Palette.Category.AI">ИИ</sys:String>
 
+    <!-- ===== Словарь чата и инспектора (фаза чата) ===== -->
+    <sys:String x:Key="S.AiState.Working">Работает</sys:String>
+    <sys:String x:Key="S.AiState.Answering">Отвечает</sys:String>
+    <sys:String x:Key="S.AiState.WaitingApproval">Ожидает подтверждения</sys:String>
+    <sys:String x:Key="S.Banner.Dismiss">Скрыть</sys:String>
+    <sys:String x:Key="S.Edge.Contains">содержит</sys:String>
+    <sys:String x:Key="S.Edge.Depends">зависит от</sys:String>
+    <sys:String x:Key="S.Edge.Calls">вызывает</sys:String>
+    <sys:String x:Key="S.Edge.Implements">реализует</sys:String>
+    <sys:String x:Key="S.Edge.Relates">связан с</sys:String>
+    <sys:String x:Key="S.Edge.Plans">планирует</sys:String>
+    <sys:String x:Key="S.Inspector.ApprovalWatch">Карточка подтверждения под полем ввода — там агент спрашивает перед любым изменением. Отвечайте в ней; эта панель только наблюдает.</sys:String>
+    <sys:String x:Key="S.Inspector.Ask.Architecture">Объяснить архитектуру</sys:String>
+    <sys:String x:Key="S.Inspector.Ask.Dependencies">Объяснить зависимости</sys:String>
+    <sys:String x:Key="S.Inspector.Ask.Tests">Предложить тесты</sys:String>
+    <sys:String x:Key="S.Inspector.AskAI">ИИ</sys:String>
+    <sys:String x:Key="S.Inspector.AskSelection">Спросить ИИ о выделении</sys:String>
+    <sys:String x:Key="S.Inspector.Connection.Hint">Оба конца лежат на канве — выберите любой узел, чтобы рассмотреть его целиком.</sys:String>
+    <sys:String x:Key="S.Inspector.Focus.Tip">Показать на канве</sys:String>
+    <sys:String x:Key="S.Inspector.GraphEmpty">Графа пока нет</sys:String>
+    <sys:String x:Key="S.Inspector.Mode.AiActivity">Активность ИИ</sys:String>
+    <sys:String x:Key="S.Inspector.Mode.Edge">Связь</sys:String>
+    <sys:String x:Key="S.Inspector.Mode.Node">Узел</sys:String>
+    <sys:String x:Key="S.Inspector.Mode.Selection">Выделение</sys:String>
+    <sys:String x:Key="S.Inspector.Mode.Workspace">Рабочее пространство</sys:String>
+    <sys:String x:Key="S.Inspector.OpenInCode">Открыть в Code</sys:String>
+    <sys:String x:Key="S.Inspector.Relations">Связи</sys:String>
+    <sys:String x:Key="S.Inspector.Timeline">Хронология</sys:String>
+    <sys:String x:Key="S.Kind.Note">заметка|заметки|заметок</sys:String>
+    <sys:String x:Key="S.Kind.File">файл|файла|файлов</sys:String>
+    <sys:String x:Key="S.Kind.Folder">папка|папки|папок</sys:String>
+    <sys:String x:Key="S.Kind.Module">модуль|модуля|модулей</sys:String>
+    <sys:String x:Key="S.Kind.Service">сервис|сервиса|сервисов</sys:String>
+    <sys:String x:Key="S.Kind.Interface">интерфейс|интерфейса|интерфейсов</sys:String>
+    <sys:String x:Key="S.Kind.Data">данные|данных|данных</sys:String>
+    <sys:String x:Key="S.Kind.View">экран|экрана|экранов</sys:String>
+    <sys:String x:Key="S.Kind.Test">тест|теста|тестов</sys:String>
+    <sys:String x:Key="S.Kind.Plan">план|плана|планов</sys:String>
+    <sys:String x:Key="S.Kind.Task">задача|задачи|задач</sys:String>
+    <sys:String x:Key="S.Kind.Agent">агент|агента|агентов</sys:String>
+    <sys:String x:Key="S.Kind.Model">модель|модели|моделей</sys:String>
+    <sys:String x:Key="S.Kind.External">внешний|внешних|внешних</sys:String>
+
 </ResourceDictionary>

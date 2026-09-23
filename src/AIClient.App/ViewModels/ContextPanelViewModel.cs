@@ -66,7 +66,7 @@ public sealed partial class ContextPanelViewModel : ObservableObject
     private bool _hasWorkspace;
 
     [ObservableProperty]
-    private string _graphSummary = "Empty";
+    private string _graphSummary = string.Empty;
 
     [ObservableProperty]
     private ObservableCollection<GraphTimelineEntry> _timeline = [];
@@ -76,7 +76,7 @@ public sealed partial class ContextPanelViewModel : ObservableObject
     private bool _isAiWorking;
 
     [ObservableProperty]
-    private string _aiStateText = "Idle";
+    private string _aiStateText = string.Empty;
 
     [ObservableProperty]
     private string _aiModelName = string.Empty;
@@ -161,7 +161,7 @@ public sealed partial class ContextPanelViewModel : ObservableObject
                 .Select(n => n.Kind)
                 .GroupBy(kind => kind)
                 .OrderByDescending(group => group.Count())
-                .Select(group => $"{group.Count()} {group.Key.ToString().ToLowerInvariant()}")
+                .Select(group => $"{group.Count()} {GraphWords.Kind(group.Key, group.Count())}")
                 .Take(4);
 
             SelectionKinds = string.Join(" · ", kinds);
@@ -176,7 +176,7 @@ public sealed partial class ContextPanelViewModel : ObservableObject
     {
         Mode = ContextPanelMode.Node;
         InspectedNode = node;
-        InspectedNodeKind = node.Kind.ToString().ToLowerInvariant();
+        InspectedNodeKind = GraphWords.Kind(node.Kind);
         RebuildRelations(node);
     }
 
@@ -205,7 +205,7 @@ public sealed partial class ContextPanelViewModel : ObservableObject
                 other.Id,
                 other.Title,
                 other.Kind,
-                edge.Kind.ToString().ToLowerInvariant(),
+                GraphWords.Edge(edge.Kind),
                 edge.SourceId == node.Id));
         }
     }
@@ -216,16 +216,26 @@ public sealed partial class ContextPanelViewModel : ObservableObject
 
         if (snapshot.Nodes.Count == 0)
         {
-            GraphSummary = "Empty canvas";
+            GraphSummary = Localization.T("S.Inspector.GraphEmpty");
             return;
         }
 
         var folderCount = snapshot.Nodes.Count(n => n.Kind == GraphNodeKind.Folder);
         var fileCount = snapshot.Nodes.Count - folderCount;
 
-        GraphSummary = $"{snapshot.Nodes.Count} nodes · {snapshot.Edges.Count} connections"
-            + (folderCount > 0 ? $" · {folderCount} folders" : string.Empty)
-            + (fileCount > 0 ? $" · {fileCount} files" : string.Empty);
+        var summary = Localization.T("S.Status.Counts", snapshot.Nodes.Count, snapshot.Edges.Count);
+
+        if (folderCount > 0)
+        {
+            summary += $" · {folderCount} {GraphWords.Kind(GraphNodeKind.Folder, folderCount)}";
+        }
+
+        if (fileCount > 0)
+        {
+            summary += $" · {fileCount} {GraphWords.Kind(GraphNodeKind.File, fileCount)}";
+        }
+
+        GraphSummary = summary;
     }
 
     private void RefreshTimeline()
@@ -246,7 +256,7 @@ public sealed partial class ContextPanelViewModel : ObservableObject
         HasWorkspace = root is not null;
         WorkspaceRoot = root ?? string.Empty;
         WorkspaceName = root is null
-            ? "No workspace"
+            ? Localization.T("S.Main.Workspace.None")
             : System.IO.Path.GetFileName(root.TrimEnd(System.IO.Path.DirectorySeparatorChar));
 
         Reinspect();
@@ -270,6 +280,23 @@ public sealed partial class ContextPanelViewModel : ObservableObject
         {
             Reinspect();
         }
+    }
+
+    /// <summary>The selection in one localized line, for the multi-select shape.</summary>
+    public string SelectionSummary => SelectionCount switch
+    {
+        <= 0 => string.Empty,
+        1 => Localization.T("S.Status.Selection.OneNode"),
+        _ => Localization.T("S.Status.Selection.Nodes", SelectionCount),
+    };
+
+    /// <summary>Recomputes every word this panel derives, after a language switch.</summary>
+    public void RefreshLanguage()
+    {
+        Reinspect();
+        RebuildWorkspaceSummary();
+        OnPropertyChanged(nameof(SelectionSummary));
+        OnPropertyChanged(nameof(Mode));
     }
 
     // ------------------------------------------------------------- commands
@@ -343,7 +370,7 @@ public sealed record NodeRelationRow(
 {
     public IconKind Icon => WorkspaceIcons.ForNodeKind(Kind);
 
-    public string KindLabel => Kind.ToString().ToLowerInvariant();
+    public string KindLabel => GraphWords.Kind(Kind);
 
     public string Direction => IsOutgoing ? "→" : "←";
 }

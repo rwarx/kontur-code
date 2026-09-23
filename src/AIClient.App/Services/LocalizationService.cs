@@ -57,6 +57,10 @@ public sealed class LocalizationService : ILocalizationService
     public void Initialize()
     {
         Apply(_settings.Current.General.Language, logDrift: true);
+
+        // The shell is constructed before this runs, so words frozen into fields by that
+        // construction are still the fallbacks; one honest refresh puts the real table in.
+        LanguageChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <inheritdoc/>

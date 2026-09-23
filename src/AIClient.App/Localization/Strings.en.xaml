@@ -532,4 +532,47 @@
     <sys:String x:Key="S.Palette.Category.Graph">Graph</sys:String>
     <sys:String x:Key="S.Palette.Category.AI">AI</sys:String>
 
+    <!-- ===== Chat and inspector vocabulary (chat phase) ===== -->
+    <sys:String x:Key="S.AiState.Working">Working</sys:String>
+    <sys:String x:Key="S.AiState.Answering">Answering</sys:String>
+    <sys:String x:Key="S.AiState.WaitingApproval">Waiting for approval</sys:String>
+    <sys:String x:Key="S.Banner.Dismiss">Dismiss</sys:String>
+    <sys:String x:Key="S.Edge.Contains">contains</sys:String>
+    <sys:String x:Key="S.Edge.Depends">depends on</sys:String>
+    <sys:String x:Key="S.Edge.Calls">calls</sys:String>
+    <sys:String x:Key="S.Edge.Implements">implements</sys:String>
+    <sys:String x:Key="S.Edge.Relates">relates to</sys:String>
+    <sys:String x:Key="S.Edge.Plans">plans</sys:String>
+    <sys:String x:Key="S.Inspector.ApprovalWatch">The approval card below the composer is where the agent asks before changing anything. Answer it there; this panel only watches.</sys:String>
+    <sys:String x:Key="S.Inspector.Ask.Architecture">Explain architecture</sys:String>
+    <sys:String x:Key="S.Inspector.Ask.Dependencies">Explain dependencies</sys:String>
+    <sys:String x:Key="S.Inspector.Ask.Tests">Suggest tests</sys:String>
+    <sys:String x:Key="S.Inspector.AskAI">AI</sys:String>
+    <sys:String x:Key="S.Inspector.AskSelection">Ask AI about this selection</sys:String>
+    <sys:String x:Key="S.Inspector.Connection.Hint">Both endpoints live on the canvas; select either node to inspect it in full.</sys:String>
+    <sys:String x:Key="S.Inspector.Focus.Tip">Focus on the canvas</sys:String>
+    <sys:String x:Key="S.Inspector.GraphEmpty">No graph yet</sys:String>
+    <sys:String x:Key="S.Inspector.Mode.AiActivity">AI activity</sys:String>
+    <sys:String x:Key="S.Inspector.Mode.Edge">Connection</sys:String>
+    <sys:String x:Key="S.Inspector.Mode.Node">Node</sys:String>
+    <sys:String x:Key="S.Inspector.Mode.Selection">Selection</sys:String>
+    <sys:String x:Key="S.Inspector.Mode.Workspace">Workspace</sys:String>
+    <sys:String x:Key="S.Inspector.OpenInCode">Open in Code</sys:String>
+    <sys:String x:Key="S.Inspector.Relations">Relations</sys:String>
+    <sys:String x:Key="S.Inspector.Timeline">Timeline</sys:String>
+    <sys:String x:Key="S.Kind.Note">note|notes</sys:String>
+    <sys:String x:Key="S.Kind.File">file|files</sys:String>
+    <sys:String x:Key="S.Kind.Folder">folder|folders</sys:String>
+    <sys:String x:Key="S.Kind.Module">module|modules</sys:String>
+    <sys:String x:Key="S.Kind.Service">service|services</sys:String>
+    <sys:String x:Key="S.Kind.Interface">interface|interfaces</sys:String>
+    <sys:String x:Key="S.Kind.Data">data|data</sys:String>
+    <sys:String x:Key="S.Kind.View">view|views</sys:String>
+    <sys:String x:Key="S.Kind.Test">test|tests</sys:String>
+    <sys:String x:Key="S.Kind.Plan">plan|plans</sys:String>
+    <sys:String x:Key="S.Kind.Task">task|tasks</sys:String>
+    <sys:String x:Key="S.Kind.Agent">agent|agents</sys:String>
+    <sys:String x:Key="S.Kind.Model">model|models</sys:String>
+    <sys:String x:Key="S.Kind.External">external|external</sys:String>
+
 </ResourceDictionary>

@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="AIClient.App.Views.ChatView"
+<UserControl x:Class="AIClient.App.Views.ChatView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -183,7 +183,7 @@
                                       MinHeight="0"
                                       Margin="6,0,0,0"
                                       VerticalAlignment="Center"
-                                      ToolTip="Show what this returned">
+                                      ToolTip="{DynamicResource S.Chat.ShowResult.ToolTip}">
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
                                     <Border Background="Transparent" Padding="{TemplateBinding Padding}"
@@ -327,13 +327,13 @@
                                         HorizontalAlignment="Right"
                                         Margin="0,8,0,0">
                                 <Button Style="{StaticResource KcButtonGhost}"
-                                        Content="Cancel"
+                                        Content="{DynamicResource S.Common.Cancel}"
                                         Padding="12,5"
                                         Margin="0,0,6,0"
                                         Command="{Binding DataContext.CancelEditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         CommandParameter="{Binding}" />
                                 <Button Style="{StaticResource KcButtonPrimary}"
-                                        Content="Save &amp; resend"
+                                        Content="{DynamicResource S.Chat.SaveResend}"
                                         Padding="12,5"
                                         Command="{Binding DataContext.SaveEditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         CommandParameter="{Binding}" />
@@ -361,7 +361,7 @@
                                            Foreground="{DynamicResource Brush.AccentText}"
                                            VerticalAlignment="Center"
                                            motion:Motion.Pulse="True" />
-                        <TextBlock Text="Thinking…" Style="{StaticResource Type.Caption}"
+                        <TextBlock Text="{DynamicResource S.Chat.Thinking}" Style="{StaticResource Type.Caption}"
                                    Foreground="{DynamicResource Brush.TextSecondary}"
                                    Margin="8,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
@@ -376,7 +376,7 @@
                               IsExpanded="{Binding IsReasoningExpanded, Mode=TwoWay}"
                               Visibility="{Binding HasReasoning, Converter={StaticResource BoolToVisibility}}">
                         <Expander.Header>
-                            <TextBlock Text="Reasoning" Style="{StaticResource Type.Caption}"
+                            <TextBlock Text="{DynamicResource S.Chat.Reasoning}" Style="{StaticResource Type.Caption}"
                                        Foreground="{DynamicResource Brush.TextMuted}" />
                         </Expander.Header>
 
@@ -436,7 +436,7 @@
                             <kontur:KonturIcon Kind="Error" Width="14" Height="14"
                                                Foreground="{DynamicResource Brush.Error}"
                                                VerticalAlignment="Top" Margin="0,1,9,0" />
-                            <TextBlock Text="Request failed"
+                            <TextBlock Text="{DynamicResource S.Chat.Failed.Title}"
                                        Style="{StaticResource Type.Caption}"
                                        FontWeight="SemiBold"
                                        Foreground="{DynamicResource Brush.TextPrimary}" />
@@ -450,7 +450,7 @@
                         <Expander Margin="23,8,0,0"
                                   Visibility="{Binding ErrorTechnicalDetails, Converter={StaticResource StringToVisibility}}">
                             <Expander.Header>
-                                <TextBlock Text="Technical details" Style="{StaticResource Type.Metadata}"
+                                <TextBlock Text="{DynamicResource S.Common.TechnicalDetails}" Style="{StaticResource Type.Metadata}"
                                            Foreground="{DynamicResource Brush.TextMuted}" />
                             </Expander.Header>
                             <TextBox Text="{Binding ErrorTechnicalDetails, Mode=OneWay}"
@@ -471,7 +471,7 @@
                             <StackPanel Orientation="Horizontal">
                                 <kontur:KonturIcon Kind="Refresh" Width="11" Height="11"
                                                    VerticalAlignment="Center" />
-                                <TextBlock Text="Retry" Style="{StaticResource Type.Metadata}"
+                                <TextBlock Text="{DynamicResource S.Common.Retry}" Style="{StaticResource Type.Metadata}"
                                            Foreground="{DynamicResource Brush.TextSecondary}"
                                            Margin="6,0,0,0" VerticalAlignment="Center" />
                             </StackPanel>
@@ -481,7 +481,7 @@
 
                 <TextBlock Grid.Row="3"
                            Style="{StaticResource SubtleText}"
-                           Text="Generation stopped."
+                           Text="{DynamicResource S.Chat.Stopped}"
                            Margin="0,6,0,0"
                            Visibility="{Binding WasCancelled, Converter={StaticResource BoolToVisibility}}" />
 
@@ -509,29 +509,29 @@
                                 HorizontalAlignment="Left"
                                 Visibility="{Binding IsAssistant, Converter={StaticResource BoolToVisibility}}">
                         <Button Style="{StaticResource KcButtonQuiet}"
-                                ToolTip="Copy message"
+                                ToolTip="{DynamicResource S.Chat.Copy.ToolTip}"
                                 Command="{Binding DataContext.CopyMessageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}">
                             <StackPanel Orientation="Horizontal">
                                 <kontur:KonturIcon Kind="Copy" Width="11" Height="11" />
-                                <TextBlock Text="Copy" Style="{StaticResource Type.Metadata}"
+                                <TextBlock Text="{DynamicResource S.Common.Copy}" Style="{StaticResource Type.Metadata}"
                                            Foreground="{DynamicResource Brush.TextSecondary}"
                                            Margin="6,0,0,0" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
                         <Button Style="{StaticResource KcButtonQuiet}" Margin="4,0,0,0"
-                                ToolTip="Generate a new answer"
+                                ToolTip="{DynamicResource S.Chat.Regenerate.ToolTip}"
                                 Command="{Binding DataContext.RegenerateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}">
                             <StackPanel Orientation="Horizontal">
                                 <kontur:KonturIcon Kind="Refresh" Width="11" Height="11" />
-                                <TextBlock Text="Regenerate" Style="{StaticResource Type.Metadata}"
+                                <TextBlock Text="{DynamicResource S.Chat.Regenerate}" Style="{StaticResource Type.Metadata}"
                                            Foreground="{DynamicResource Brush.TextSecondary}"
                                            Margin="6,0,0,0" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
                         <Button Style="{StaticResource KcButtonQuiet}" Margin="4,0,0,0"
-                                ToolTip="Delete message"
+                                ToolTip="{DynamicResource S.Chat.Delete.ToolTip}"
                                 Command="{Binding DataContext.DeleteMessageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}">
                             <kontur:KonturIcon Kind="Trash" Width="11" Height="11" />
@@ -560,7 +560,7 @@
                                 CommandParameter="{Binding}">
                             <StackPanel Orientation="Horizontal">
                                 <kontur:KonturIcon Kind="Edit" Width="11" Height="11" />
-                                <TextBlock Text="Edit" Style="{StaticResource Type.Metadata}"
+                                <TextBlock Text="{DynamicResource S.Common.Edit}" Style="{StaticResource Type.Metadata}"
                                            Foreground="{DynamicResource Brush.TextSecondary}"
                                            Margin="6,0,0,0" VerticalAlignment="Center" />
                             </StackPanel>
@@ -570,13 +570,13 @@
                                 CommandParameter="{Binding}">
                             <StackPanel Orientation="Horizontal">
                                 <kontur:KonturIcon Kind="Copy" Width="11" Height="11" />
-                                <TextBlock Text="Copy" Style="{StaticResource Type.Metadata}"
+                                <TextBlock Text="{DynamicResource S.Common.Copy}" Style="{StaticResource Type.Metadata}"
                                            Foreground="{DynamicResource Brush.TextSecondary}"
                                            Margin="6,0,0,0" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
                         <Button Style="{StaticResource KcButtonQuiet}" Margin="4,0,0,0"
-                                ToolTip="Delete message"
+                                ToolTip="{DynamicResource S.Chat.Delete.ToolTip}"
                                 Command="{Binding DataContext.DeleteMessageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}">
                             <kontur:KonturIcon Kind="Trash" Width="11" Height="11" />
@@ -643,12 +643,12 @@
                                        Foreground="{DynamicResource Brush.Accent}"
                                        HorizontalAlignment="Center" Margin="0,0,0,14" />
 
-                    <TextBlock Text="What can I help you with?"
+                    <TextBlock Text="{DynamicResource S.Chat.Empty.Title}"
                                Style="{StaticResource Type.Display}"
                                HorizontalAlignment="Center"
                                Margin="0,0,0,8" />
 
-                    <TextBlock Text="Ask a question, paste some code, or attach a file."
+                    <TextBlock Text="{DynamicResource S.Chat.Empty.Subtitle}"
                                Style="{StaticResource Type.Caption}"
                                HorizontalAlignment="Center"
                                Margin="0,0,0,28" />
@@ -693,7 +693,7 @@
             </Button.Background>
             <StackPanel Orientation="Horizontal">
                 <kontur:KonturIcon Kind="ChevronDown" Width="12" Height="12" VerticalAlignment="Center" />
-                <TextBlock Text="Jump to latest" Style="{StaticResource Type.Metadata}"
+                <TextBlock Text="{DynamicResource S.Chat.JumpToLatest}" Style="{StaticResource Type.Metadata}"
                            Foreground="{DynamicResource Brush.TextSecondary}"
                            Margin="6,0,0,0" VerticalAlignment="Center" />
             </StackPanel>
@@ -760,7 +760,7 @@
                             Shown when the same call is asked about twice in one run. Without it the
                             user is left wondering whether they misread the previous question.
                         -->
-                        <TextBlock Text="You already allowed this exact call in this run. It is being asked again because answers to this kind of call are deliberately not remembered."
+                        <TextBlock Text="{DynamicResource S.Chat.Repeat}"
                                    Style="{StaticResource Type.Metadata}"
                                    TextWrapping="Wrap"
                                    TextTrimming="None"
@@ -802,7 +802,7 @@
                           IsExpanded="{Binding IsArgumentsExpanded, Mode=TwoWay}"
                           Visibility="{Binding HasArguments, Converter={StaticResource BoolToVisibility}}">
                     <Expander.Header>
-                        <TextBlock Text="Arguments" Style="{StaticResource Type.Metadata}"
+                        <TextBlock Text="{DynamicResource S.Approval.Arguments}" Style="{StaticResource Type.Metadata}"
                                    Foreground="{DynamicResource Brush.TextMuted}" />
                     </Expander.Header>
 
@@ -838,27 +838,27 @@
                             MinHeight="30">
                         <TextBox Style="{StaticResource KcInputBare}"
                                  Text="{Binding DenyReason, UpdateSourceTrigger=PropertyChanged}"
-                                 Tag="Why not? Optional, and sent to the model."
+                                 Tag="{DynamicResource S.Approval.DenyPlaceholder}"
                                  VerticalContentAlignment="Center"
                                  Margin="8,0" />
                     </Border>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
                         <Button Style="{StaticResource KcButtonGhost}"
-                                Content="Don't allow"
+                                Content="{DynamicResource S.Approval.Deny}"
                                 Padding="12,5"
                                 Margin="0,0,6,0"
                                 Command="{Binding DenyCommand}" />
 
                         <Button Style="{StaticResource KcButtonGhost}"
-                                Content="Allow for this run"
+                                Content="{DynamicResource S.Approval.AllowRun}"
                                 Padding="12,5"
                                 Margin="0,0,6,0"
                                 Command="{Binding AllowForRunCommand}"
                                 Visibility="{Binding CanAllowForRun, Converter={StaticResource BoolToVisibility}}" />
 
                         <Button Style="{StaticResource KcButtonPrimary}"
-                                Content="Allow once"
+                                Content="{DynamicResource S.Approval.AllowOnce}"
                                 Padding="12,5"
                                 Command="{Binding AllowCommand}" />
                     </StackPanel>
@@ -908,7 +908,7 @@
                         <Button Grid.Column="2" Style="{StaticResource KcButtonTool}" Width="22" Height="22"
                                 Margin="8,0,0,0" VerticalAlignment="Center"
                                 Command="{Binding DismissBannerCommand}"
-                                ToolTip="Dismiss">
+                                ToolTip="{DynamicResource S.Banner.Dismiss}">
                             <kontur:KonturIcon Kind="Close" Width="10" Height="10" GlyphThickness="2.7" />
                         </Button>
                     </Grid>
@@ -935,14 +935,14 @@
                                                Style="{StaticResource Type.Metadata}"
                                                Margin="7,0,0,0"
                                                VerticalAlignment="Center" />
-                                    <TextBlock Text="truncated"
+                                    <TextBlock Text="{DynamicResource S.Chat.Truncated}"
                                                Style="{StaticResource Type.Metadata}"
                                                FontStyle="Italic"
                                                Margin="7,0,0,0"
                                                VerticalAlignment="Center"
                                                Visibility="{Binding IsTruncated, Converter={StaticResource BoolToVisibility}}" />
                                     <Button Style="{StaticResource KcButtonQuiet}" Padding="2,0" Margin="7,0,0,0"
-                                            ToolTip="Remove attachment"
+                                            ToolTip="{DynamicResource S.Chat.RemoveAttachment.ToolTip}"
                                             Command="{Binding DataContext.RemoveAttachmentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding}">
                                         <kontur:KonturIcon Kind="Close" Width="10" Height="10" GlyphThickness="2.7" />
@@ -1000,7 +1000,7 @@
 
                             <Button Grid.Column="0"
                                     Style="{StaticResource KcButtonTool}" Width="26" Height="24"
-                                    ToolTip="Attach a file"
+                                    ToolTip="{DynamicResource S.Chat.Attach.ToolTip}"
                                     Command="{Binding AttachFilesCommand}">
                                 <kontur:KonturIcon Kind="Paperclip" Width="13" Height="13" />
                             </Button>
@@ -1019,7 +1019,7 @@
                             <Button Grid.Column="1"
                                     x:Name="AgentButton"
                                     Content="{Binding AgentButtonText}"
-                                    ToolTip="Let the model work on the project. It plans by default, and asks before anything it cannot take back."
+                                    ToolTip="{DynamicResource S.Agent.ToolTip}"
                                     Click="OnAgentButtonClick">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource KcButtonGhost}">
@@ -1060,8 +1060,8 @@
                                                   IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=Plan}">
                                             <MenuItem.Header>
                                                 <StackPanel>
-                                                    <TextBlock Text="Plan" />
-                                                    <TextBlock Text="Reads and works out what to do. Changes nothing."
+                                                    <TextBlock Text="{DynamicResource S.Agent.Mode.Plan}" />
+                                                    <TextBlock Text="{DynamicResource S.Agent.Menu.Plan.Hint}"
                                                                Style="{StaticResource SubtleText}" />
                                                 </StackPanel>
                                             </MenuItem.Header>
@@ -1072,8 +1072,8 @@
                                                   IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=PlanCanvas}">
                                             <MenuItem.Header>
                                                 <StackPanel>
-                                                    <TextBlock Text="Plan + canvas" />
-                                                    <TextBlock Text="Plans, and draws the project it would build."
+                                                    <TextBlock Text="{DynamicResource S.Agent.Mode.PlanCanvas}" />
+                                                    <TextBlock Text="{DynamicResource S.Agent.Menu.PlanCanvas.Hint}"
                                                                Style="{StaticResource SubtleText}" />
                                                 </StackPanel>
                                             </MenuItem.Header>
@@ -1084,8 +1084,8 @@
                                                   IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=Build}">
                                             <MenuItem.Header>
                                                 <StackPanel>
-                                                    <TextBlock Text="Build" />
-                                                    <TextBlock Text="Carries the work out, asking before each change."
+                                                    <TextBlock Text="{DynamicResource S.Agent.Mode.Build}" />
+                                                    <TextBlock Text="{DynamicResource S.Agent.Menu.Build.Hint}"
                                                                Style="{StaticResource SubtleText}" />
                                                 </StackPanel>
                                             </MenuItem.Header>
@@ -1097,8 +1097,8 @@
                                                   IsChecked="{Binding AgentModeSelection, Mode=OneWay, Converter={StaticResource Equality}, ConverterParameter=Off}">
                                             <MenuItem.Header>
                                                 <StackPanel>
-                                                    <TextBlock Text="Off" />
-                                                    <TextBlock Text="One answer from the model, no tools."
+                                                    <TextBlock Text="{DynamicResource S.Agent.Mode.Off}" />
+                                                    <TextBlock Text="{DynamicResource S.Agent.Menu.Off.Hint}"
                                                                Style="{StaticResource SubtleText}" />
                                                 </StackPanel>
                                             </MenuItem.Header>
@@ -1122,7 +1122,7 @@
                                     MinHeight="24"
                                     VerticalAlignment="Center"
                                     Margin="4,0,0,0"
-                                    ToolTip="Choose the model for this conversation"
+                                    ToolTip="{DynamicResource S.Main.ChangeModel.ToolTip}"
                                     Click="OnModelPillClick">
                                 <StackPanel Orientation="Horizontal">
                                     <kontur:KonturIcon Kind="Models" Width="12" Height="12"
@@ -1130,7 +1130,7 @@
                                     <TextBlock Style="{StaticResource Type.Metadata}"
                                                Foreground="{DynamicResource Brush.TextSecondary}"
                                                VerticalAlignment="Center"
-                                               Text="{Binding SelectedModel.Name, FallbackValue='Model', TargetNullValue='Model'}" />
+                                               Text="{Binding SelectedModel.Name, FallbackValue={DynamicResource S.Main.SelectModel}, TargetNullValue={DynamicResource S.Main.SelectModel}}" />
                                     <kontur:KonturIcon Kind="ChevronDown" Width="10" Height="10" GlyphThickness="2.7"
                                                        VerticalAlignment="Center" Margin="5,0,0,0" />
                                 </StackPanel>

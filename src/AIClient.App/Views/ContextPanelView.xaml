@@ -56,7 +56,7 @@
                 <TextBlock Grid.Column="1" Margin="9,0,0,0" VerticalAlignment="Center"
                            Style="{StaticResource Type.Section}">
                     <TextBlock.Text>
-                        <Binding Path="Mode" FallbackValue="Workspace"
+                        <Binding Path="Mode" FallbackValue="{DynamicResource S.Inspector.Mode.Workspace}"
                                  Converter="{StaticResource ContextPanelModeLabel}" />
                     </TextBlock.Text>
                 </TextBlock>
@@ -80,12 +80,12 @@
                     </StackPanel.Style>
 
                     <StackPanel Margin="12,10">
-                        <TextBlock Text="{Binding WorkspaceName, FallbackValue='No workspace'}"
+                        <TextBlock Text="{Binding WorkspaceName, FallbackValue={DynamicResource S.Main.Workspace.None}}"
                                    Style="{StaticResource Type.Section}" TextTrimming="CharacterEllipsis" />
                         <TextBlock Text="{Binding WorkspaceRoot}" Style="{StaticResource Type.Metadata}"
                                    TextTrimming="CharacterEllipsis" Margin="0,3,0,0" Opacity="0.7"
                                    ToolTip="{Binding WorkspaceRoot}" />
-                        <TextBlock Text="{Binding GraphSummary, FallbackValue='Empty'}"
+                        <TextBlock Text="{Binding GraphSummary, FallbackValue={DynamicResource S.Inspector.GraphEmpty}}"
                                    Style="{StaticResource Type.Caption}" Margin="0,8,0,0"
                                    Foreground="{DynamicResource Brush.TextSecondary}" />
                     </StackPanel>
@@ -95,7 +95,7 @@
                         <kontur:KonturIcon Kind="History" Width="11" Height="11"
                                            Foreground="{DynamicResource Brush.TextMuted}"
                                            VerticalAlignment="Center" />
-                        <TextBlock Text="Timeline" Style="{StaticResource Type.Overline}" Margin="6,0,0,0" />
+                        <TextBlock Text="{DynamicResource S.Inspector.Timeline}" Style="{StaticResource Type.Overline}" Margin="6,0,0,0" />
                     </StackPanel>
                     <ItemsControl ItemsSource="{Binding Timeline}" Margin="8,0">
                         <ItemsControl.ItemTemplate>
@@ -186,7 +186,7 @@
                                 Command="{Binding OpenPathCommand}" CommandParameter="{Binding InspectedNode.Path}">
                             <StackPanel Orientation="Horizontal">
                                 <kontur:KonturIcon Kind="Open" Width="13" Height="13" />
-                                <TextBlock Text="Open in Code" Style="{StaticResource Type.Caption}" Margin="9,0,0,0" />
+                                <TextBlock Text="{DynamicResource S.Inspector.OpenInCode}" Style="{StaticResource Type.Caption}" Margin="9,0,0,0" />
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -196,14 +196,14 @@
                         <kontur:KonturIcon Kind="Link" Width="11" Height="11"
                                            Foreground="{DynamicResource Brush.TextMuted}"
                                            VerticalAlignment="Center" />
-                        <TextBlock Text="Relations" Style="{StaticResource Type.Overline}" Margin="6,0,0,0" />
+                        <TextBlock Text="{DynamicResource S.Inspector.Relations}" Style="{StaticResource Type.Overline}" Margin="6,0,0,0" />
                     </StackPanel>
                     <ItemsControl ItemsSource="{Binding Relations}" Margin="8,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border Padding="8,5" Margin="0,1" CornerRadius="{StaticResource Radius.SM}"
                                         Background="{DynamicResource Brush.Surface2}" Cursor="Hand"
-                                        MouseLeftButtonUp="OnRelationClicked" ToolTip="Focus on the canvas">
+                                        MouseLeftButtonUp="OnRelationClicked" ToolTip="{DynamicResource S.Inspector.Focus.Tip}">
                                     <StackPanel Orientation="Horizontal" MinWidth="0">
                                         <TextBlock Text="{Binding Direction}" Style="{StaticResource Type.Metadata}"
                                                    Foreground="{DynamicResource Brush.AccentText}" Margin="0,0,7,0"
@@ -227,7 +227,7 @@
                         <kontur:KonturIcon Kind="Sparkle" Width="11" Height="11"
                                            Foreground="{DynamicResource Brush.TextMuted}"
                                            VerticalAlignment="Center" />
-                        <TextBlock Text="AI" Style="{StaticResource Type.Overline}" Margin="6,0,0,0" />
+                        <TextBlock Text="{DynamicResource S.Inspector.AskAI}" Style="{StaticResource Type.Overline}" Margin="6,0,0,0" />
                     </StackPanel>
                     <StackPanel Margin="8,0,8,10">
                         <Button Style="{StaticResource KcButtonGhost}" Padding="10,6" Margin="0,1"
@@ -235,7 +235,7 @@
                             <StackPanel Orientation="Horizontal">
                                 <kontur:KonturIcon Kind="Sparkle" Width="12" Height="12"
                                                    Foreground="{DynamicResource Brush.AccentText}" />
-                                <TextBlock Text="Explain architecture" Style="{StaticResource Type.Caption}"
+                                <TextBlock Text="{DynamicResource S.Inspector.Ask.Architecture}" Style="{StaticResource Type.Caption}"
                                            Margin="9,0,0,0" />
                             </StackPanel>
                         </Button>
@@ -243,7 +243,7 @@
                                 HorizontalContentAlignment="Left" Command="{Binding AskRelationsCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <kontur:KonturIcon Kind="Link" Width="12" Height="12" />
-                                <TextBlock Text="Explain dependencies" Style="{StaticResource Type.Caption}"
+                                <TextBlock Text="{DynamicResource S.Inspector.Ask.Dependencies}" Style="{StaticResource Type.Caption}"
                                            Margin="9,0,0,0" />
                             </StackPanel>
                         </Button>
@@ -251,7 +251,7 @@
                                 HorizontalContentAlignment="Left" Command="{Binding AskTestsCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <kontur:KonturIcon Kind="Check" Width="12" Height="12" />
-                                <TextBlock Text="Suggest tests" Style="{StaticResource Type.Caption}"
+                                <TextBlock Text="{DynamicResource S.Inspector.Ask.Tests}" Style="{StaticResource Type.Caption}"
                                            Margin="9,0,0,0" />
                             </StackPanel>
                         </Button>
@@ -275,11 +275,11 @@
                         <StackPanel Orientation="Horizontal">
                             <kontur:KonturIcon Kind="Link" Width="15" Height="15"
                                                Foreground="{DynamicResource Brush.AccentText}" />
-                            <TextBlock Text="Connection" Style="{StaticResource Type.Section}" Margin="10,0,0,0" />
+                            <TextBlock Text="{DynamicResource S.Inspector.Mode.Edge}" Style="{StaticResource Type.Section}" Margin="10,0,0,0" />
                         </StackPanel>
-                        <TextBlock Text="{Binding InspectedEdge.Kind, FallbackValue='relates'}"
+                        <TextBlock Text="{Binding InspectedEdge.Kind, FallbackValue={DynamicResource S.Edge.Relates}}"
                                    Style="{StaticResource Type.Accent}" Margin="25,6,0,0" />
-                        <TextBlock Text="Both endpoints live on the canvas; select either node to inspect it in full."
+                        <TextBlock Text="{DynamicResource S.Inspector.Connection.Hint}"
                                    Style="{StaticResource Type.CaptionWrap}" Margin="25,6,0,0"
                                    Foreground="{DynamicResource Brush.TextSecondary}" />
                     </StackPanel>
@@ -302,9 +302,9 @@
                         <StackPanel Orientation="Horizontal">
                             <kontur:KonturIcon Kind="Graph" Width="15" Height="15"
                                                Foreground="{DynamicResource Brush.AccentText}" />
-                            <TextBlock Text="Selection" Style="{StaticResource Type.Section}" Margin="10,0,0,0" />
+                            <TextBlock Text="{DynamicResource S.Inspector.Group.Selection}" Style="{StaticResource Type.Section}" Margin="10,0,0,0" />
                         </StackPanel>
-                        <TextBlock Text="{Binding SelectionCount, StringFormat={}{0} nodes}"
+                        <TextBlock Text="{Binding SelectionSummary}"
                                    Style="{StaticResource Type.Caption}" Margin="25,6,0,0" />
                         <TextBlock Text="{Binding SelectionKinds}" Style="{StaticResource Type.Metadata}"
                                    Margin="25,2,0,0" Opacity="0.75" TextWrapping="Wrap" />
@@ -316,7 +316,7 @@
                             <StackPanel Orientation="Horizontal">
                                 <kontur:KonturIcon Kind="Sparkle" Width="12" Height="12"
                                                    Foreground="{DynamicResource Brush.AccentText}" />
-                                <TextBlock Text="Ask AI about this selection" Style="{StaticResource Type.Caption}"
+                                <TextBlock Text="{DynamicResource S.Inspector.AskSelection}" Style="{StaticResource Type.Caption}"
                                            Margin="9,0,0,0" />
                             </StackPanel>
                         </Button>
@@ -340,7 +340,7 @@
                         <StackPanel Orientation="Horizontal">
                             <kontur:KonturIcon Kind="Sparkle" Width="15" Height="15"
                                                Foreground="{DynamicResource Brush.AccentText}" />
-                            <TextBlock Text="{Binding AiStateText, FallbackValue='Idle'}"
+                            <TextBlock Text="{Binding AiStateText, FallbackValue={DynamicResource S.Main.Ai.Idle}}"
                                        Style="{StaticResource Type.Section}" Margin="10,0,0,0" />
                             <Ellipse Width="7" Height="7" Margin="8,2,0,0" VerticalAlignment="Center"
                                      Fill="{DynamicResource Brush.Running}"
@@ -351,7 +351,7 @@
                                    Margin="25,6,0,0" Opacity="0.7" />
                         <TextBlock Style="{StaticResource Type.CaptionWrap}" Margin="25,10,0,0"
                                    Foreground="{DynamicResource Brush.TextSecondary}"
-                                   Text="The approval card below the composer is where the agent asks before changing anything. Answer it there; this panel only watches." />
+                                   Text="{DynamicResource S.Inspector.ApprovalWatch}" />
                     </StackPanel>
                 </StackPanel>
             </StackPanel>
