@@ -24,13 +24,15 @@
         happens to be. Enter and Shift+Enter stay in the composer; Ctrl+Z/Y belong to
         whatever has focus, which is why they are not here.
     -->
-    <ui:FluentWindow.InputBindings>
-        <KeyBinding Key="N" Modifiers="Ctrl" Command="{Binding NewChatCommand}" />
-        <KeyBinding Key="K" Modifiers="Ctrl" Command="{Binding FocusSearchCommand}" />
-        <KeyBinding Key="OemComma" Modifiers="Ctrl" Command="{Binding ShowSettingsCommand}" />
-        <KeyBinding Key="P" Modifiers="Ctrl+Shift" Command="{Binding ToggleCommandPaletteCommand}" />
-        <KeyBinding Key="B" Modifiers="Ctrl" Command="{Binding ToggleSidebarCommand}" />
-        <KeyBinding Key="I" Modifiers="Ctrl" Command="{Binding AskAiAboutSelectionCommand}" />
+                <ui:FluentWindow.InputBindings>
+                <KeyBinding Key="N" Modifiers="Ctrl" Command="{Binding NewChatCommand}" />
+                <KeyBinding Key="K" Modifiers="Ctrl" Command="{Binding FocusSearchCommand}" />
+                <KeyBinding Key="OemComma" Modifiers="Ctrl" Command="{Binding ShowSettingsCommand}" />
+                <KeyBinding Key="P" Modifiers="Ctrl+Shift" Command="{Binding ToggleCommandPaletteCommand}" />
+                <KeyBinding Key="B" Modifiers="Ctrl" Command="{Binding ToggleSidebarCommand}" />
+                <KeyBinding Key="G" Modifiers="Ctrl" Command="{Binding ShowCanvasCommand}" />
+                <KeyBinding Key="M" Modifiers="Ctrl" Command="{Binding Chat.ToggleVoiceInputCommand}" />
+                <KeyBinding Key="I" Modifiers="Ctrl" Command="{Binding AskAiAboutSelectionCommand}" />
         <KeyBinding Key="I" Modifiers="Ctrl+Alt" Command="{Binding ToggleContextPanelCommand}" />
         <KeyBinding Key="Left" Modifiers="Alt" Command="{Binding GoBackCommand}" />
         <KeyBinding Key="Right" Modifiers="Alt" Command="{Binding GoForwardCommand}" />
