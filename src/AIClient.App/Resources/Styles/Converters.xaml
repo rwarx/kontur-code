@@ -22,5 +22,14 @@
     <conv:NodeCountToVisibilityConverter x:Key="NodeCountToVisibility" />
     <conv:ContextPanelModeLabelConverter x:Key="ContextPanelModeLabel" />
     <conv:NodeKindIconConverter x:Key="NodeKindToIcon" />
+    <conv:ThemeModeLabelConverter x:Key="ThemeModeLabel" />
+
+    <!-- Context panel -->
+    <conv:TokenShareConverter x:Key="TokenShare" />
+    <conv:TokenCountConverter x:Key="TokenCount" />
+    <conv:PercentConverter x:Key="Percent" />
+    <conv:BandShareConverter x:Key="BandShare" />
+    <conv:CostConverter x:Key="Cost" />
+    <conv:AbsoluteTimeConverter x:Key="AbsoluteTime" />
 
 </ResourceDictionary>

@@ -1,0 +1,392 @@
+<UserControl x:Class="AIClient.App.Views.SessionContextView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:SessionContextViewModel}"
+             MinWidth="360"
+             d:DesignHeight="700" d:DesignWidth="400">
+
+    <UserControl.Resources>
+        <!--
+            Rows are DockPanels rather than cells of one big Grid: the label goes left, the value
+            fills what is left and right-aligns inside it. That is the alignment the panel needs -
+            a ragged column of labels against a flush column of numbers - and it means adding a
+            field is three lines instead of renumbering every Grid.Row below it.
+        -->
+        <Style x:Key="FieldRow" TargetType="DockPanel">
+            <Setter Property="LastChildFill" Value="True" />
+            <Setter Property="Margin" Value="0,0,0,7" />
+        </Style>
+
+        <Style x:Key="FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource SubtleText}">
+            <Setter Property="DockPanel.Dock" Value="Left" />
+            <Setter Property="Margin" Value="0,0,16,0" />
+            <Setter Property="TextTrimming" Value="None" />
+        </Style>
+
+        <Style x:Key="FieldValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="TextAlignment" Value="Right" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+
+        <!-- The legend's swatches, so a band's colour is declared once for bar and key alike. -->
+        <SolidColorBrush x:Key="BandUserBrush" Color="#A371F7" />
+        <SolidColorBrush x:Key="BandAssistantBrush" Color="#3FB950" />
+        <SolidColorBrush x:Key="BandToolBrush" Color="#D29922" />
+        <SolidColorBrush x:Key="BandOtherBrush" Color="#5C6BC0" />
+
+        <Style x:Key="LegendSwatch" TargetType="Border">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="Height" Value="8" />
+            <Setter Property="CornerRadius" Value="2" />
+            <Setter Property="Margin" Value="0,0,5,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="LegendText" TargetType="TextBlock" BasedOn="{StaticResource SubtleText}">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,12,0" />
+            <Setter Property="TextTrimming" Value="None" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="16,14,16,12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ===== Header ===== -->
+
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="{DynamicResource S.Context.Title}"
+                       FontSize="15"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center" />
+
+            <ui:Button HorizontalAlignment="Right"
+                       Appearance="Secondary"
+                       Background="Transparent"
+                       BorderThickness="0"
+                       Padding="6,4"
+                       Icon="{ui:SymbolIcon ArrowSync24}"
+                       ToolTip="{DynamicResource S.Context.Refresh}"
+                       Command="{Binding RefreshCommand}" />
+        </Grid>
+
+        <!-- ===== Report ===== -->
+
+        <ScrollViewer Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Visibility="{Binding HasReport, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel>
+                <!-- What is being reported on. -->
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Session}" />
+                    <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Report.Title}" />
+                </DockPanel>
+
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Messages}" />
+                    <TextBlock Style="{StaticResource FieldValue}"
+                               Text="{Binding Report.MessageCount, Converter={StaticResource TokenCount}}" />
+                </DockPanel>
+
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Provider}" />
+                    <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Report.ProviderName}" />
+                </DockPanel>
+
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Model}" />
+                    <TextBlock Style="{StaticResource FieldValue}" Text="{Binding Report.ModelName}" />
+                </DockPanel>
+
+                <!-- ===== The window and what fills it ===== -->
+
+                <Separator Margin="0,7,0,12" Background="{DynamicResource BorderSubtleBrush}" />
+
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Window}" />
+                    <TextBlock Style="{StaticResource FieldValue}"
+                               Text="{Binding Report.ContextWindow, Converter={StaticResource TokenCount}}" />
+                </DockPanel>
+
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Total}" />
+                    <TextBlock Style="{StaticResource FieldValue}"
+                               FontWeight="SemiBold"
+                               Text="{Binding Report.TotalTokens, Converter={StaticResource TokenCount}}" />
+                </DockPanel>
+
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Usage}" />
+                    <TextBlock Style="{StaticResource FieldValue}"
+                               Text="{Binding Report.UsagePercent, Converter={StaticResource Percent}}" />
+                </DockPanel>
+
+                <!--
+                    Bound to the same UsagePercent the row above prints, so the bar and the figure
+                    cannot disagree. A model whose window nobody published leaves the percentage
+                    null, which lands the bar at zero rather than inventing a fullness.
+                -->
+                <ProgressBar Minimum="0"
+                             Maximum="100"
+                             Height="4"
+                             Margin="0,1,0,12"
+                             Value="{Binding Report.UsagePercent, Mode=OneWay, TargetNullValue=0}" />
+
+                <!-- ===== What the provider charged for the newest turn ===== -->
+
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Input}" />
+                    <TextBlock Style="{StaticResource FieldValue}"
+                               Text="{Binding Report.InputTokens, Converter={StaticResource TokenCount}}" />
+                </DockPanel>
+
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Output}" />
+                    <TextBlock Style="{StaticResource FieldValue}"
+                               Text="{Binding Report.OutputTokens, Converter={StaticResource TokenCount}}" />
+                </DockPanel>
+
+                <!--
+                    Shown next to the completion it is part of, and never added to it: providers
+                    report thinking as a slice of the output, so a panel that summed the two would
+                    claim more tokens than the bill.
+                -->
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Reasoning}" />
+                    <TextBlock Style="{StaticResource FieldValue}"
+                               Text="{Binding Report.ReasoningTokens, Converter={StaticResource TokenCount}}" />
+                </DockPanel>
+
+                <!-- Read and write on one row, the way a provider reports them. -->
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Cache}" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <TextBlock Style="{StaticResource FieldValue}"
+                                   Text="{Binding Report.CacheReadTokens, Converter={StaticResource TokenCount}}" />
+                        <TextBlock Style="{StaticResource FieldValue}"
+                                   Foreground="{DynamicResource TextMutedBrush}"
+                                   Margin="4,0"
+                                   Text="/" />
+                        <TextBlock Style="{StaticResource FieldValue}"
+                                   Text="{Binding Report.CacheWriteTokens, Converter={StaticResource TokenCount}}" />
+                    </StackPanel>
+                </DockPanel>
+
+                <!-- ===== Who said what ===== -->
+
+                <Separator Margin="0,7,0,12" Background="{DynamicResource BorderSubtleBrush}" />
+
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.UserMessages}" />
+                    <TextBlock Style="{StaticResource FieldValue}"
+                               Text="{Binding Report.UserMessageCount, Converter={StaticResource TokenCount}}" />
+                </DockPanel>
+
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.AssistantMessages}" />
+                    <TextBlock Style="{StaticResource FieldValue}"
+                               Text="{Binding Report.AssistantMessageCount, Converter={StaticResource TokenCount}}" />
+                </DockPanel>
+
+                <!-- Zero for a chat that never ran the agent, which is worth seeing as a zero. -->
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.ToolMessages}" />
+                    <TextBlock Style="{StaticResource FieldValue}"
+                               Text="{Binding Report.ToolMessageCount, Converter={StaticResource TokenCount}}" />
+                </DockPanel>
+
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Folded}" />
+                    <TextBlock Style="{StaticResource FieldValue}"
+                               Text="{Binding Report.CompactedMessageCount, Converter={StaticResource TokenCount}}" />
+                </DockPanel>
+
+                <!-- ===== Money and dates ===== -->
+
+                <Separator Margin="0,7,0,12" Background="{DynamicResource BorderSubtleBrush}" />
+
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Cost}" />
+                    <TextBlock Style="{StaticResource FieldValue}"
+                               Text="{Binding Report.TotalCost, Converter={StaticResource Cost}}"
+                               ToolTip="{DynamicResource S.Context.Cost.Hint}" />
+                </DockPanel>
+
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.Created}" />
+                    <TextBlock Style="{StaticResource FieldValue}"
+                               Text="{Binding Report.CreatedAt, Converter={StaticResource AbsoluteTime}}" />
+                </DockPanel>
+
+                <DockPanel Style="{StaticResource FieldRow}">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Context.LastActivity}" />
+                    <TextBlock Style="{StaticResource FieldValue}"
+                               Text="{Binding Report.LastActivityAt, Converter={StaticResource AbsoluteTime}}" />
+                </DockPanel>
+
+                <!-- ===== Breakdown ===== -->
+
+                <Separator Margin="0,7,0,10" Background="{DynamicResource BorderSubtleBrush}" />
+
+                <TextBlock Text="{DynamicResource S.Context.Breakdown}"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,2" />
+
+                <TextBlock Style="{StaticResource SubtleText}"
+                           FontSize="11"
+                           TextWrapping="Wrap"
+                           TextTrimming="None"
+                           Margin="0,0,0,8"
+                           Text="{DynamicResource S.Context.Breakdown.Hint}" />
+
+                <!--
+                    Four columns weighted by what each band costs, so the proportions come out of
+                    the layout pass rather than out of arithmetic over ActualWidth - and a band with
+                    no tokens weighs nothing and disappears on its own.
+                -->
+                <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                        Height="8"
+                        Margin="0,0,0,8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="{Binding Report.Breakdown.UserTokens, Converter={StaticResource TokenShare}}" />
+                            <ColumnDefinition Width="{Binding Report.Breakdown.AssistantTokens, Converter={StaticResource TokenShare}}" />
+                            <ColumnDefinition Width="{Binding Report.Breakdown.ToolTokens, Converter={StaticResource TokenShare}}" />
+                            <ColumnDefinition Width="{Binding Report.Breakdown.OtherTokens, Converter={StaticResource TokenShare}}" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Background="{StaticResource BandUserBrush}" />
+                        <Border Grid.Column="1" Background="{StaticResource BandAssistantBrush}" />
+                        <Border Grid.Column="2" Background="{StaticResource BandToolBrush}" />
+                        <Border Grid.Column="3" Background="{StaticResource BandOtherBrush}" />
+                    </Grid>
+                </Border>
+
+                <WrapPanel Margin="0,0,0,4">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <Border Style="{StaticResource LegendSwatch}" Background="{StaticResource BandUserBrush}" />
+                        <TextBlock Style="{StaticResource LegendText}"
+                                   Margin="0,0,4,0"
+                                   Text="{DynamicResource S.Context.Band.User}" />
+                        <TextBlock Style="{StaticResource LegendText}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="{Binding Report.Breakdown.UserPercent, Converter={StaticResource BandShare}}" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <Border Style="{StaticResource LegendSwatch}" Background="{StaticResource BandAssistantBrush}" />
+                        <TextBlock Style="{StaticResource LegendText}"
+                                   Margin="0,0,4,0"
+                                   Text="{DynamicResource S.Context.Band.Assistant}" />
+                        <TextBlock Style="{StaticResource LegendText}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="{Binding Report.Breakdown.AssistantPercent, Converter={StaticResource BandShare}}" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <Border Style="{StaticResource LegendSwatch}" Background="{StaticResource BandToolBrush}" />
+                        <TextBlock Style="{StaticResource LegendText}"
+                                   Margin="0,0,4,0"
+                                   Text="{DynamicResource S.Context.Band.Tools}" />
+                        <TextBlock Style="{StaticResource LegendText}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="{Binding Report.Breakdown.ToolPercent, Converter={StaticResource BandShare}}" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <Border Style="{StaticResource LegendSwatch}" Background="{StaticResource BandOtherBrush}" />
+                        <TextBlock Style="{StaticResource LegendText}"
+                                   Margin="0,0,4,0"
+                                   Text="{DynamicResource S.Context.Band.Other}" />
+                        <TextBlock Style="{StaticResource LegendText}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="{Binding Report.Breakdown.OtherPercent, Converter={StaticResource BandShare}}" />
+                    </StackPanel>
+                </WrapPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Nothing to report: no chat open yet, or the report is still being assembled. -->
+        <Grid Grid.Row="1" Visibility="{Binding HasReport, Converter={StaticResource InverseBoolToVisibility}}">
+            <TextBlock Style="{StaticResource SubtleText}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       TextTrimming="None"
+                       Margin="20"
+                       Text="{DynamicResource S.Context.Empty}"
+                       Visibility="{Binding IsLoading, Converter={StaticResource InverseBoolToVisibility}}" />
+
+            <ui:ProgressRing IsIndeterminate="True"
+                             Width="24" Height="24"
+                             HorizontalAlignment="Center"
+                             VerticalAlignment="Center"
+                             Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
+        </Grid>
+
+        <!-- ===== Compaction ===== -->
+
+        <StackPanel Grid.Row="2"
+                    Margin="0,10,0,0"
+                    Visibility="{Binding HasReport, Converter={StaticResource BoolToVisibility}}">
+            <Separator Margin="0,0,0,10" Background="{DynamicResource BorderSubtleBrush}" />
+
+            <!--
+                Shown only when the chat is far enough through its window to be worth folding, and
+                worded as an offer rather than an error: nothing is broken, the model is simply
+                about to start forgetting the beginning.
+            -->
+            <ui:InfoBar Severity="Warning"
+                        IsClosable="False"
+                        Margin="0,0,0,8"
+                        Title="{DynamicResource S.Context.Warning.Title}"
+                        Message="{DynamicResource S.Context.Warning.Message}"
+                        IsOpen="{Binding Report.ShouldCompact, Mode=OneWay}" />
+
+            <ui:Button HorizontalAlignment="Stretch"
+                       HorizontalContentAlignment="Center"
+                       Appearance="Secondary"
+                       Icon="{ui:SymbolIcon ArrowMinimize24}"
+                       Content="{DynamicResource S.Context.Compact}"
+                       ToolTip="{DynamicResource S.Context.Compact.Hint}"
+                       Command="{Binding CompactCommand}"
+                       Visibility="{Binding IsCompacting, Converter={StaticResource InverseBoolToVisibility}}" />
+
+            <!-- The summariser is a provider call, so the button has to say it is working. -->
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Margin="0,6"
+                        Visibility="{Binding IsCompacting, Converter={StaticResource BoolToVisibility}}">
+                <ui:ProgressRing IsIndeterminate="True" Width="16" Height="16" Margin="0,0,8,0" />
+                <TextBlock Style="{StaticResource SubtleText}"
+                           VerticalAlignment="Center"
+                           TextTrimming="None"
+                           Text="{DynamicResource S.Context.Compact.Running}" />
+            </StackPanel>
+
+            <TextBlock Style="{StaticResource SubtleText}"
+                       FontSize="11"
+                       Margin="0,7,0,0"
+                       TextWrapping="Wrap"
+                       TextTrimming="None"
+                       Text="{Binding Notice}"
+                       ToolTip="{Binding NoticeDetail}"
+                       Visibility="{Binding Notice, Converter={StaticResource StringToVisibility}}" />
+        </StackPanel>
+    </Grid>
+</UserControl>

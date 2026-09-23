@@ -6,6 +6,7 @@ using AIClient.Application.Configuration;
 using AIClient.Application.DTOs;
 using AIClient.Application.Interfaces;
 using AIClient.Application.Markdown;
+using AIClient.Application.Services;
 using AIClient.Domain.Enums;
 using AIClient.Domain.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -70,11 +71,27 @@ public sealed partial class ChatViewModel : ObservableObject
     private CancellationTokenSource? _turnCancellation;
     private MessageViewModel? _streamingMessage;
 
+    /// <summary>The one microphone the pane dictates through; the engine behind it may vary.</summary>
+    private readonly ISpeechToTextService _speechToText;
+
+    /// <summary>
+    /// The draft's dictation ledger while a session is open, and null whenever it is not.
+    /// </summary>
+    /// <remarks>
+    /// All voice-driven writes to <see cref="Draft"/>, and only those, go through it - which is
+    /// what lets <see cref="OnDraftChanged"/> tell the user's keystrokes from the composer's
+    /// own echoes and re-anchor the session when the two get mixed.
+    /// </remarks>
+    private VoiceDraftComposer? _voiceComposer;
+
+    /// <summary>The draft as the composer last left it; the fingerprint of a voice write.</summary>
+    private string _lastVoiceDraft = string.Empty;
+
     [ObservableProperty]
     private Guid? _conversationId;
 
     [ObservableProperty]
-    private string _title = "New Chat";
+    private string _title = Services.Localization.T("S.Sidebar.NewChat");
 
     [ObservableProperty]
     private string _draft = string.Empty;
@@ -149,6 +166,16 @@ public sealed partial class ChatViewModel : ObservableObject
     [ObservableProperty]
     private bool _isAgentMode;
 
+    /// <summary>True while dictation is live; the microphone button wears its recording look.</summary>
+    /// <remarks>
+    /// Not set by the button - set by <see cref="ISpeechToTextService.IsListeningChanged"/> -
+    /// because the truth about whether the machine is listening belongs to the engine that is
+    /// or is not, and a state the engine did not confirm is a recording mark that can lie.
+    /// </remarks>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(VoiceToolTip))]
+    private bool _isRecording;
+
     /// <summary>
     /// Which kind of agent run the next message starts.
     /// </summary>
@@ -178,7 +205,16 @@ public sealed partial class ChatViewModel : ObservableObject
     /// pressing Send.
     /// </remarks>
     public string AgentButtonText =>
-        IsAgentMode ? $"Agent · {SelectedAgentMode.DisplayName()}" : "Agent";
+        IsAgentMode ? $"{Localization.T("S.Agent.Label")} · {ModeName(SelectedAgentMode)}" : Localization.T("S.Agent.Label");
+
+    /// <summary>A mode's name in the interface language; the Application layer's own names serve the model.</summary>
+    private string ModeName(AgentMode mode) => mode switch
+    {
+        AgentMode.Plan => Localization.T("S.Agent.Mode.Plan"),
+        AgentMode.PlanCanvas => Localization.T("S.Agent.Mode.PlanCanvas"),
+        AgentMode.Build => Localization.T("S.Agent.Mode.Build"),
+        _ => Localization.T("S.Agent.Mode.Off"),
+    };
 
     /// <summary>
     /// Which entry of the agent menu is ticked, as a string.
@@ -188,7 +224,7 @@ public sealed partial class ChatViewModel : ObservableObject
     /// that menu exactly as much as the three modes are - and a single value is the only way to be sure
     /// that precisely one entry is ever ticked.
     /// </remarks>
-    public string AgentModeSelection => IsAgentMode ? SelectedAgentMode.ToString() : "Off";
+    public string AgentModeSelection => IsAgentMode ? ModeName(SelectedAgentMode) : Localization.T("S.Agent.Mode.Off");
 
     /// <summary>
     /// What the agent would do with the next message, shown while agent mode is on.
@@ -207,15 +243,15 @@ public sealed partial class ChatViewModel : ObservableObject
             if (SelectedAgentMode.NeedsWorkspace())
             {
                 return root is null
-                    ? "Build · no folder open. Choose one under Settings."
-                    : $"Build · working in {root}";
+                    ? Localization.T("S.Agent.Hint.Build.NoFolder")
+                    : Localization.T("S.Agent.Hint.Build.In", root);
             }
 
-            var name = SelectedAgentMode.DisplayName();
+            var name = ModeName(SelectedAgentMode);
 
             return root is null
-                ? $"{name} · planning something new. Nothing will be read or changed."
-                : $"{name} · reading {root}. Nothing will be changed.";
+                ? Localization.T("S.Agent.Hint.Plan.New", name)
+                : Localization.T("S.Agent.Hint.Plan.In", name, root);
         }
     }
 
@@ -231,6 +267,7 @@ public sealed partial class ChatViewModel : ObservableObject
         IConnectivityMonitor connectivity,
         AgentApprovalService approval,
         MarkdownParser markdownParser,
+        ISpeechToTextService speechToText,
         ILogger<ChatViewModel> logger)
     {
         _chatService = chatService;
@@ -243,6 +280,7 @@ public sealed partial class ChatViewModel : ObservableObject
         _dialogs = dialogs;
         _connectivity = connectivity;
         _markdownParser = markdownParser;
+        _speechToText = speechToText;
         _logger = logger;
 
         Approval = approval;
@@ -256,7 +294,55 @@ public sealed partial class ChatViewModel : ObservableObject
         // naming a folder the agent is no longer working in.
         _workspace.RootChanged += (_, _) => OnPropertyChanged(nameof(AgentHint));
 
+        // The engine calls from its own thread; every update below hops to the dispatcher
+        // before it touches bound state, which is the rule UiThread exists for.
+        _speechToText.IsListeningChanged += (_, _) => UiThread.Post(() => IsRecording = _speechToText.IsListening);
+        _speechToText.PartialTranscript += (_, e) => UiThread.Post(() => ApplyVoice(composer => composer.UpdatePartial(e.Text)));
+        _speechToText.FinalTranscript += (_, e) => UiThread.Post(() => ApplyVoice(composer => composer.AddFinal(e.Text)));
+        _speechToText.Failed += (_, e) => UiThread.Post(() =>
+        {
+            _logger.LogWarning("Dictation failed: {Message}", e.Message);
+
+            // The session is over whether the banner says so or not; dropping the ledger here
+            // is what keeps a dead session from composing into a draft nobody is dictating.
+            _voiceComposer = null;
+            BannerMessage = Localization.T("S.Chat.Voice.Failed", e.Message);
+        });
+
         ApplyRenderingSettings();
+    }
+
+    /// <summary>
+    /// Rebuilds the words this pane computes in code, after a language switch.
+    /// </summary>
+    public void OnLanguageChanged()
+    {
+        Suggestions = BuildSuggestions();
+        OnPropertyChanged(nameof(Suggestions));
+        OnPropertyChanged(nameof(AgentHint));
+        OnPropertyChanged(nameof(AgentButtonText));
+        OnPropertyChanged(nameof(AgentModeSelection));
+        OnPropertyChanged(nameof(VoiceToolTip));
+
+        // The hint depends on the setting and the sentence; both parts are re-read.
+        ApplyRenderingSettings();
+
+        // Tool-call state words are computed in the active language; the cards already on
+        // screen re-read theirs the same way the rest of the pane does.
+        foreach (var message in Messages)
+        {
+            foreach (var toolCall in message.ToolCalls)
+            {
+                toolCall.RefreshLocalized();
+            }
+        }
+
+        // An unsaved chat carries the default title; a saved one carries the user's or the
+        // generated one, which is translated for nobody.
+        if (ConversationId is null)
+        {
+            Title = Localization.T("S.Sidebar.NewChat");
+        }
     }
 
     /// <summary>
@@ -276,20 +362,31 @@ public sealed partial class ChatViewModel : ObservableObject
 
     /// <summary>
     /// Starter prompts for the empty state (section 33). Fixed rather than generated: four
-    /// predictable entries are more useful than a rotating set nobody can rely on.
+    /// predictable entries are more useful than a rotating set nobody can rely on. The titles and
+    /// descriptions follow the language; the prompts stay English so the model understands them.
     /// </summary>
-    public IReadOnlyList<ChatSuggestion> Suggestions { get; } =
+    public IReadOnlyList<ChatSuggestion> Suggestions { get; private set; } = BuildSuggestions();
+
+    private static IReadOnlyList<ChatSuggestion> BuildSuggestions() =>
     [
-        new("Explain code", "Walk me through what a snippet does", "Explain what this code does, step by step:\n\n"),
-        new("Write a function", "Generate an implementation from a description", "Write a function that "),
-        new("Analyse a file", "Attach a file and ask about it", "Review the attached file and summarise what it does."),
-        new("Help me debug", "Work through an error message", "I'm getting this error and I can't work out why:\n\n"),
+        new(Localization.T("S.Suggest.Explain.Title"), Localization.T("S.Suggest.Explain.Description"), "Explain what this code does, step by step:\n\n"),
+        new(Localization.T("S.Suggest.Function.Title"), Localization.T("S.Suggest.Function.Description"), "Write a function that "),
+        new(Localization.T("S.Suggest.Analyse.Title"), Localization.T("S.Suggest.Analyse.Description"), "Review the attached file and summarise what it does."),
+        new(Localization.T("S.Suggest.Debug.Title"), Localization.T("S.Suggest.Debug.Description"), "I'm getting this error and I can't work out why:\n\n"),
     ];
 
     /// <summary>Drives the "What can I help you with?" state instead of an empty grey panel.</summary>
     public bool IsEmpty => Messages.Count == 0;
 
     public bool CanSend => !IsGenerating && (Draft.Trim().Length > 0 || PendingAttachments.Count > 0);
+
+    /// <summary>Whether this machine can dictate at all; the microphone button hides when not.</summary>
+    public bool IsSpeechAvailable => _speechToText.IsAvailable;
+
+    /// <summary>What the microphone button says on hover, which is whichever end it is on.</summary>
+    public string VoiceToolTip => IsRecording
+        ? Localization.T("S.Chat.Voice.Stop.ToolTip")
+        : Localization.T("S.Chat.Voice.Start.ToolTip");
 
     /// <summary>Raised when the transcript grows, so the view can scroll to the end.</summary>
     public event EventHandler? ScrollToEndRequested;
@@ -310,6 +407,13 @@ public sealed partial class ChatViewModel : ObservableObject
 
         try
         {
+            // Dictation belongs to the composer the user is leaving; carrying a live session
+            // across a conversation switch would pour the old chat's words into the new one.
+            if (IsRecording)
+            {
+                await StopDictationAsync().ConfigureAwait(true);
+            }
+
             var detail = await _conversations.GetAsync(id, cancellationToken).ConfigureAwait(true);
 
             if (detail is null)
@@ -354,10 +458,18 @@ public sealed partial class ChatViewModel : ObservableObject
     /// <summary>Resets the pane to an unsaved new chat. The row is created on first send.</summary>
     public void StartNewConversation()
     {
+        // Fire-and-forget because the reset below must not wait on an engine; the flush runs
+        // synchronously up to its first await, so the words land in the draft before the
+        // line after this has cleared it.
+        if (IsRecording)
+        {
+            _ = StopDictationAsync();
+        }
+
         CancelTurn();
 
         ConversationId = null;
-        Title = "New Chat";
+        Title = Localization.T("S.Sidebar.NewChat");
         BannerMessage = null;
 
         Messages.Clear();
@@ -384,6 +496,14 @@ public sealed partial class ChatViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanSend))]
     private async Task SendAsync()
     {
+        // A message sent while dictation is live ends the session first, flushing the words
+        // still being refined into the draft so this send carries them rather than cutting
+        // them off mid-sentence.
+        if (IsRecording)
+        {
+            await StopDictationAsync().ConfigureAwait(true);
+        }
+
         var text = Draft.Trim();
 
         if (text.Length == 0 && PendingAttachments.Count == 0)
@@ -393,7 +513,7 @@ public sealed partial class ChatViewModel : ObservableObject
 
         if (SelectedModel is not { } model)
         {
-            BannerMessage = "Choose a model before sending a message.";
+            BannerMessage = Localization.T("S.Banner.ChooseModel");
             return;
         }
 
@@ -404,8 +524,7 @@ public sealed partial class ChatViewModel : ObservableObject
         // refusing it for want of a folder would refuse the case those modes were added for.
         if (IsAgentMode && SelectedAgentMode.NeedsWorkspace() && !_workspace.IsOpen)
         {
-            BannerMessage = "Build needs a folder to work in. Open one under Settings, switch to Plan, "
-                + "or turn agent mode off to just chat.";
+            BannerMessage = Localization.T("S.Banner.BuildNeedsFolder");
 
             return;
         }
@@ -457,6 +576,97 @@ public sealed partial class ChatViewModel : ObservableObject
         CancelTurn();
     }
 
+    /// <summary>The microphone button: one control, both ends of the session.</summary>
+    [RelayCommand]
+    private async Task ToggleVoiceInputAsync()
+    {
+        if (IsRecording)
+        {
+            await StopDictationAsync().ConfigureAwait(true);
+            return;
+        }
+
+        if (!_speechToText.IsAvailable)
+        {
+            // Reachable only when the recognizer vanished mid-run; the button hides itself
+            // when the answer to IsAvailable was no from the start.
+            BannerMessage = Localization.T("S.Chat.Voice.Unavailable");
+            return;
+        }
+
+        // The draft as it stands is the base: dictation appends to it, never over it.
+        _voiceComposer = new VoiceDraftComposer(Draft);
+        _lastVoiceDraft = Draft;
+
+        try
+        {
+            await _speechToText.StartAsync().ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            _voiceComposer = null;
+        }
+        catch (Exception ex)
+        {
+            // The service reports its own failures through Failed; this catches the rare
+            // refusal that happened before it could - a disposed gate at shutdown, say.
+            _voiceComposer = null;
+            _logger.LogError(ex, "Starting dictation failed.");
+            BannerMessage = Localization.T("S.Chat.Voice.Failed", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Ends a dictation session, keeping what the user has been reading in the box.
+    /// </summary>
+    /// <remarks>
+    /// Called from three places on purpose: the microphone button, Send, and the conversation
+    /// switchers. All three mean the same thing - this session is over, the words in the box
+    /// stay - which is why the flush happens here and not at each call site.
+    /// </remarks>
+    private async Task StopDictationAsync()
+    {
+        // Flush before the engine stops: a guess still open at the moment of stopping is
+        // usually the last sentence the user spoke, and it has been on screen for a second
+        // or more by now - closing the session without committing it would drop words the
+        // user had every reason to believe were already theirs.
+        if (_voiceComposer is not null)
+        {
+            var composed = _voiceComposer.Flush();
+            _lastVoiceDraft = composed;
+            Draft = composed;
+            _voiceComposer = null;
+        }
+
+        try
+        {
+            await _speechToText.StopAsync().ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            // IsListeningChanged is the recording mark's only source of truth, and a stop
+            // that fails before the engine hears about it leaves the session the service's
+            // problem. Nothing here can make the mark honest again by force.
+            _logger.LogWarning(ex, "Stopping dictation failed.");
+        }
+    }
+
+    /// <summary>Puts a composed draft into the box, marking it as the composer's own work.</summary>
+    private void ApplyVoice(Func<VoiceDraftComposer, string> update)
+    {
+        if (_voiceComposer is null)
+        {
+            return;
+        }
+
+        var composed = update(_voiceComposer);
+
+        // The fingerprint is written before the draft, because the draft's own change
+        // notification is the thing that will read it.
+        _lastVoiceDraft = composed;
+        Draft = composed;
+    }
+
     /// <summary>Re-answers an assistant message, discarding it and anything after it.</summary>
     [RelayCommand]
     private async Task RegenerateAsync(MessageViewModel? message)
@@ -468,7 +678,7 @@ public sealed partial class ChatViewModel : ObservableObject
 
         if (SelectedModel is not { } model)
         {
-            BannerMessage = "Choose a model before regenerating.";
+            BannerMessage = Localization.T("S.Banner.ChooseModel.Regenerate");
             return;
         }
 
@@ -568,7 +778,7 @@ public sealed partial class ChatViewModel : ObservableObject
 
         if (SelectedModel is not { } model)
         {
-            BannerMessage = "Choose a model before editing.";
+            BannerMessage = Localization.T("S.Banner.ChooseModel.Edit");
             return;
         }
 
@@ -616,8 +826,8 @@ public sealed partial class ChatViewModel : ObservableObject
         if (_settings.Current.General.ConfirmBeforeDelete)
         {
             var confirmed = await _dialogs.ConfirmAsync(
-                "Delete message",
-                "This message will be removed from the conversation.").ConfigureAwait(true);
+                Localization.T("S.Dialog.DeleteMessage.Title"),
+                Localization.T("S.Dialog.DeleteMessage.Message")).ConfigureAwait(true);
 
             if (!confirmed)
             {
@@ -658,7 +868,7 @@ public sealed partial class ChatViewModel : ObservableObject
         {
             if (!_attachments.IsSupported(path))
             {
-                BannerMessage = $"'{Path.GetFileName(path)}' is not a supported file type.";
+                BannerMessage = Localization.T("S.Banner.UnsupportedFile", Path.GetFileName(path));
                 continue;
             }
 
@@ -715,12 +925,12 @@ public sealed partial class ChatViewModel : ObservableObject
         try
         {
             await File.WriteAllTextAsync(path, _exportService.Export(detail, format)).ConfigureAwait(true);
-            BannerMessage = $"Exported to {Path.GetFileName(path)}.";
+            BannerMessage = Localization.T("S.Banner.Exported", Path.GetFileName(path));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             _logger.LogWarning(ex, "Export failed.");
-            await _dialogs.ShowErrorAsync("Export failed", ex.Message).ConfigureAwait(true);
+            await _dialogs.ShowErrorAsync(Localization.T("S.Banner.ExportFailed"), ex.Message).ConfigureAwait(true);
         }
     }
 
@@ -739,8 +949,8 @@ public sealed partial class ChatViewModel : ObservableObject
         SendWithEnter = chat.SendWithEnter;
 
         InputHint = chat.SendWithEnter
-            ? "Enter to send · Shift+Enter for a new line"
-            : "Shift+Enter to send · Enter for a new line";
+            ? Localization.T("S.Hint.EnterSend")
+            : Localization.T("S.Hint.ShiftEnterSend");
     }
 
     /// <summary>
@@ -784,8 +994,14 @@ public sealed partial class ChatViewModel : ObservableObject
                         _streamingMessage?.AppendDelta(text);
                         break;
 
-                    case ChatTurnEvent.Completed(_, var input, var output, var elapsed):
-                        _streamingMessage?.Complete(input, output, elapsed);
+                    // Named rather than deconstructed: the event carries reasoning and cache counts
+                    // this pane does not show yet, and a positional pattern would have to be widened
+                    // every time one is added.
+                    case ChatTurnEvent.Completed completed:
+                        _streamingMessage?.Complete(
+                            completed.InputTokens,
+                            completed.OutputTokens,
+                            completed.GenerationTimeMs);
 
                         // A finished answer is the strongest proof there is that the provider
                         // is reachable, which clears the offline strip on a network the OS
@@ -818,7 +1034,7 @@ public sealed partial class ChatViewModel : ObservableObject
         {
             // A bug rather than a provider failure - provider failures arrive as Failed events.
             _logger.LogError(ex, "Unexpected failure during a chat turn.");
-            HandleFailure(AIErrorKind.Unknown, "Something went wrong while generating the response.", ex.Message, true);
+            HandleFailure(AIErrorKind.Unknown, Localization.T("S.Error.Unknown.Generation"), ex.Message, true);
         }
         finally
         {
@@ -946,7 +1162,7 @@ public sealed partial class ChatViewModel : ObservableObject
         {
             // A bug rather than a provider failure - provider failures arrive as Failed events.
             _logger.LogError(ex, "Unexpected failure during an agent run.");
-            HandleFailure(AIErrorKind.Unknown, "Something went wrong while the agent was working.", ex.Message, true);
+            HandleFailure(AIErrorKind.Unknown, Localization.T("S.Error.Unknown.Agent"), ex.Message, true);
         }
         finally
         {
@@ -1047,8 +1263,8 @@ public sealed partial class ChatViewModel : ObservableObject
         }
 
         BannerMessage = steps is { } count and > 0
-            ? $"Stopped after {count} step{(count == 1 ? string.Empty : "s")}. Nothing further was changed."
-            : "Stopped. Nothing further was changed.";
+            ? Localization.T("S.Stop.AfterSteps", count)
+            : Localization.T("S.Stop.Plain");
     }
 
     /// <summary>
@@ -1065,10 +1281,10 @@ public sealed partial class ChatViewModel : ObservableObject
         BannerMessage = reason switch
         {
             AgentStopReason.StepLimit =>
-                $"The agent stopped after {steps} steps, which is as many as one run gets. Send another message if there is more to do.",
+                Localization.T("S.RunEnd.StepLimit", steps),
 
             AgentStopReason.TimeLimit =>
-                $"The agent ran out of time after {steps} step{(steps == 1 ? string.Empty : "s")}. Send another message if there is more to do.",
+                Localization.T("S.RunEnd.TimeLimit", steps),
 
             _ => BannerMessage,
         };
@@ -1078,14 +1294,37 @@ public sealed partial class ChatViewModel : ObservableObject
 
     private void HandleFailure(AIErrorKind kind, string userMessage, string? details, bool isRetryable)
     {
+        // The mapper's sentence is written in English in the Application layer; the interface's own
+        // words for the kind take precedence, and the mapper's technical detail stays as the part
+        // that is folded away. A kind with no sentence of its own keeps the original message.
+        var sentence = kind switch
+        {
+            AIErrorKind.InvalidApiKey => "S.Error.InvalidApiKey",
+            AIErrorKind.PermissionDenied => "S.Error.PermissionDenied",
+            AIErrorKind.NotFound => "S.Error.NotFound",
+            AIErrorKind.RateLimited => "S.Error.RateLimited",
+            AIErrorKind.Timeout => "S.Error.Timeout",
+            AIErrorKind.ServerError => "S.Error.ServerError",
+            AIErrorKind.ServiceUnavailable => "S.Error.ServiceUnavailable",
+            AIErrorKind.NetworkError => "S.Error.NetworkError",
+            AIErrorKind.ContextLengthExceeded => "S.Error.ContextLengthExceeded",
+            AIErrorKind.ModelUnavailable => "S.Error.ModelUnavailable",
+            AIErrorKind.InvalidRequest => "S.Error.InvalidRequest",
+            AIErrorKind.ContentFiltered => "S.Error.ContentFiltered",
+            AIErrorKind.NotConfigured => "S.Error.NotConfigured",
+            _ => null,
+        };
+
+        var message = sentence is { } key ? Localization.T(key) : userMessage;
+
         if (_streamingMessage is not null)
         {
-            _streamingMessage.Fail(userMessage, details, isRetryable);
+            _streamingMessage.Fail(message, details, isRetryable);
         }
         else
         {
             // No message to attach the error to - a failure before the turn even started.
-            BannerMessage = userMessage;
+            BannerMessage = message;
         }
 
         switch (ReachabilityEvidence(kind))
@@ -1179,6 +1418,16 @@ public sealed partial class ChatViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(CanSend));
         SendCommand.NotifyCanExecuteChanged();
+
+        // A write that did not come from the composer while dictation is live is the user
+        // typing over it. The words in the box are theirs now: the running guess re-anchors
+        // to the edited text instead of re-asserting what was there before the keystrokes.
+        if (IsRecording
+            && _voiceComposer is not null
+            && !string.Equals(value, _lastVoiceDraft, StringComparison.Ordinal))
+        {
+            _lastVoiceDraft = _voiceComposer.Rebase(value);
+        }
     }
 
     partial void OnSelectedModelChanged(ModelInfo? value)
@@ -1263,7 +1512,7 @@ public sealed partial class ChatViewModel : ObservableObject
     {
         try
         {
-            var chosen = _dialogs.OpenFolder("Choose the folder the agent may work in");
+            var chosen = _dialogs.OpenFolder(Localization.T("S.Dialog.ChooseWorkspace"));
 
             // Cancelling falls back to planning rather than turning the agent off. The user has said
             // they want the agent; only the part of it that needs a folder is unavailable, and Plan is
@@ -1286,14 +1535,14 @@ public sealed partial class ChatViewModel : ObservableObject
             // The workspace's own words: it refuses folders a picker allows - a drive root, a system
             // folder, this application's data - and only it knows which of those this was.
             SelectedAgentMode = AgentMode.Plan;
-            BannerMessage = result.Error ?? "That folder cannot be used as a workspace.";
+            BannerMessage = result.Error ?? Localization.T("S.Chat.NotWorkspace");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Could not open a workspace folder from the composer.");
 
             SelectedAgentMode = AgentMode.Plan;
-            BannerMessage = "That folder could not be opened. Choose another under Settings.";
+            BannerMessage = Localization.T("S.Chat.NotOpened");
         }
     }
 }

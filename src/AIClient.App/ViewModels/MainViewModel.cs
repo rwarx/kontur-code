@@ -32,6 +32,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly ISettingsService _settings;
     private readonly IProviderRegistry _registry;
     private readonly IAppThemeService _themeService;
+    private readonly ILocalizationService _localization;
     private readonly IConnectivityMonitor _connectivity;
     private readonly GraphContextSource _graphContext;
     private readonly ILogger<MainViewModel> _logger;
@@ -77,6 +78,7 @@ public sealed partial class MainViewModel : ObservableObject
         ChatViewModel chat,
         SessionListViewModel sessions,
         ModelPickerViewModel modelPicker,
+        SessionContextViewModel sessionContext,
         SettingsViewModel settings,
         CommandPaletteViewModel commandPalette,
         FirstRunViewModel firstRun,
@@ -87,6 +89,7 @@ public sealed partial class MainViewModel : ObservableObject
         ISettingsService settingsService,
         IProviderRegistry registry,
         IAppThemeService themeService,
+        ILocalizationService localization,
         IConnectivityMonitor connectivity,
         GraphContextSource graphContext,
         ILogger<MainViewModel> logger)
@@ -94,6 +97,7 @@ public sealed partial class MainViewModel : ObservableObject
         Chat = chat;
         Sessions = sessions;
         ModelPicker = modelPicker;
+        SessionContext = sessionContext;
         Settings = settings;
         CommandPalette = commandPalette;
         FirstRun = firstRun;
@@ -105,6 +109,7 @@ public sealed partial class MainViewModel : ObservableObject
         _settings = settingsService;
         _registry = registry;
         _themeService = themeService;
+        _localization = localization;
         _connectivity = connectivity;
         _graphContext = graphContext;
         _logger = logger;
@@ -139,6 +144,15 @@ public sealed partial class MainViewModel : ObservableObject
         Chat.PropertyChanged += OnChatStateChanged;
         Chat.Approval.PropertyChanged += OnChatStateChanged; // the gate's IsAsking drives the activity panel
 
+        // Folding rewrites which rows the model will be shown and adds a summary message, so the
+        // transcript on screen is stale the moment the panel's button returns. The panel does not
+        // know the chat pane exists; the fold arrives here and the reload is asked for from here.
+        SessionContext.Compacted += OnConversationCompacted;
+
+        // A language switch is written in words, and half of those words are computed in the
+        // child ViewModels rather than bound from the string table, so each is told to rebuild.
+        _localization.LanguageChanged += OnLanguageChanged;
+
         MirrorAiState();
     }
 
@@ -147,6 +161,8 @@ public sealed partial class MainViewModel : ObservableObject
     public SessionListViewModel Sessions { get; }
 
     public ModelPickerViewModel ModelPicker { get; }
+
+    public SessionContextViewModel SessionContext { get; }
 
     public SettingsViewModel Settings { get; }
 
@@ -208,6 +224,21 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ShowChat() => Workspace.SwitchModeCommand.Execute(WorkspaceMode.Chat);
 
+    /// <summary>
+    /// Opens the canvas by switching the workspace to its canvas mode, loading the graph
+    /// the first time.
+    /// </summary>
+    /// <remarks>
+    /// Lazily, not at startup: someone who only ever chats should not pay for a graph read, and
+    /// Workspace.InitializeAsync has already brought up the graph before any surface reads it.
+    /// </remarks>
+    [RelayCommand]
+    private Task ShowCanvasAsync()
+    {
+        Workspace.SwitchModeCommand.Execute(WorkspaceMode.Canvas);
+        return Task.CompletedTask;
+    }
+
     [RelayCommand]
     private void ToggleSidebar()
     {
@@ -224,6 +255,32 @@ public sealed partial class MainViewModel : ObservableObject
 
     [RelayCommand]
     private void ToggleContextPanel() => IsContextPanelVisible = !IsContextPanelVisible;
+
+    /// <summary>
+    /// Builds the context report for the open chat, then asks the view to show it.
+    /// </summary>
+    /// <remarks>
+    /// The report is read before the flyout opens, so the panel never appears holding the previous
+    /// chat's numbers. The provider and model come from the picker rather than from the conversation's
+    /// own record, because the question the panel answers is how much room the next message has.
+    /// </remarks>
+    [RelayCommand]
+    private async Task ShowContextAsync()
+    {
+        try
+        {
+            await SessionContext
+                .LoadAsync(Chat.ConversationId, Chat.SelectedModel?.ProviderId, Chat.SelectedModel?.ModelId)
+                .ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            // The panel draws its own empty state, so opening it with nothing in it beats not opening.
+            _logger.LogError(ex, "The context report could not be built.");
+        }
+
+        ContextRequested?.Invoke(this, EventArgs.Empty);
+    }
 
     [RelayCommand]
     private void ToggleCommandPalette()
@@ -399,6 +456,32 @@ public sealed partial class MainViewModel : ObservableObject
         {
             Chat.StartNewConversation();
             Sessions.ActiveConversationId = null;
+        }
+    }
+
+    /// <summary>
+    /// Re-reads the transcript after a fold, so the pane shows the history the model will now see.
+    /// </summary>
+    /// <remarks>
+    /// Only when the fold was of the chat that is open. Nothing stops the panel from being pointed at
+    /// one conversation while the user opens another, and reloading the pane with a different chat's
+    /// rows because a background fold finished would be worse than showing nothing.
+    /// </remarks>
+    private async void OnConversationCompacted(object? sender, Guid conversationId)
+    {
+        if (Chat.ConversationId != conversationId)
+        {
+            return;
+        }
+
+        try
+        {
+            await Chat.LoadConversationAsync(conversationId).ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            // The fold itself succeeded and is on disk; only the view is behind.
+            _logger.LogError(ex, "The transcript could not be reloaded after folding {Id}.", conversationId);
         }
     }
 
@@ -623,4 +706,17 @@ public sealed partial class MainViewModel : ObservableObject
     /// </remarks>
     private void OnConnectivityChanged(object? sender, bool isOnline) =>
         UiThread.Post(() => IsOffline = !isOnline);
+
+    /// <summary>Hands a language switch to the panes whose words are computed in code.</summary>
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Chat.OnLanguageChanged();
+        Sessions.OnLanguageChanged();
+        FirstRun.OnLanguageChanged();
+        CommandPalette.OnLanguageChanged();
+        SessionContext.OnLanguageChanged();
+    }
+
+    /// <summary>Raised so the view can open the context flyout, once its report has been built.</summary>
+    public event EventHandler? ContextRequested;
 }

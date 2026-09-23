@@ -32,6 +32,7 @@ public sealed class ChatService : IChatService
     private readonly IConversationService _conversations;
     private readonly IProviderRegistry _providers;
     private readonly IContextBuilder _contextBuilder;
+    private readonly ICompactionService _compaction;
     private readonly ISettingsService _settings;
     private readonly ILogger<ChatService> _logger;
 
@@ -39,12 +40,14 @@ public sealed class ChatService : IChatService
         IConversationService conversations,
         IProviderRegistry providers,
         IContextBuilder contextBuilder,
+        ICompactionService compaction,
         ISettingsService settings,
         ILogger<ChatService> logger)
     {
         _conversations = conversations;
         _providers = providers;
         _contextBuilder = contextBuilder;
+        _compaction = compaction;
         _settings = settings;
         _logger = logger;
     }
@@ -119,6 +122,17 @@ public sealed class ChatService : IChatService
         Guid? upToMessageId,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        // Before the placeholder, deliberately. Compaction rewrites the history this turn is about
+        // to be built from, and the UI reloads the transcript when it hears about it - doing that
+        // while a half-written answer exists would discard tokens the user is already reading.
+        var folded = await TryCompactAsync(conversationId, providerId, modelId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (folded is { MessagesFolded: > 0 })
+        {
+            yield return new ChatTurnEvent.Compacted(conversationId, folded.MessagesFolded, folded.TokensSaved);
+        }
+
         var placeholder = await _conversations.AddMessageAsync(
             conversationId,
             new NewMessage
@@ -161,6 +175,9 @@ public sealed class ChatService : IChatService
         var lastPersist = stopwatch.Elapsed;
         int? inputTokens = null;
         int? outputTokens = null;
+        int? reasoningTokens = null;
+        int? cacheReadTokens = null;
+        int? cacheWriteTokens = null;
 
         // The provider's async sequence is stepped by hand rather than with `await foreach`
         // so that a mid-stream exception can be caught without a try/catch around a yield,
@@ -233,8 +250,14 @@ public sealed class ChatService : IChatService
                         break;
 
                     case AIStreamEvent.Usage usage:
+                        // Coalesced rather than assigned: providers that split usage across
+                        // several chunks report only the fields they have in each, and a later
+                        // null must not erase a number an earlier chunk already gave.
                         inputTokens = usage.InputTokens ?? inputTokens;
                         outputTokens = usage.OutputTokens ?? outputTokens;
+                        reasoningTokens = usage.ReasoningTokens ?? reasoningTokens;
+                        cacheReadTokens = usage.CacheReadTokens ?? cacheReadTokens;
+                        cacheWriteTokens = usage.CacheWriteTokens ?? cacheWriteTokens;
                         break;
 
                     case AIStreamEvent.Error error:
@@ -297,6 +320,9 @@ public sealed class ChatService : IChatService
                     Status = MessageStatus.Complete,
                     InputTokens = inputTokens ?? preparation.EstimatedInputTokens,
                     OutputTokens = outputTokens,
+                    ReasoningTokens = reasoningTokens,
+                    CacheReadTokens = cacheReadTokens,
+                    CacheWriteTokens = cacheWriteTokens,
                     GenerationTimeMs = (int)stopwatch.ElapsedMilliseconds,
                 },
                 CancellationToken.None).ConfigureAwait(false);
@@ -309,7 +335,10 @@ public sealed class ChatService : IChatService
                 placeholder.Id,
                 inputTokens ?? preparation.EstimatedInputTokens,
                 outputTokens,
-                (int)stopwatch.ElapsedMilliseconds);
+                (int)stopwatch.ElapsedMilliseconds,
+                reasoningTokens,
+                cacheReadTokens,
+                cacheWriteTokens);
         }
         finally
         {
@@ -440,6 +469,54 @@ public sealed class ChatService : IChatService
         {
             // A title is cosmetic; never let it break the turn.
             _logger.LogWarning(ex, "Auto-titling failed for conversation {ConversationId}.", conversationId);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Folds old history away when the window is nearly full, or does nothing.
+    /// </summary>
+    /// <remarks>
+    /// Every failure path returns null rather than throwing. A chat whose history cannot be
+    /// summarised - the setting is off, the model has no published window, the summarisation call
+    /// itself failed - still has to be answerable; at worst the context builder trims the way it
+    /// always did. The threshold check is asked of the compaction service rather than repeated
+    /// here, so the panel's warning and this decision come from one place.
+    /// </remarks>
+    private async Task<CompactionResult?> TryCompactAsync(
+        Guid conversationId,
+        string providerId,
+        string modelId,
+        CancellationToken cancellationToken)
+    {
+        if (!_settings.Current.Chat.AutoCompact)
+        {
+            return null;
+        }
+
+        try
+        {
+            var needed = await _compaction
+                .ShouldCompactAsync(conversationId, providerId, modelId, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!needed)
+            {
+                return null;
+            }
+
+            return await _compaction.CompactAsync(
+                new CompactionRequest
+                {
+                    ConversationId = conversationId,
+                    ProviderId = providerId,
+                    ModelId = modelId,
+                },
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Compaction failed for conversation {ConversationId}.", conversationId);
             return null;
         }
     }

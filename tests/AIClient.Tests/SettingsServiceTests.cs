@@ -128,7 +128,7 @@ public sealed class SettingsServiceTests : IAsyncLifetime
 
         // These keys are the primary key of the table. Renaming one silently resets that
         // section for every existing installation.
-        Assert.Equal(["agent", "appearance", "chat", "general", "storage"], keys);
+        Assert.Equal(["agent", "appearance", "canvas", "chat", "general", "storage"], keys);
     }
 
     [Fact]
@@ -315,6 +315,26 @@ public sealed class SettingsServiceTests : IAsyncLifetime
 
         await Assert.ThrowsAsync<ArgumentNullException>(
             () => service.UpdateAsync<ChatSettings>(null!));
+    }
+
+    [Fact]
+    public async Task The_canvas_layout_revision_survives_a_restart()
+    {
+        // The whole point of recording it. If this value did not persist, the canvas would decide
+        // its stored positions were stale on every launch and rearrange a surface the user had
+        // already been given - a settings row is cheap, but only if it is actually read back.
+        var first = _db.Settings();
+        await first.LoadAsync();
+
+        Assert.Equal(0, first.Current.Canvas.LayoutRevision);
+
+        await first.UpdateAsync<CanvasSettings>(canvas => canvas.LayoutRevision = 7);
+
+        var second = _db.Settings();
+        await second.LoadAsync();
+
+        Assert.Equal(7, second.Current.Canvas.LayoutRevision);
+        Assert.Equal(1500, second.Current.Canvas.MaxVisibleNodes);
     }
 
     private async Task WriteRawAsync(string key, string value)

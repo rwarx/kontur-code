@@ -46,6 +46,7 @@ public sealed class AgentService : IAgentService
     private readonly IConversationService _conversations;
     private readonly IProviderRegistry _providers;
     private readonly IContextBuilder _contextBuilder;
+    private readonly ICompactionService _compaction;
     private readonly ISettingsService _settings;
     private readonly IAgentToolRegistry _registry;
     private readonly IAgentApproval _approval;
@@ -56,6 +57,7 @@ public sealed class AgentService : IAgentService
         IConversationService conversations,
         IProviderRegistry providers,
         IContextBuilder contextBuilder,
+        ICompactionService compaction,
         ISettingsService settings,
         IAgentToolRegistry registry,
         IAgentApproval approval,
@@ -65,6 +67,7 @@ public sealed class AgentService : IAgentService
         _conversations = conversations;
         _providers = providers;
         _contextBuilder = contextBuilder;
+        _compaction = compaction;
         _settings = settings;
         _registry = registry;
         _approval = approval;
@@ -147,6 +150,22 @@ public sealed class AgentService : IAgentService
 
             run.Step++;
 
+            // Checked every step, not once per run. Tool results are the bulk of what fills a
+            // window - one file read can outweigh a dozen turns of conversation - so the step that
+            // overflows is usually the one after a large result arrived, not the one the user
+            // started. Placed before the placeholder for ChatService's reason: the UI reloads the
+            // transcript when it hears this, and doing that over a half-written answer would
+            // discard tokens already on screen.
+            var folded = await TryCompactAsync(run).ConfigureAwait(false);
+
+            if (folded is { MessagesFolded: > 0 })
+            {
+                yield return new AgentEvent.Compacted(
+                    run.ConversationId,
+                    folded.MessagesFolded,
+                    folded.TokensSaved);
+            }
+
             // On the last permitted step the tools are withheld, so the run ends in a sentence
             // rather than on a file listing. See AgentStopReason.StepLimit.
             var lastStep = run.Step >= run.MaxSteps;
@@ -182,6 +201,9 @@ public sealed class AgentService : IAgentService
             var lastPersist = clock.Elapsed;
             int? inputTokens = null;
             int? outputTokens = null;
+            int? reasoningTokens = null;
+            int? cacheReadTokens = null;
+            int? cacheWriteTokens = null;
             IReadOnlyList<AIToolCall> calls = [];
 
             // Stepped by hand rather than with `await foreach`, as in chat, so that a mid-stream
@@ -269,8 +291,15 @@ public sealed class AgentService : IAgentService
                             break;
 
                         case AIStreamEvent.Usage usage:
+                            // Coalesced, not assigned: a provider that splits usage across chunks
+                            // reports only what it has in each, and a later null must not erase a
+                            // number an earlier chunk already gave. Every step's figures are kept,
+                            // because the context panel reads them off the newest one.
                             inputTokens = usage.InputTokens ?? inputTokens;
                             outputTokens = usage.OutputTokens ?? outputTokens;
+                            reasoningTokens = usage.ReasoningTokens ?? reasoningTokens;
+                            cacheReadTokens = usage.CacheReadTokens ?? cacheReadTokens;
+                            cacheWriteTokens = usage.CacheWriteTokens ?? cacheWriteTokens;
                             break;
 
                         case AIStreamEvent.Error error:
@@ -322,6 +351,9 @@ public sealed class AgentService : IAgentService
                         Status = MessageStatus.Complete,
                         InputTokens = inputTokens ?? preparation.EstimatedInputTokens,
                         OutputTokens = outputTokens,
+                        ReasoningTokens = reasoningTokens,
+                        CacheReadTokens = cacheReadTokens,
+                        CacheWriteTokens = cacheWriteTokens,
                         GenerationTimeMs = (int)clock.ElapsedMilliseconds,
                         ToolCallsJson = calls.Count > 0 ? AgentTranscript.Write(calls) : null,
                     },
@@ -848,6 +880,49 @@ public sealed class AgentService : IAgentService
         {
             // A title is cosmetic; never let it break the run.
             _logger.LogWarning(ex, "Auto-titling failed for conversation {ConversationId}.", request.ConversationId);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Folds old history away when the window is nearly full, or does nothing.
+    /// </summary>
+    /// <remarks>
+    /// Every failure path returns null rather than throwing, as in chat: a run whose history cannot
+    /// be summarised still has to be able to take its next step, and at worst the context builder
+    /// trims the way it always did. The user's own cancellation token is passed through, so pressing
+    /// Stop during the summarisation call ends the run instead of waiting for it.
+    /// </remarks>
+    private async Task<CompactionResult?> TryCompactAsync(RunState run)
+    {
+        if (!_settings.Current.Chat.AutoCompact)
+        {
+            return null;
+        }
+
+        try
+        {
+            var needed = await _compaction
+                .ShouldCompactAsync(run.ConversationId, run.ProviderId, run.ModelId, run.UserToken)
+                .ConfigureAwait(false);
+
+            if (!needed)
+            {
+                return null;
+            }
+
+            return await _compaction.CompactAsync(
+                new CompactionRequest
+                {
+                    ConversationId = run.ConversationId,
+                    ProviderId = run.ProviderId,
+                    ModelId = run.ModelId,
+                },
+                run.UserToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Compaction failed for conversation {ConversationId}.", run.ConversationId);
             return null;
         }
     }

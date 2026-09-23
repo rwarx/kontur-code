@@ -42,4 +42,33 @@ public sealed class ChatSettings
 
     /// <summary>Whole-request timeout in seconds, streaming included.</summary>
     public int RequestTimeoutSeconds { get; set; } = 300;
+
+    /// <summary>
+    /// Whether a chat that is running out of window is summarised on its own.
+    /// </summary>
+    /// <remarks>
+    /// On by default because the alternative is worse: without it the oldest turns are simply
+    /// dropped by the trimming pass, and the model loses what was decided early in the chat with
+    /// no record that anything went missing. A summary keeps the decisions and loses the wording.
+    /// </remarks>
+    public bool AutoCompact { get; set; } = true;
+
+    /// <summary>
+    /// How full the window has to be, in percent, before a turn triggers compaction.
+    /// </summary>
+    /// <remarks>
+    /// Below 100 on purpose. Compacting exactly at the limit means the request that discovered
+    /// the problem is also the one that has to carry the summarisation call, and there may no
+    /// longer be room for it.
+    /// </remarks>
+    public int CompactAtPercent { get; set; } = 85;
+
+    /// <summary>
+    /// Messages at the end of the chat that compaction always leaves alone.
+    /// </summary>
+    /// <remarks>
+    /// The recent turns are the ones being worked on, and a summary of them would read as a
+    /// worse version of what is already there. Only history older than this is folded away.
+    /// </remarks>
+    public int CompactKeepRecentMessages { get; set; } = 8;
 }

@@ -1,3 +1,4 @@
+using AIClient.App.Services;
 using AIClient.Application.Configuration;
 using AIClient.Application.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -61,12 +62,17 @@ public sealed partial class FirstRunViewModel : ObservableObject
     /// <summary>One-based, for "Step 2 of 3".</summary>
     public int StepNumber => (int)Step + 1;
 
+    /// <summary>The step counter as a localized sentence.</summary>
+    public string StepText => Localization.T("S.FirstRun.Step", StepNumber);
+
     public bool CanGoBack => Step != FirstRunStep.Welcome;
 
     /// <summary>True once any provider has a key, which is what makes the model step useful.</summary>
     public bool HasConfiguredProvider => Providers.Any(p => p.HasApiKey);
 
-    public string PrimaryButtonText => Step == FirstRunStep.ChooseModel ? "Start chatting" : "Continue";
+    public string PrimaryButtonText => Step == FirstRunStep.ChooseModel
+        ? Localization.T("S.FirstRun.StartChat")
+        : Localization.T("S.FirstRun.Continue");
 
     /// <summary>Raised when the wizard is done or skipped, so the shell can dismiss it.</summary>
     public event EventHandler? Finished;
@@ -137,8 +143,16 @@ public sealed partial class FirstRunViewModel : ObservableObject
         OnPropertyChanged(nameof(IsConnect));
         OnPropertyChanged(nameof(IsChooseModel));
         OnPropertyChanged(nameof(StepNumber));
+        OnPropertyChanged(nameof(StepText));
         OnPropertyChanged(nameof(CanGoBack));
         OnPropertyChanged(nameof(HasConfiguredProvider));
+        OnPropertyChanged(nameof(PrimaryButtonText));
+    }
+
+    /// <summary>Follows the language so the button and the step counter keep up.</summary>
+    public void OnLanguageChanged()
+    {
+        OnPropertyChanged(nameof(StepText));
         OnPropertyChanged(nameof(PrimaryButtonText));
     }
 }

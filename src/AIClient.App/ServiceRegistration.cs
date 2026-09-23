@@ -34,6 +34,7 @@ public static class ServiceRegistration
         services.AddSingleton<ISnackbarService, SnackbarService>();
 
         services.AddSingleton<IAppThemeService, AppThemeService>();
+        services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddSingleton<IDialogService, DialogService>();
 
         // The approval gate, over the refusing one Infrastructure installs. Registered last wins, and
@@ -69,6 +70,7 @@ public static class ServiceRegistration
         services.AddSingleton<ChatViewModel>();
         services.AddSingleton<SessionListViewModel>();
         services.AddSingleton<ModelPickerViewModel>();
+        services.AddSingleton<SessionContextViewModel>();
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<CommandPaletteViewModel>();
         services.AddSingleton<FirstRunViewModel>();

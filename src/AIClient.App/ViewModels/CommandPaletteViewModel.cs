@@ -84,6 +84,20 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         SelectedEntry = _entries.FirstOrDefault();
     }
 
+    /// <summary>Rebuilds the rows after a language switch, so the words follow the app.</summary>
+    public void OnLanguageChanged()
+    {
+        _entries.Clear();
+
+        foreach (var entry in BuildEntries())
+        {
+            _entries.Add(entry);
+        }
+
+        Entries.Refresh();
+        OnPropertyChanged(nameof(HasNoMatches));
+    }
+
     [RelayCommand]
     private void Invoke(PaletteEntry? entry)
     {

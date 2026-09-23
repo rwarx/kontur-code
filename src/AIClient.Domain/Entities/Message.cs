@@ -42,6 +42,42 @@ public sealed class Message
     public int? InputTokens { get; set; }
     public int? OutputTokens { get; set; }
 
+    /// <summary>
+    /// The share of <see cref="OutputTokens"/> the model spent thinking, when it says so.
+    /// </summary>
+    /// <remarks>
+    /// Not a subtraction from the output count: providers that report both already include
+    /// reasoning in the completion total, so adding the two together double-counts. Stored to be
+    /// shown, not to be summed.
+    /// </remarks>
+    public int? ReasoningTokens { get; set; }
+
+    /// <summary>Prompt tokens the provider served from its cache instead of re-reading them.</summary>
+    public int? CacheReadTokens { get; set; }
+
+    /// <summary>Prompt tokens the provider wrote into its cache for later turns.</summary>
+    public int? CacheWriteTokens { get; set; }
+
+    /// <summary>
+    /// True on a synthetic message that stands in for turns folded away by compaction.
+    /// </summary>
+    /// <remarks>
+    /// Rendered as a marker rather than as a bubble, and never auto-titled from. It carries the
+    /// summary text and is sent to the model like any other turn - the point of compacting is that
+    /// the model still knows what happened.
+    /// </remarks>
+    public bool IsContextSummary { get; set; }
+
+    /// <summary>
+    /// True once a message has been folded into a later <see cref="IsContextSummary"/> message.
+    /// </summary>
+    /// <remarks>
+    /// Kept rather than deleted, and the distinction matters: the transcript is the user's record
+    /// of what was said and compaction is a fact about what the model is shown, not about what
+    /// happened. The context builder skips these rows; the UI still displays them, dimmed.
+    /// </remarks>
+    public bool IsCompacted { get; set; }
+
     /// <summary>Wall-clock generation time, used for the "12.4 s" hint under an answer.</summary>
     public int? GenerationTimeMs { get; set; }
 

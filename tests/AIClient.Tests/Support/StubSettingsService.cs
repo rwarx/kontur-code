@@ -59,6 +59,7 @@ public sealed class StubSettingsService : ISettingsService
             var t when t == typeof(ChatSettings) => (Current.Chat, AppSettings.Keys.Chat),
             var t when t == typeof(StorageSettings) => (Current.Storage, AppSettings.Keys.Storage),
             var t when t == typeof(AgentSettings) => (Current.Agent, AppSettings.Keys.Agent),
+            var t when t == typeof(CanvasSettings) => (Current.Canvas, AppSettings.Keys.Canvas),
             _ => throw new ArgumentException($"'{typeof(TSection).Name}' is not a settings section."),
         };
 

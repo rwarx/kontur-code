@@ -16,6 +16,7 @@ using AIClient.Infrastructure.Providers.Anthropic;
 using AIClient.Infrastructure.Providers.OpenAiCompatible;
 using AIClient.Infrastructure.Repositories;
 using AIClient.Infrastructure.SecureStorage;
+using AIClient.Infrastructure.Speech;
 using AIClient.Infrastructure.Workspace;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -135,7 +136,19 @@ public static class DependencyInjection
         services.AddSingleton<ITitleGenerator, HeuristicTitleGenerator>();
         services.AddSingleton<IAttachmentService, AttachmentService>();
         services.AddSingleton<IExportService, ExportService>();
+
+        // Both stateless, and both registered before the two orchestrators that consume them: the
+        // panel reads a report per open and compaction owns nothing between passes, so a singleton
+        // is a cheap way of saying "one definition of how full this chat is".
+        services.AddSingleton<ISessionContextService, SessionContextService>();
+        services.AddSingleton<ICompactionService, CompactionService>();
+
         services.AddSingleton<IChatService, ChatService>();
+
+        // Singleton because the interface is one microphone for the whole application: the
+        // session it opens exists only while it is open, but the recognizer list behind
+        // IsAvailable is read once and the composer button lives as long as the shell does.
+        services.AddSingleton<ISpeechToTextService, WindowsDictationService>();
 
         // Singleton because the open folder is process-wide state: the file tree, the agent and
         // the settings screen all have to agree on which folder that is.

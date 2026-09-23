@@ -1,0 +1,53 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        Kontur Code design tokens - LIGHT.
+
+        A full palette designed on its own terms, not an inversion of the dark set: warm-neutral
+        paper, white cards floating on it, and the same three-step text ramp at light-theme
+        contrast. Key names are identical to Tokens.Dark.xaml.
+    -->
+
+    <!-- Surfaces -->
+    <SolidColorBrush x:Key="BgBaseBrush" Color="#F6F6F8" />
+    <SolidColorBrush x:Key="BgSurfaceBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="BgElevatedBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="BgHoverBrush" Color="#EFEFF2" />
+    <SolidColorBrush x:Key="BgActiveBrush" Color="#E6E6EB" />
+    <SolidColorBrush x:Key="BgInsetBrush" Color="#F3F3F6" />
+
+    <!-- Lines -->
+    <SolidColorBrush x:Key="BorderSubtleBrush" Color="#E3E3E8" />
+    <SolidColorBrush x:Key="BorderStrongBrush" Color="#D1D1D8" />
+
+    <!-- Text ramp -->
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#1D1D22" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#5C5C66" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#8E8E97" />
+
+    <!-- Status -->
+    <SolidColorBrush x:Key="SuccessBrush" Color="#1A7F37" />
+    <SolidColorBrush x:Key="WarningBrush" Color="#9A6700" />
+    <SolidColorBrush x:Key="ErrorBrush" Color="#CF222E" />
+
+    <!-- Approval gate accent, darkened for white cards. -->
+    <SolidColorBrush x:Key="ApprovalAccentBrush" Color="#9A6700" />
+    <SolidColorBrush x:Key="ApprovalSoftBrush" Color="#1A9A6700" />
+
+    <!-- Diff tints and text colours. -->
+    <SolidColorBrush x:Key="DiffAddedBrush" Color="#2E2EA043" />
+    <SolidColorBrush x:Key="DiffRemovedBrush" Color="#2EF85149" />
+    <SolidColorBrush x:Key="DiffAddedTextBrush" Color="#1A7F37" />
+    <SolidColorBrush x:Key="DiffRemovedTextBrush" Color="#CF222E" />
+
+    <!-- Syntax colours for code blocks (light set, Visual Studio heritage). -->
+    <SolidColorBrush x:Key="SyntaxKeywordBrush" Color="#AF00DB" />
+    <SolidColorBrush x:Key="SyntaxTypeBrush" Color="#267F99" />
+    <SolidColorBrush x:Key="SyntaxStringBrush" Color="#A31515" />
+    <SolidColorBrush x:Key="SyntaxNumberBrush" Color="#098658" />
+    <SolidColorBrush x:Key="SyntaxCommentBrush" Color="#008000" />
+    <SolidColorBrush x:Key="SyntaxDirectiveBrush" Color="#713C9C" />
+    <SolidColorBrush x:Key="SyntaxFunctionBrush" Color="#795E26" />
+
+</ResourceDictionary>

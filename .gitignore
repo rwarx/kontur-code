@@ -57,6 +57,9 @@ packages/
 project.lock.json
 project.fragment.lock.json
 
+# ---- Dead artifact: leftover web UI experiment, no source, WebView2 not used ----
+src/AIClient.App/Web/
+
 # ---- OS ----
 Thumbs.db
 ehthumbs.db

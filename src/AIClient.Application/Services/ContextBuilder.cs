@@ -11,10 +11,10 @@ namespace AIClient.Application.Services;
 /// Builds the message list sent to a model from a stored conversation.
 /// </summary>
 /// <remarks>
-/// Today it composes three sources: the system prompt, the conversation history, and any
-/// attachment text. The composition order and the trimming pass are the parts that will
-/// stay when project files, retrieved memory and tool definitions become additional
-/// sources - which is why they are separated here rather than inlined into the chat service.
+/// Today it composes three sources: the system prompt, the conversation
+/// history, and any attachment text. The composition order and the trimming pass are the parts that
+/// will stay when retrieved memory and tool definitions become additional sources - which is why
+/// they are separated here rather than inlined into the chat service.
 ///
 /// Trimming is oldest-first and always keeps the system prompt and the most recent user
 /// turn, because dropping either produces a request that cannot be answered sensibly.
@@ -24,7 +24,9 @@ public sealed class ContextBuilder : IContextBuilder
     private readonly IConversationService _conversations;
     private readonly ILogger<ContextBuilder> _logger;
 
-    public ContextBuilder(IConversationService conversations, ILogger<ContextBuilder> logger)
+    public ContextBuilder(
+        IConversationService conversations,
+        ILogger<ContextBuilder> logger)
     {
         _conversations = conversations;
         _logger = logger;
@@ -47,6 +49,7 @@ public sealed class ContextBuilder : IContextBuilder
 
         var systemPrompt = string.IsNullOrWhiteSpace(request.SystemPrompt) ? null : request.SystemPrompt.Trim();
         var budget = CalculateBudget(request);
+
         var dropped = budget is null ? 0 : Trim(blocks, systemPrompt, budget.Value);
 
         var turns = blocks.SelectMany(block => block).ToList();
@@ -97,7 +100,25 @@ public sealed class ContextBuilder : IContextBuilder
             // A failed turn has no content worth sending, and an empty assistant turn
             // (a placeholder that never received tokens) would confuse the model.
             .Where(m => m.Status != MessageStatus.Failed)
-            .Where(HasSomethingToSend);
+            // Compaction folded these into a later summary. The rows stay on disk so the
+            // transcript remains a faithful record; only the prompt forgets them.
+            .Where(m => !m.IsCompacted)
+            .Where(HasSomethingToSend)
+            .ToList();
+
+        // A context summary stands in for history that has been folded away, so it belongs at the
+        // front of what remains no matter where its row landed. Rows are appended, never inserted,
+        // so the summary the last pass wrote sits at the end of the table while the turns it
+        // replaces sat at the start - left alone, a recap of ancient history would be the last
+        // thing the model reads before the question it has to answer.
+        if (eligible.Any(m => m.IsContextSummary))
+        {
+            eligible =
+            [
+                .. eligible.Where(m => m.IsContextSummary),
+                .. eligible.Where(m => !m.IsContextSummary),
+            ];
+        }
 
         return Repair(eligible);
     }

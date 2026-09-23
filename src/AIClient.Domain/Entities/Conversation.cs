@@ -33,5 +33,18 @@ public sealed class Conversation
     /// <summary>Pinned conversations sort above everything else.</summary>
     public bool IsPinned { get; set; }
 
+    /// <summary>
+    /// The <see cref="Entities.Project"/> this chat belongs to, or null for a loose one.
+    /// </summary>
+    /// <remarks>
+    /// Nullable because filing is optional and always will be. A chat that starts as a question and
+    /// turns into a project is the normal case, so the sidebar has a home for the unfiled - and
+    /// deleting a project clears this rather than cascading, because losing the folder must never
+    /// mean losing the conversations that were in it.
+    /// </remarks>
+    public Guid? ProjectId { get; set; }
+
+    public Project? Project { get; set; }
+
     public ICollection<Message> Messages { get; set; } = [];
 }
