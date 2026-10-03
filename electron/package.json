@@ -4,7 +4,16 @@
   "private": true,
   "description": "Kontur Code — Electron shell over the ported new-interface renderer and the .NET sidecar backend",
   "main": "main/main.js",
-  "author": "Kontur Code",
+  "author": "Kontur Code contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rwarx/kontur-code.git"
+  },
+  "homepage": "https://github.com/rwarx/kontur-code#readme",
+  "bugs": {
+    "url": "https://github.com/rwarx/kontur-code/issues"
+  },
   "build": {
     "appId": "com.kontur.code",
     "productName": "Kontur Code",
@@ -34,7 +43,14 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Kontur Code"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "rwarx",
+        "repo": "kontur-code"
+      }
+    ]
   },
   "scripts": {
     "dev": "vite",
