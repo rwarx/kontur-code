@@ -1,0 +1,180 @@
+name: Release
+
+# Tag-driven: push a v* tag and this builds the sidecar, packages the renderer
+# into an Electron installer, and attaches both to a GitHub prerelease.
+#
+# There is no automatic versioning here on purpose. A release is a decision, and
+# the tag is that decision made explicit.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to build a release for
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: electron/package-lock.json
+
+      # Refuse to publish a version the source does not agree with. The tag, the
+      # Directory.Build.props Version and electron/package.json version have all
+      # drifted apart before, and a release that reports the wrong version is worse
+      # than no release.
+      - name: Verify the tag matches the source version
+        shell: pwsh
+        run: |
+          $tag = if ($env:GITHUB_REF -like 'refs/tags/*') { $env:GITHUB_REF -replace 'refs/tags/','' } else { "v${{ github.event.inputs.tag }}" }
+          $expected = $tag.TrimStart('v')
+
+          [xml]$props = Get-Content Directory.Build.props
+          $dotnetVersion = ($props.Project.PropertyGroup.Version | Where-Object { $_ })
+
+          $package = Get-Content electron/package.json -Raw | ConvertFrom-Json
+          $npmVersion = $package.version
+
+          Write-Host "tag            : $tag"
+          Write-Host "Directory.Build: $dotnetVersion"
+          Write-Host "package.json   : $npmVersion"
+
+          if ($dotnetVersion -ne $expected) {
+            Write-Error "Directory.Build.props says '$dotnetVersion' but the tag is '$expected'."
+            exit 1
+          }
+          if ($npmVersion -ne $expected) {
+            Write-Error "electron/package.json says '$npmVersion' but the tag is '$expected'."
+            exit 1
+          }
+
+          # Set the output on the job so later steps do not re-derive it.
+          "VERSION=$expected" >> $env:GITHUB_ENV
+
+      - name: Verify the required release documents exist
+        run: |
+          $required = @('LICENSE','PRIVACY.md','SECURITY.md','CHANGELOG.md')
+          $missing = $required | Where-Object { -not (Test-Path $_) }
+          if ($missing) { Write-Error "Missing: $($missing -join ', ')"; exit 1 }
+
+      - name: Verify build and tests before packaging
+        run: |
+          dotnet restore AIClient.slnx
+          dotnet build AIClient.slnx --no-restore -warnaserror
+          dotnet test AIClient.slnx --no-build
+
+      - name: Publish the sidecar
+        run: >
+          dotnet publish src/AIClient.Server
+          -c Release
+          -r win-x64
+          --self-contained false
+          -o electron/sidecar
+
+      - name: Install renderer dependencies
+        working-directory: electron
+        run: npm ci
+
+      - name: Build renderer
+        working-directory: electron
+        run: npm run build:renderer
+
+      # electron-builder picks the sidecar up through extraResources, so it has to
+      # be a single self-contained directory. Verified here rather than discovered
+      # by a user whose installer starts to a window that never loads data.
+      - name: Verify the sidecar output
+        run: |
+          if (-not (Test-Path electron/sidecar/AIClient.Server.exe)) {
+            Write-Error "electron/sidecar/AIClient.Server.exe is missing; the installer would ship without a backend."
+            exit 1
+          }
+          Get-ChildItem electron/sidecar | Select-Object Name, Length
+
+      - name: Package the installer
+        working-directory: electron
+        run: npx electron-builder --win --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Collect artefacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+          Get-ChildItem electron/release -Filter '*.exe' |
+            Where-Object { $_.Name -notlike '*unins*' } |
+            ForEach-Object { Copy-Item $_.FullName "release-assets/$($_.Name)" }
+          Get-ChildItem electron/release -Filter '*.blockmap' -ErrorAction SilentlyContinue |
+            ForEach-Object { Copy-Item $_.FullName "release-assets/$($_.Name)" }
+          Get-ChildItem release-assets
+
+      - name: Upload build artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: release-assets
+
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: release-assets
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          generate_release_notes: true
+          body: |
+            ## Kontur Code ${{ github.event.inputs.tag || 'prerelease' }}
+
+            **This is an alpha.** It is published because the shape is settled enough
+            to build against, not because it is ready for unattended use. The known
+            limitations are listed in [`CHANGELOG.md`](https://github.com/rwarx/kontur-code/blob/main/CHANGELOG.md#010-alpha---2026-10-03)
+            and, in more detail, in [`SECURITY.md`](https://github.com/rwarx/kontur-code/blob/main/SECURITY.md#known-gaps).
+
+            ### What you need
+
+            - Windows 10 1809 or later, or Windows 11
+            - An API key from a provider configured in Settings. The app installs and runs without one;
+              it simply cannot talk to a model.
+
+            ### Before you trust it with anything
+
+            - Read [`SECURITY.md`](https://github.com/rwarx/kontur-code/blob/main/SECURITY.md).
+              This program can write files and run programs. The agent's reach and what stops it are
+              documented there, including eight known gaps.
+            - Read [`PRIVACY.md`](https://github.com/rwarx/kontur-code/blob/main/PRIVACY.md).
+              There is no telemetry and no project-run server; what leaves your machine is what you
+              send to a model provider, and only when you press Send.
+            - Open a folder you are willing to let an agent edit. Commit your work first — the undo for
+              an agent's edit is your version control.
+
+            ### Licence
+
+            MIT. See [`LICENSE`](https://github.com/rwarx/kontur-code/blob/main/LICENSE). Third-party
+            components retain their own terms; see
+            [`THIRD-PARTY-NOTICES.md`](https://github.com/rwarx/kontur-code/blob/main/THIRD-PARTY-NOTICES.md).
+          files:
+            - release-assets/*

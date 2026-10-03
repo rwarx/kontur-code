@@ -1,0 +1,60 @@
+name: Feature request
+description: Suggest something the project should do
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please describe the problem before the solution. A concrete problem is
+        enough even when you do not know what the right shape of the fix is.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Not "add feature X" — what are you unable to do today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area?
+      options:
+        - Chat and conversations
+        - Agent and tools
+        - Spatial canvas / graph
+        - Code editor
+        - Git integration
+        - Settings and configuration
+        - Privacy or security
+        - Documentation
+        - Something else
+    validations:
+      required: true
+
+  - type: dropdown
+    id: safety
+    attributes:
+      label: Does this change what the agent can reach?
+      description: |
+        Anything that widens the agent's access to files, programs or the
+        network gets read carefully, so saying so up front speeds it up.
+      options:
+        - "No"
+        - "Yes — it touches file access"
+        - "Yes — it touches command execution"
+        - "Yes — it touches the network"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What have you tried instead?
