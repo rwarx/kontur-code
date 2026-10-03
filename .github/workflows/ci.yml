@@ -185,6 +185,7 @@ jobs:
             }
           }
           Write-Host "No build artefacts tracked."
+          exit 0
 
       # Length matters here, and this is the difference between a scanner that
       # gets trusted and one that gets ignored. A real OpenRouter key is
@@ -211,6 +212,13 @@ jobs:
           }
           if ($found) { exit 1 }
           Write-Host "No secrets of a realistic shape in tracked files."
+
+          # Explicit, and not decorative. `git grep` exits 1 when it matches
+          # nothing, $LASTEXITCODE keeps that value, and the pwsh wrapper uses it
+          # as the step's exit code when the script ends on a cmdlet. Without
+          # this the step fails on a clean tree — which is the fastest way to
+          # teach a team that a red X here means nothing.
+          exit 0
 
   audit:
     name: Package audit
