@@ -186,32 +186,40 @@ jobs:
           }
           Write-Host "No build artefacts tracked."
 
+      # Length matters here, and this is the difference between a scanner that
+      # gets trusted and one that gets ignored. A real OpenRouter key is
+      # `sk-or-v1-` plus 64 hex characters; the test fixtures in this repository
+      # are 32-character placeholders and English words, and a looser pattern
+      # flags them on every run. A scanner that cries wolf gets switched off.
       - name: No secrets in tracked files
         run: |
           $patterns = @(
-            'sk-or-v1-[A-Za-z0-9]',
-            'nvapi-[A-Za-z0-9]',
-            'ghp_[A-Za-z0-9]{20,}',
-            'AKIA[0-9A-Z]{16}'
+            'sk-or-v1-[a-f0-9]{64}',
+            'nvapi-[A-Za-z0-9_-]{40,}',
+            'ghp_[A-Za-z0-9]{36}',
+            'github_pat_[A-Za-z0-9_]{50,}',
+            'AKIA[0-9A-Z]{16}',
+            '-----BEGIN [A-Z ]*PRIVATE KEY-----'
           )
           $found = $false
           foreach ($pattern in $patterns) {
-            $hits = git grep -Il -E $pattern -- . ':!*.md' 2>$null
+            $hits = git grep -Il -E $pattern 2>$null
             if ($hits) {
               Write-Error "Possible secret matching '$pattern' in: $($hits -join ', ')"
               $found = $true
             }
           }
           if ($found) { exit 1 }
-          Write-Host "No obvious secrets in tracked files."
+          Write-Host "No secrets of a realistic shape in tracked files."
 
   audit:
     name: Package audit
     runs-on: windows-latest
     # Informational. A vulnerability advisory in a transitive dependency should
-    # not block every pull request while a maintainer triages it, but it should
-    # never be silent either.
-    continue-on-error: true
+    # not block every pull request while a maintainer triages it, but it must
+    # never be silent either — hence continue-on-error on the steps rather than
+    # on the job, so the job reports green and the log still carries the output.
+    # A scanner that always shows red is a scanner nobody reads.
 
     steps:
       - uses: actions/checkout@v4
@@ -221,13 +229,16 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: .NET — vulnerable packages
+        continue-on-error: true
         run: dotnet list AIClient.slnx package --vulnerable --include-transitive
 
       - name: .NET — outdated packages
+        continue-on-error: true
         run: dotnet list AIClient.slnx package --outdated
 
       - name: npm audit
         working-directory: electron
+        continue-on-error: true
         run: |
           npm install --package-lock-only --ignore-scripts
-          npm audit --audit-level=high || echo "npm audit reported advisories"
+          npm audit --audit-level=high
