@@ -6,45 +6,87 @@ way it is; this file is the day-to-day mechanics.
 
 ## Prerequisites
 
-- Windows 10 version 1809 or later, or Windows 11. The App, Infrastructure and Tests projects target
-  `net10.0-windows`, so the solution does not build on Linux or macOS - DPAPI and WPF are both
-  Windows-only, and the TFM says so rather than failing at run time.
+- Windows 10 version 1809 or later, or Windows 11. The App, Infrastructure, Server and
+  Tests projects target `net10.0-windows`, so the solution does not build on Linux or
+  macOS - DPAPI and WPF are both Windows-only, and the TFM says so rather than failing at
+  run time.
 - [.NET 10 SDK](https://dotnet.microsoft.com/download). The runtime alone is enough to run a
   published build but not to build one.
+- **Node.js 22 or later**, only if you are working on the renderer or building the
+  installer. The .NET solution does not need it.
 - `dotnet-ef` only if you intend to add a migration:
 
 ```bash
 dotnet tool install --global dotnet-ef
 ```
 
-- An API key from at least one provider, for anything beyond the first-run screen. Not needed to
-  build or to run the test suite.
+- An API key from at least one provider, for anything beyond the first-run screen. Not
+  needed to build or to run the test suite.
 
-Visual Studio 2026 or Rider will open `AIClient.slnx` directly. Nothing in the repository depends on
-an IDE: there are no `.user` files, no launch profiles and no editor-specific settings beyond
-[.editorconfig](.editorconfig).
+Visual Studio 2026 or Rider will open `AIClient.slnx` directly. Nothing in the repository
+depends on an IDE: there are no `.user` files, no launch profiles and no editor-specific
+settings beyond [.editorconfig](.editorconfig).
 
 ## Build and run
 
-```bash
-dotnet build AIClient.slnx
-```
+There are two hosts. They share every layer but the window, so pick the one you are
+changing.
+
+### The WPF host
 
 ```bash
+dotnet build AIClient.slnx
 dotnet run --project src/AIClient.App
 ```
+
+### The Electron host
+
+The renderer is a separate TypeScript project under `electron/`. It talks to the .NET
+sidecar over a loopback socket, so both halves are needed for a working app.
+
+```bash
+dotnet build AIClient.slnx
+dotnet publish src/AIClient.Server -c Debug -r win-x64 --self-contained false -o electron/sidecar
+```
+
+That last step is what the installer does, and skipping it means the Electron main
+process will find no sidecar. Then:
+
+```bash
+cd electron
+npm install
+npm start          # Electron; starts the sidecar itself if electron/sidecar exists
+npm run dev        # Vite only, for renderer work — needs a backend already running
+npm run typecheck
+npm run build:renderer
+npm run pack       # electron-builder, into electron/release/
+```
+
+**The renderer runs on its own against a seeded demo workspace**, which is the fastest
+way to change a component: `npm run dev` with no backend gives you the whole UI with
+sample sessions, a graph and files, and no network.
+
+`npm start` launches Electron with HMR against `127.0.0.1:5173`, so run `npm run dev`
+alongside it when changing renderer code.
+
+### Publishing
 
 ```bash
 dotnet publish src/AIClient.App -c Release -r win-x64 --self-contained false
 ```
 
-`--self-contained true` also works and produces something that runs on a machine with no .NET
-installed, at the cost of about 70 MB.
+`--self-contained true` also works and produces something that runs on a machine with no
+.NET installed, at the cost of about 70 MB. The sidecar must be published separately —
+see the Electron section above — or the installer ships without a backend.
 
 Warnings are not errors, with one exception: `TreatWarningsAsErrors` is set to `true` in
-[Directory.Build.props](Directory.Build.props), so any warning fails the build. That is deliberate —
+[Directory.Build.props](Directory.Build.props), so any warning fails the build. That is
+deliberate —
 the codebase is fully annotated and a new warning is a real defect. `EnforceCodeStyleInBuild` is on,
 so `.editorconfig` violations surface as build warnings rather than only in the IDE.
+
+CI also asserts that `AIClient.Domain` and `AIClient.Application` target plain `net10.0`.
+Retargeting them "to fix a build" is caught there rather than reviewed.
 
 ## Where the app writes
 
@@ -58,6 +100,7 @@ a directory exists. Nothing is written beside the executable and nothing anywher
 | `secrets\<provider>.dat` | One DPAPI-encrypted API key per provider |
 | `logs\aiclient-<date>.log` | One file per day, older ones deleted at startup |
 | `attachments\` | Copies of attached files, while `CopyAttachmentsToStore` is on |
+| `graphs\`, `checkpoints\` | Spatial-graph state and session snapshots, both JSON |
 
 Deleting `aiclient.db` resets the app to a first run. Deleting `secrets\` forgets the keys and
 nothing else. The tests never touch any of this: `AppPaths` has a constructor overload taking a root
@@ -133,6 +176,39 @@ prefix is stripped before binding, so the key inside is `Providers:Nvidia`, not
 set AICLIENT_Providers__Nvidia=http://localhost:11434/v1
 ```
 
+## The sidecar's bearer token
+
+`AIClient.Server` requires an `Authorization: Bearer <token>` header on every route except
+`/api/health`. There is no default token and no way to turn the requirement off.
+
+The token is not configuration - it is generated per launch:
+
+1. `electron/main/main.js` creates 32 bytes of CSPRNG output at startup.
+2. It is passed to the sidecar it spawns as the `AICLIENT_AUTHTOKEN` environment variable.
+3. The renderer asks for it over the preload bridge (`kontur:getBackendAuth`) and attaches it as
+   a header on every request.
+
+**It is never written to disk, bundled into the renderer, or put in a URL.** A token baked into
+the bundle would be a token anyone can read out of the published `asar`, and a token in a URL ends
+up in proxy logs.
+
+If you start `AIClient.Server.exe` by hand, it generates its own token and nothing will be able to
+talk to it unless you also set that token:
+
+```bash
+set AICLIENT_AUTHTOKEN=anything-you-like-for-local-debugging
+AIClient.Server.exe --urls http://127.0.0.1:45631
+curl -H "Authorization: Bearer anything-you-like-for-local-debugging" http://127.0.0.1:45631/api/conversations
+```
+
+**The sidecar refuses to bind to anything but loopback.** Passing `--urls http://0.0.0.0:45631`
+throws at startup rather than quietly opening a port, and `KONTUR_BACKEND_URL` in the Electron
+main process is rejected unless it points at `127.0.0.1`, `localhost` or `::1`.
+
+Anything a user would normally change lives in the database instead, edited through Settings, which
+is why this surface is small. It exists for the things that have to be settable before the app can
+start: provider endpoints and HTTP timeouts.
+
 Anything the app writes rather than reads - theme, sampling defaults, attachment limits, log
 retention, the agent's folder and budgets - is in the `Settings` table, one JSON row per section, and
 is not configurable from a file. Adding a setting means adding a property to one of the section
@@ -140,6 +216,16 @@ classes in [`Configuration`](src/AIClient.Application/Configuration) and nothing
 and an older row deserialises with the new property at its default. Adding a whole section means one
 more constant in `AppSettings.Keys` and one more property on `AppSettings`; the key is what the row is
 found by, so renaming one silently abandons everybody's saved values.
+
+**One exception, and it is a security boundary rather than a feature.** Five agent settings cannot be
+written over HTTP at all: `AllowCommands`, `AllowedCommands`, `AllowNetwork`, `AllowExternalFiles` and
+`WorkspaceRoot`. They are refused by name in `DataEndpoints.ServerOwnedSettings`, because each one
+widens what the agent can reach, and the approval gate runs over the same authenticated surface - so a
+caller who could widen the agent's reach could then answer its own approvals. They change only through
+the WPF host's Settings window.
+
+**If you add a property to `AgentSettings` whose purpose is to reduce containment, add it to that
+list in the same commit.** Nothing enforces it at build time.
 
 ## The agent's safety model
 
@@ -181,10 +267,36 @@ the run, because the answer to "may you edit files in this folder" does not chan
 The reason is that two commands are not the same question: `git status` and `git clean -xfd` differ by
 an argument, and the approval dialog is the only place that difference is ever shown to a person.
 
-**The default implementation refuses.** Infrastructure registers `DenyingAgentApproval`; the App layer
-replaces it because `AddAppServices()` runs after `AddInfrastructure()`. A headless host - a test, a
-future CLI - therefore gets an agent that can read and nothing more, without having to opt out of
-anything.
+**Two doors to the file system, and only one of them resolves links.** `IWorkspaceService` is the
+door for paths inside the open folder; `IExternalFileService` is the door for paths outside it. Both
+refuse the credential-shaped names in [`SensitiveFiles`](src/AIClient.Domain/Workspace/SensitiveFiles.cs),
+and both refuse the application's own data directory.
+
+They are **not** otherwise equivalent, and this is the highest-priority known gap in the project:
+`WorkspaceService.LinkEscape` walks every level of a path and resolves it to its final target before
+comparing against the root, so a junction cannot redirect a write out of the tree.
+`ExternalFileService.Validate` checks only the **textual** segments. A pre-existing junction inside an
+allowed path therefore defeats the name-based denial list - `mklink /J pub C:\Users\me\.ssh` and then
+`read_external_file` on `pub\id_rsa` reaches a file that should be refused.
+
+What contains it today is that external access is off until the user turns it on, and every call goes
+through the approval gate. **Port `LinkEscape` into `ExternalFileService` before widening its
+availability.** Do not add a third door without that.
+
+**`git` arguments are validated before they reach the process.**
+[`GitArguments`](src/AIClient.Infrastructure/Git/GitArguments.cs) refuses a remote name containing a
+colon, because `ext::sh -c …` is a documented git transport that runs a local program - an unvalidated
+remote on the fetch route is remote code execution from a JSON body. It refuses a leading `-`, which
+git reads as an option (`--upload-pack` is the other half of the same attack), and it refuses branch
+and revision names carrying refspec characters.
+
+**No `git` call goes through a shell.** Arguments are passed as a list, and `--` ends git's options
+before a file path, so a file named `--all` is not staged as that option.
+
+**The default implementation refuses.** Infrastructure registers `DenyingAgentApproval`; each host
+replaces it because its registration runs after `AddInfrastructure()` - the WPF host with an inline
+card, `AIClient.Server` with `HttpAgentApproval`. A headless host - a test, a future CLI - therefore
+gets an agent that can read and nothing more, without having to opt out of anything.
 
 **Execution is fenced separately, because the workspace cannot fence it.** §28 forbade running code and
 the user overrode that, asking for a full coding agent; `run_command` is the result, and it is the one
@@ -294,11 +406,18 @@ removes gone, keeps positions). Kind inference uses file extensions and naming c
 
 ### Plan pipeline
 
-`SubmitPlanTool` → `AgentPlan` → `CanvasPlanSink` → `GraphChangeSet` → user confirms →
-`GraphService.ApplyAsync`. The plan is a graph change set like any other: undoable, persisted,
-timeline-counted.
+```text
+SubmitPlanTool → AgentPlan → AgentPlanGraphBuilder → GraphChangeSet → IAgentPlanSink
+  → GraphService.ApplyAsync
+```
 
-## Adding an agent tool
+The builder lives in `Application`, so both hosts turn a plan into a change set the same way; the
+**sink** is per-host, because where a plan goes depends on what the host can draw on.
+`CanvasPlanSink` in the WPF host asks the user first and applies on confirmation;
+`ServerCanvasPlanSink` draws immediately, because the sidecar has no dispatcher to ask on. Either way
+the plan is a graph change like any other: undoable, persisted, timeline-counted.
+
+### Adding an agent tool
 
 1. Create `YourTool.cs` in `src/AIClient.Application/Services/Tools/`
 2. Implement `IAgentTool` (5 members: `Name`, `Description`, `ParametersJsonSchema`, `Risk`,
@@ -307,7 +426,14 @@ timeline-counted.
    `.Execute` (approval, always per-call)
 4. If it is a planning-only tool, implement `IAgentPlanningTool` (withheld from Build mode)
 5. If it needs preview text, implement `IAgentToolPreview` (`DescribeAsync`)
-6. The tool is auto-discovered via DI — no manual registration needed
+6. If it reaches outside the workspace or onto the network, it needs its own gates the way
+   `run_command` does - the workspace sandbox does not contain it
+7. The tool is auto-discovered via DI - no manual registration
+
+`AgentToolTests` builds every tool by reflection and fails loudly on a dependency it has not been
+taught about. **If you add a constructor parameter, add a case to that harness' `Activate` method** -
+a refusing test double is usually what it wants, and a silently succeeding one defeats the point of
+the test.
 
 The mode policy reads risk and `IAgentPlanningTool`, never the tool's name. A new tool is gated
 correctly by declaring what it costs.
@@ -452,8 +578,44 @@ The API keys themselves are never in the tree to begin with: they live in
 A key that reaches a commit cannot be removed by a later one - a rewrite plus a revocation is the
 only fix - which is why the store was put outside the tree rather than ignored inside it.
 
-Before pushing: `dotnet build` clean, `dotnet test` green, and no secret in `git diff --staged`.
-`main` is the only long-lived branch.
+Before pushing: `dotnet build` clean, `dotnet test` green, `cd electron && npm run typecheck`
+clean, and no secret in `git diff --staged`. `main` is the only long-lived branch.
+
+## Making a release
+
+Releases are cut from `main` and driven by a tag. There is no automated versioning,
+because a release is a decision and the tag is that decision made explicit.
+
+**One version, stated in three places** - `Directory.Build.props` (`<Version>`),
+`electron/package.json` (`version`), and the `v*` tag. The release workflow compares all
+three and refuses to build if they disagree; a release that reports the wrong version is
+worse than no release.
+
+```bash
+# 1. On main, with a green build
+git tag -a v0.1.0-alpha -m "First public alpha"
+git push origin v0.1.0-alpha
+
+# 2. Update CHANGELOG.md, moving [Unreleased] content under the new heading
+# 3. Watch the Release workflow; it publishes a prerelease with the installer attached
+```
+
+The workflow publishes the sidecar, builds the renderer, runs `electron-builder`, and
+attaches the installer to a GitHub **prerelease** - every release so far is an alpha, and
+the `prerelease` flag is what tells GitHub to show the banner rather than presenting the
+build as stable.
+
+The release notes repeat the three things a reader must not miss: it is an alpha, the
+agent can write files and run programs, and there is no telemetry. If you cut a release
+that changes any of those, the notes template in
+[release.yml](.github/workflows/release.yml) needs rewriting.
+
+For a local build of the installer without pushing a tag:
+
+```bash
+cd electron
+npm run dist        # build:renderer + electron-builder, into electron/release/
+```
 
 ## Troubleshooting
 
