@@ -30,6 +30,8 @@ jobs:
   build:
     name: Build
     runs-on: windows-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
 
     steps:
       - uses: actions/checkout@v4
@@ -48,10 +50,27 @@ jobs:
       # Directory.Build.props Version and electron/package.json version have all
       # drifted apart before, and a release that reports the wrong version is
       # worse than no release.
-      - name: Verify the tag matches the source version
+      #
+      # The tag comes from the ref on a push and from the dispatch input on a
+      # manual run, because `ref_name` is "main" in that case. It is then emitted
+      # as a job output so the publish step cannot disagree with this check about
+      # which tag is being released.
+      - name: Resolve and verify the tag
+        id: tag
         shell: pwsh
         run: |
-          $tag = "${{ github.ref_name }}"
+          $fromRef = "${{ github.ref }}"
+          if ($fromRef -like 'refs/tags/*') {
+            $tag = $fromRef.Substring('refs/tags/'.Length)
+          }
+          else {
+            $tag = "${{ github.event.inputs.tag }}"
+          }
+
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            Write-Error 'No tag given: neither the ref nor the dispatch input carried one.'
+            exit 1
+          }
           if (-not $tag.StartsWith('v')) {
             $tag = "v$tag"
           }
@@ -76,10 +95,13 @@ jobs:
             exit 1
           }
 
-          if (-not (Test-Path "docs/releases/$tag.md")) {
-            Write-Error "docs/releases/$tag.md is missing. Write the release notes before tagging."
+          $notes = "docs/releases/$tag.md"
+          if (-not (Test-Path $notes)) {
+            Write-Error "$notes is missing. Write the release notes before tagging."
             exit 1
           }
+
+          "tag=$tag" >> $env:GITHUB_OUTPUT
 
           # Explicit so a clean run does not inherit the exit code of the last
           # native command, which would be 1 from a Test-Path that found nothing.
@@ -173,13 +195,17 @@ jobs:
           path: release-assets
 
       - uses: actions/checkout@v4
+        with:
+          # Checked out at the tag, not at the branch, so body-path resolves
+          # against the tree that is actually being published.
+          ref: ${{ needs.build.outputs.tag }}
 
       - name: Publish
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Kontur Code ${{ github.ref_name }}
+          tag_name: ${{ needs.build.outputs.tag }}
+          name: Kontur Code ${{ needs.build.outputs.tag }}
           prerelease: true
-          body-path: docs/releases/${{ github.ref_name }}.md
+          body-path: docs/releases/${{ needs.build.outputs.tag }}.md
           files: |
             release-assets/*
