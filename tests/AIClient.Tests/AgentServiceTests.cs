@@ -535,13 +535,21 @@ public sealed class AgentServiceTests : IAsyncLifetime
     public async Task Time_spent_waiting_for_an_answer_is_not_charged_to_the_budget()
     {
         var conversationId = await NewChatAsync();
-        _settings.With<AgentSettings>(agent => agent.MaxDurationSeconds = 1);
+
+        // A two-second budget against a four-second wait, which is the ordinary case: a person
+        // reading a diff takes far longer than the model takes to produce it. If the wait were
+        // charged, the run would stop mid-approval and end as TimeLimit.
+        //
+        // The margin is deliberately two seconds rather than a fraction of one. The first version of
+        // this test used a one-second budget and a 1.4-second wait, which left 0.4s of headroom for
+        // the run's actual work — enough on a developer machine and not enough on a loaded CI runner,
+        // where the extra scheduling jitter produced a TimeLimit and failed the build for no reason
+        // connected to the behaviour under test. A timing assertion with a tight margin is a flaky
+        // test wearing a hat; the margin should be several times the work it is protecting.
+        _settings.With<AgentSettings>(agent => agent.MaxDurationSeconds = 2);
 
         var probe = new ProbeTool("write_thing", AgentToolRisk.Write);
-
-        // Longer than the whole budget, which is the ordinary case: a person reading a diff takes far
-        // longer than the model takes to produce it.
-        var approval = new ScriptedApproval(before: () => Task.Delay(TimeSpan.FromSeconds(1.4)));
+        var approval = new ScriptedApproval(before: () => Task.Delay(TimeSpan.FromSeconds(4)));
 
         var provider = Stepping(
             Calls(Call("write_thing", """{"path":"a.txt"}""")),
