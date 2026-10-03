@@ -189,10 +189,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Downloaded into a directory named differently from the artifact, because
+      # upload-artifact can preserve the source directory name inside the archive and
+      # the result lands one level deeper than the name suggests. The step below
+      # normalises whatever arrived rather than assuming a depth.
       - uses: actions/download-artifact@v4
         with:
           name: release-assets
-          path: release-assets
+          path: assets
+
+      - name: Normalise and verify the artefacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          # Whatever depth the installer arrived at, flatten it.
+          find assets -type f \( -name '*.exe' -o -name '*.blockmap' -o -name '*.yml' \) \
+            -exec mv -f {} release-assets/ \;
+
+          echo "--- collected ---"
+          ls -la release-assets/
+
+          # A release published with no installer is worse than no release: the
+          # download link resolves and delivers nothing. This ran once already —
+          # the publish step reported success while matching zero files, because
+          # the glob quietly matched nothing.
+          if ! ls release-assets/*.exe >/dev/null 2>&1; then
+            echo "::error::No .exe installer found in the artefact. Refusing to publish an empty release."
+            exit 1
+          fi
 
       - uses: actions/checkout@v4
         with:
@@ -209,3 +234,6 @@ jobs:
           body-path: docs/releases/${{ needs.build.outputs.tag }}.md
           files: |
             release-assets/*
+          # The default is to warn and carry on, which is how a release with zero
+          # assets gets published looking like a success.
+          fail_on_unmatched_files: true
