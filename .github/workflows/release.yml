@@ -5,14 +5,22 @@ name: Release
 #
 # There is no automatic versioning here on purpose. A release is a decision, and
 # the tag is that decision made explicit.
+#
+# Release notes live in docs/releases/<tag>.md and are passed in with
+# `body-path`, not written into this file as a block scalar. Prose with Markdown
+# lists inside YAML is a trap: the parser rejects the whole workflow, and the
+# failure is a zero-job red X with no message. Keeping the notes in a file also
+# means they are reviewable content rather than something hidden in a
+# `run:` block.
 
 on:
   push:
-    tags: ['v*']
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing tag to build a release for
+        description: Existing tag to publish a release for
         required: true
 
 permissions:
@@ -38,13 +46,16 @@ jobs:
 
       # Refuse to publish a version the source does not agree with. The tag, the
       # Directory.Build.props Version and electron/package.json version have all
-      # drifted apart before, and a release that reports the wrong version is worse
-      # than no release.
+      # drifted apart before, and a release that reports the wrong version is
+      # worse than no release.
       - name: Verify the tag matches the source version
         shell: pwsh
         run: |
-          $tag = if ($env:GITHUB_REF -like 'refs/tags/*') { $env:GITHUB_REF -replace 'refs/tags/','' } else { "v${{ github.event.inputs.tag }}" }
-          $expected = $tag.TrimStart('v')
+          $tag = "${{ github.ref_name }}"
+          if (-not $tag.StartsWith('v')) {
+            $tag = "v$tag"
+          }
+          $expected = $tag.Substring(1)
 
           [xml]$props = Get-Content Directory.Build.props
           $dotnetVersion = ($props.Project.PropertyGroup.Version | Where-Object { $_ })
@@ -52,9 +63,9 @@ jobs:
           $package = Get-Content electron/package.json -Raw | ConvertFrom-Json
           $npmVersion = $package.version
 
-          Write-Host "tag            : $tag"
-          Write-Host "Directory.Build: $dotnetVersion"
-          Write-Host "package.json   : $npmVersion"
+          Write-Host "tag             : $tag"
+          Write-Host "Directory.Build : $dotnetVersion"
+          Write-Host "package.json    : $npmVersion"
 
           if ($dotnetVersion -ne $expected) {
             Write-Error "Directory.Build.props says '$dotnetVersion' but the tag is '$expected'."
@@ -65,14 +76,25 @@ jobs:
             exit 1
           }
 
-          # Set the output on the job so later steps do not re-derive it.
-          "VERSION=$expected" >> $env:GITHUB_ENV
+          if (-not (Test-Path "docs/releases/$tag.md")) {
+            Write-Error "docs/releases/$tag.md is missing. Write the release notes before tagging."
+            exit 1
+          }
+
+          # Explicit so a clean run does not inherit the exit code of the last
+          # native command, which would be 1 from a Test-Path that found nothing.
+          exit 0
 
       - name: Verify the required release documents exist
         run: |
-          $required = @('LICENSE','PRIVACY.md','SECURITY.md','CHANGELOG.md')
+          $required = @('LICENSE','PRIVACY.md','SECURITY.md','CHANGELOG.md','CONTRIBUTING.md')
           $missing = $required | Where-Object { -not (Test-Path $_) }
-          if ($missing) { Write-Error "Missing: $($missing -join ', ')"; exit 1 }
+          if ($missing) {
+            Write-Error "Missing: $($missing -join ', ')"
+            exit 1
+          }
+          Write-Host "All required documents present."
+          exit 0
 
       - name: Verify build and tests before packaging
         run: |
@@ -96,16 +118,18 @@ jobs:
         working-directory: electron
         run: npm run build:renderer
 
-      # electron-builder picks the sidecar up through extraResources, so it has to
-      # be a single self-contained directory. Verified here rather than discovered
-      # by a user whose installer starts to a window that never loads data.
+      # electron-builder picks the sidecar up through extraResources, so it has
+      # to be a single directory beside the manifest. Verified here rather than
+      # discovered by a user whose installer starts to a window that never loads
+      # data.
       - name: Verify the sidecar output
         run: |
           if (-not (Test-Path electron/sidecar/AIClient.Server.exe)) {
-            Write-Error "electron/sidecar/AIClient.Server.exe is missing; the installer would ship without a backend."
+            Write-Error 'electron/sidecar/AIClient.Server.exe is missing; the installer would ship without a backend.'
             exit 1
           }
           Get-ChildItem electron/sidecar | Select-Object Name, Length
+          exit 0
 
       - name: Package the installer
         working-directory: electron
@@ -122,13 +146,20 @@ jobs:
             ForEach-Object { Copy-Item $_.FullName "release-assets/$($_.Name)" }
           Get-ChildItem electron/release -Filter '*.blockmap' -ErrorAction SilentlyContinue |
             ForEach-Object { Copy-Item $_.FullName "release-assets/$($_.Name)" }
-          Get-ChildItem release-assets
+          $assets = Get-ChildItem release-assets
+          if ($assets.Count -eq 0) {
+            Write-Error 'electron-builder produced no .exe. Nothing would be attached to the release.'
+            exit 1
+          }
+          $assets | Select-Object Name, Length
+          exit 0
 
       - name: Upload build artefacts
         uses: actions/upload-artifact@v4
         with:
           name: release-assets
           path: release-assets
+          retention-days: 7
 
   release:
     name: Publish release
@@ -141,40 +172,14 @@ jobs:
           name: release-assets
           path: release-assets
 
+      - uses: actions/checkout@v4
+
       - name: Publish
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
+          name: Kontur Code ${{ github.ref_name }}
           prerelease: true
-          generate_release_notes: true
-          body: |
-            ## Kontur Code ${{ github.event.inputs.tag || 'prerelease' }}
-
-            **This is an alpha.** It is published because the shape is settled enough
-            to build against, not because it is ready for unattended use. The known
-            limitations are listed in [`CHANGELOG.md`](https://github.com/rwarx/kontur-code/blob/main/CHANGELOG.md#010-alpha---2026-10-03)
-            and, in more detail, in [`SECURITY.md`](https://github.com/rwarx/kontur-code/blob/main/SECURITY.md#known-gaps).
-
-            ### What you need
-
-            - Windows 10 1809 or later, or Windows 11
-            - An API key from a provider configured in Settings. The app installs and runs without one;
-              it simply cannot talk to a model.
-
-            ### Before you trust it with anything
-
-            - Read [`SECURITY.md`](https://github.com/rwarx/kontur-code/blob/main/SECURITY.md).
-              This program can write files and run programs. The agent's reach and what stops it are
-              documented there, including eight known gaps.
-            - Read [`PRIVACY.md`](https://github.com/rwarx/kontur-code/blob/main/PRIVACY.md).
-              There is no telemetry and no project-run server; what leaves your machine is what you
-              send to a model provider, and only when you press Send.
-            - Open a folder you are willing to let an agent edit. Commit your work first — the undo for
-              an agent's edit is your version control.
-
-            ### Licence
-
-            MIT. See [`LICENSE`](https://github.com/rwarx/kontur-code/blob/main/LICENSE). Third-party
-            components retain their own terms; see
-            [`THIRD-PARTY-NOTICES.md`](https://github.com/rwarx/kontur-code/blob/main/THIRD-PARTY-NOTICES.md).
-          files:
-            - release-assets/*
+          body-path: docs/releases/${{ github.ref_name }}.md
+          files: |
+            release-assets/*
