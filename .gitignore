@@ -57,6 +57,32 @@ packages/
 project.lock.json
 project.fragment.lock.json
 
+# ---- Node / Electron ----
+node_modules/
+.npm/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+
+# Vite build output for the renderer
+/electron/dist/
+
+# The .NET sidecar and its build output are produced by the build, never committed
+/electron/sidecar/
+/electron/sidecar-build/
+
+# electron-builder output and abandoned installer experiments
+/electron/dist-release/
+/electron/.vite/
+
+# ---- Agent scratch output ----
+# Playwright MCP traces and snapshots are local debugging artefacts
+/.playwright-mcp/
+/.claude/
+# Screenshots pasted into the tree while debugging a UI bug
+/titlebar-working.png
+*.local.png
+
 # ---- Dead artifact: leftover web UI experiment, no source, WebView2 not used ----
 src/AIClient.App/Web/
 
