@@ -11,9 +11,20 @@
     <NeutralLanguage>en-US</NeutralLanguage>
     <InvariantGlobalization>false</InvariantGlobalization>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <Product>AI Client</Product>
-    <Company>AI Client</Company>
-    <Version>0.1.0</Version>
+    <Product>Kontur Code</Product>
+    <Company>Kontur Code</Company>
+
+    <!--
+      One version, and it must agree with electron/package.json and with the tag on the release.
+      The prerelease suffix is what GitHub shows as a banner, and it is honest: this build ships a
+      sidecar whose newest surfaces (external file tools, the HTTP fetcher, the spatial graph) have
+      no test coverage yet. See CHANGELOG.md for what is and is not ready.
+    -->
+    <Version>0.1.0-alpha</Version>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <InformationalVersion>0.1.0-alpha</InformationalVersion>
   </PropertyGroup>
 
 </Project>

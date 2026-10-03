@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>AIClient.Server</AssemblyName>
+    <RootNamespace>AIClient.Server</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AIClient.Application\AIClient.Application.csproj" />
+    <ProjectReference Include="..\AIClient.Infrastructure\AIClient.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

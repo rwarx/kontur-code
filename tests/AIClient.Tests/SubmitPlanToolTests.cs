@@ -238,6 +238,26 @@ public sealed class SubmitPlanToolTests
     }
 
     [Fact]
+    public async Task Steps_sent_as_a_json_string_are_decoded_rather_than_refused()
+    {
+        // Verbatim what a small vision model did three times over: it wrote 'steps' as a string that was
+        // itself a JSON array rather than as an array, and the plan it had worked out was thrown away over
+        // the encoding with "'steps' must be an array of objects." Decoded now, because parsing what was
+        // sent is reading it, and a plan is too expensive to lose to a pair of quotation marks.
+        var sink = new RecordingSink();
+
+        var result = await RunAsync(
+            sink,
+            """{"title":"Rename the widget","steps":"[{\"title\":\"Rename it\",\"paths\":[\"src/Widget.cs\"]}]"}""");
+
+        Assert.True(result.Success, result.Content);
+
+        var step = Assert.Single(Assert.Single(sink.Accepted).Steps);
+        Assert.Equal("Rename it", step.Title);
+        Assert.Equal(["src/Widget.cs"], step.Paths);
+    }
+
+    [Fact]
     public async Task A_detail_written_as_three_paragraphs_becomes_one_line()
     {
         // A newline inside a list item ends the list, and a model asked for a short explanation will

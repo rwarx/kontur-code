@@ -1,0 +1,166 @@
+<UserControl x:Class="AIClient.App.Views.TrajectoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:kontur="clr-namespace:AIClient.App.Controls"
+             xmlns:motion="clr-namespace:AIClient.App.Controls"
+             xmlns:vm="clr-namespace:AIClient.App.ViewModels"
+             xmlns:loc="clr-namespace:AIClient.App.Markup"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:TrajectoryViewModel}"
+             Background="{DynamicResource Brush.Surface0}"
+             TextElement.Foreground="{DynamicResource Brush.TextPrimary}">
+
+    <!--
+        The run timeline: conversation steps and tool calls merged with the graph's
+        history into one chronological trace. A place to read what happened, not a
+        store - the rows are projected from the chat and the graph service.
+    -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1"
+                Background="{DynamicResource Brush.Surface1}" Padding="12,7">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <kontur:KonturIcon Grid.Column="0" Kind="History" Width="14" Height="14"
+                                   Foreground="{DynamicResource Brush.AccentText}" />
+                <TextBlock Grid.Column="1" Text="{DynamicResource S.Mode.Title.Trajectory}" Style="{StaticResource Type.Section}"
+                           Margin="9,0,0,0" VerticalAlignment="Center" />
+                <Button Grid.Column="2" Style="{StaticResource KcButtonGhost}" Padding="8,4" MinHeight="26"
+                        Command="{Binding ExportTranscriptCommand}"
+                        ToolTip="{DynamicResource S.Trajectory.Export.ToolTip}">
+                    <StackPanel Orientation="Horizontal">
+                        <kontur:KonturIcon Kind="Export" Width="12" Height="12" />
+                        <TextBlock Text="{DynamicResource S.Trajectory.Export}" Style="{StaticResource Type.Caption}"
+                                   Margin="6,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- Category chips + text filter. -->
+        <Border Grid.Row="1" BorderBrush="{DynamicResource Brush.BorderFaint}" BorderThickness="0,0,0,1"
+                Padding="12,7" Background="{DynamicResource Brush.Surface1}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" MaxWidth="260" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource KcButtonGhost}" Padding="8,3" MinHeight="24" Margin="0,0,4,0"
+                            Command="{Binding SetFilterCommand}" CommandParameter="{x:Static vm:TrajectoryFilter.All}">
+                        <TextBlock Text="{DynamicResource S.Trajectory.Filter.All}" Style="{StaticResource Type.Caption}" />
+                    </Button>
+                    <Button Style="{StaticResource KcButtonGhost}" Padding="8,3" MinHeight="24" Margin="0,0,4,0"
+                            Command="{Binding SetFilterCommand}" CommandParameter="{x:Static vm:TrajectoryFilter.Agent}">
+                        <TextBlock Text="{DynamicResource S.Trajectory.Filter.Agent}" Style="{StaticResource Type.Caption}" />
+                    </Button>
+                    <Button Style="{StaticResource KcButtonGhost}" Padding="8,3" MinHeight="24" Margin="0,0,4,0"
+                            Command="{Binding SetFilterCommand}" CommandParameter="{x:Static vm:TrajectoryFilter.Tools}">
+                        <TextBlock Text="{DynamicResource S.Trajectory.Filter.Tools}" Style="{StaticResource Type.Caption}" />
+                    </Button>
+                    <Button Style="{StaticResource KcButtonGhost}" Padding="8,3" MinHeight="24" Margin="0,0,4,0"
+                            Command="{Binding SetFilterCommand}" CommandParameter="{x:Static vm:TrajectoryFilter.Graph}">
+                        <TextBlock Text="{DynamicResource S.Trajectory.Filter.Graph}" Style="{StaticResource Type.Caption}" />
+                    </Button>
+                    <Button Style="{StaticResource KcButtonGhost}" Padding="8,3" MinHeight="24"
+                            Command="{Binding SetFilterCommand}" CommandParameter="{x:Static vm:TrajectoryFilter.Issues}">
+                        <TextBlock Text="{DynamicResource S.Trajectory.Filter.Issues}" Style="{StaticResource Type.Caption}" />
+                    </Button>
+                </StackPanel>
+                <TextBox Grid.Column="1" Margin="12,0,0,0" MinHeight="28" VerticalContentAlignment="Center"
+                         Style="{StaticResource KcInputPlaceholder}"
+                         Tag="{DynamicResource S.Trajectory.Filter.Placeholder}"
+                         Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" />
+            </Grid>
+        </Border>
+
+        <!-- The trace. -->
+        <ListBox Grid.Row="2" ItemsSource="{Binding Rows}" Margin="6,4"
+                 HorizontalContentAlignment="Stretch"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                    <Setter Property="Padding" Value="10,6" />
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="Focusable" Value="False" />
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Style="{StaticResource Type.Metadata}" Opacity="0.7"
+                                   Text="{Binding At, StringFormat='{}{0:HH:mm:ss}', FallbackValue={loc:Loc S.Trajectory.Row.Now}}"
+                                   VerticalAlignment="Center" Margin="0,0,10,0" MinWidth="52" />
+
+                        <!-- State glyph: the dot carries the outcome colour. -->
+                        <Ellipse Grid.Column="1" Width="7" Height="7" VerticalAlignment="Center" Margin="0,0,10,0">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="{DynamicResource Brush.TextMuted}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding State}" Value="Running">
+                                            <Setter Property="Fill" Value="{DynamicResource Brush.Running}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="Done">
+                                            <Setter Property="Fill" Value="{DynamicResource Brush.Success}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="Failed">
+                                            <Setter Property="Fill" Value="{DynamicResource Brush.Error}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="Rejected">
+                                            <Setter Property="Fill" Value="{DynamicResource Brush.Error}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="Blocked">
+                                            <Setter Property="Fill" Value="{DynamicResource Brush.Warning}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+
+                        <StackPanel Grid.Column="2" MinWidth="0">
+                            <TextBlock Text="{Binding Title}" Style="{StaticResource Type.Caption}"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Type.Metadata}"
+                                       Opacity="0.65" Margin="0,1,0,0"
+                                       MaxHeight="34" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+
+                        <TextBlock Grid.Column="3" Style="{StaticResource Type.Metadata}" Opacity="0.7"
+                                   Text="{Binding Kind}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Empty: nothing ran yet, and the surface says so without pretending otherwise. -->
+        <StackPanel Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,30"
+                    Visibility="{Binding HasRows, Converter={StaticResource InverseBoolToVisibility}}">
+            <kontur:KonturIcon Kind="History" Width="34" Height="34" GlyphThickness="1.65"
+                               Foreground="{DynamicResource Brush.TextMuted}" HorizontalAlignment="Center" />
+            <TextBlock Text="{DynamicResource S.Trajectory.Empty.Title}" Style="{StaticResource Type.Section}"
+                       HorizontalAlignment="Center" Margin="0,10,0,0" />
+            <TextBlock Style="{StaticResource Type.Caption}" Margin="0,6,0,0" HorizontalAlignment="Center"
+                       Foreground="{DynamicResource Brush.TextSecondary}"
+                       Text="{DynamicResource S.Trajectory.Empty.Hint}" />
+        </StackPanel>
+    </Grid>
+</UserControl>

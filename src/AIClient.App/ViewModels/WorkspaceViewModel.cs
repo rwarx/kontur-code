@@ -311,5 +311,7 @@ public enum WorkspaceMode
     Chat,
     Models,
     Tasks,
+    Trajectory,
+    Workflows,
     Settings,
 }

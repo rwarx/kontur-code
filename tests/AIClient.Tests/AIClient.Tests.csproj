@@ -29,6 +29,7 @@
       those tests. No view, window or XAML type is touched.
     -->
     <ProjectReference Include="..\..\src\AIClient.App\AIClient.App.csproj" />
+    <ProjectReference Include="..\..\src\AIClient.Server\AIClient.Server.csproj" />
   </ItemGroup>
 
   <ItemGroup>

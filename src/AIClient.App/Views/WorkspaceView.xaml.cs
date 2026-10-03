@@ -32,6 +32,8 @@ public partial class WorkspaceView : UserControl
     [
         "S.Mode.Title.Providers",
         "S.Mode.Title.Tasks",
+        "S.Mode.Title.Trajectory",
+        "S.Mode.Title.Workflows",
         "S.Mode.Title.Settings",
     ];
 
@@ -99,7 +101,9 @@ public partial class WorkspaceView : UserControl
         {
             WorkspaceMode.Models => Localization.T(PageTitleKeys[0]),
             WorkspaceMode.Tasks => Localization.T(PageTitleKeys[1]),
-            WorkspaceMode.Settings => Localization.T(PageTitleKeys[2]),
+            WorkspaceMode.Trajectory => Localization.T(PageTitleKeys[2]),
+            WorkspaceMode.Workflows => Localization.T(PageTitleKeys[3]),
+            WorkspaceMode.Settings => Localization.T(PageTitleKeys[4]),
             _ => string.Empty,
         };
 

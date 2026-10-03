@@ -947,6 +947,17 @@ public sealed class WorkspaceService : IWorkspaceService
             return "Your whole user folder is too broad for a workspace. Open the project folder itself.";
         }
 
+        // The same reasoning one level up, and this is the one that matters for a folder chosen by
+        // something other than a person: C:\Users contains every profile on the machine, and so does
+        // any folder above it. `Overlaps` is bidirectional, so this refuses both "the folder holding
+        // the user profile" and "the user profile itself" in one test.
+        if (KnownFolder(Environment.SpecialFolder.UserProfile) is { } above
+            && IsUnder(WithoutTrailingSeparator(above), full))
+        {
+            return "That folder contains your whole user profile, so it is too broad for a workspace. "
+                + "Open the project folder itself.";
+        }
+
         // Checked by its real path rather than by a known-folder constant, because this is the
         // directory that holds the encrypted API keys and the conversation database.
         if (Overlaps(full, _paths.DataDirectory))

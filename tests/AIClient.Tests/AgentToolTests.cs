@@ -428,6 +428,11 @@ public sealed class AgentToolTests : IAsyncLifetime
                 var wanted when wanted == typeof(IProcessRunner) => _runner,
                 var wanted when wanted == typeof(IGitService) => new StubGitService(),
 
+                // Refusing stubs, for the reason each one documents: a tool that gates on a setting or
+                // on a path is only distinguishable from a broken one if the thing behind it says no.
+                var wanted when wanted == typeof(IExternalFileService) => new StubExternalFileService(),
+                var wanted when wanted == typeof(IHttpFetcher) => new StubHttpFetcher(),
+
                 // The registered default, and stateless. Nothing here calls the tool, so where a plan
                 // would end up does not matter; the tool existing and publishing a valid schema does.
                 var wanted when wanted == typeof(IAgentPlanSink) => new TranscriptPlanSink(),
@@ -520,9 +525,13 @@ public sealed class AgentToolTests : IAsyncLifetime
         public Task<GitResult> CreateBranchAsync(string branchName, CancellationToken cancellationToken) => Task.FromResult(GitResult.Ok());
         public Task<GitResult> CheckoutAsync(string branchName, CancellationToken cancellationToken) => Task.FromResult(GitResult.Ok());
         public Task<GitResult> StageAsync(IReadOnlyList<string>? filePaths, CancellationToken cancellationToken) => Task.FromResult(GitResult.Ok());
+        public Task<GitResult> UnstageAsync(IReadOnlyList<string>? filePaths, CancellationToken cancellationToken) => Task.FromResult(GitResult.Ok());
         public Task<GitResult> CommitAsync(string message, CancellationToken cancellationToken) => Task.FromResult(GitResult.Ok());
         public Task<GitResult> RevertLastAsync(CancellationToken cancellationToken) => Task.FromResult(GitResult.Ok());
         public Task<GitResult> RevertAsync(string commitSha, CancellationToken cancellationToken) => Task.FromResult(GitResult.Ok());
         public Task<GitCommit?> GetCommitAsync(string commitSha, CancellationToken cancellationToken) => Task.FromResult<GitCommit?>(null);
+        public Task<GitResult> PushAsync(string? remote, string? branch, bool setUpstream, CancellationToken cancellationToken) => Task.FromResult(GitResult.Ok());
+        public Task<GitResult> PullAsync(string? remote, string? branch, CancellationToken cancellationToken) => Task.FromResult(GitResult.Ok());
+        public Task<GitResult> FetchAsync(string? remote, CancellationToken cancellationToken) => Task.FromResult(GitResult.Ok());
     }
 }

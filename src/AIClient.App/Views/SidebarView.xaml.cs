@@ -40,6 +40,8 @@ public partial class SidebarView : UserControl
         new(WorkspaceMode.Chat, IconKind.Chat, "S.Nav.Chat", "S.Nav.Chat.ToolTip"),
         new(WorkspaceMode.Models, IconKind.Models, "S.Nav.Models", "S.Nav.Models.ToolTip"),
         new(WorkspaceMode.Tasks, IconKind.Tasks, "S.Nav.Tasks", "S.Nav.Tasks.ToolTip"),
+        new(WorkspaceMode.Trajectory, IconKind.History, "S.Nav.Trajectory", "S.Nav.Trajectory.ToolTip"),
+        new(WorkspaceMode.Workflows, IconKind.Sparkle, "S.Nav.Workflows", "S.Nav.Workflows.ToolTip"),
     ];
 
     public SidebarView()

@@ -14,6 +14,12 @@ namespace AIClient.Infrastructure.Git;
 public sealed class GitService : IGitService
 {
     private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(30);
+
+    // Remote operations (push/pull/fetch) talk to the network, so they get a longer leash than
+    // local plumbing. Credential prompts cannot hang: the process runner closes stdin at once, so
+    // git that would otherwise ask reads EOF and fails fast; this ceiling is only a backstop.
+    private static readonly TimeSpan NetworkTimeout = TimeSpan.FromSeconds(90);
+
     private static readonly Regex DiffStatRegex = new(
         @"(\d+) files? changed(?:, (\d+) insertions?\(\+\))?(?:, (\d+) deletions?\(-\))?",
         RegexOptions.Compiled);
@@ -213,12 +219,22 @@ public sealed class GitService : IGitService
 
     public async Task<GitResult> CreateBranchAsync(string branchName, CancellationToken cancellationToken)
     {
+        if (GitArguments.ValidateBranch(branchName) is { } refusal)
+        {
+            return GitResult.Fail(refusal);
+        }
+
         var result = await GitAsync(["checkout", "-b", branchName], cancellationToken).ConfigureAwait(false);
         return result.Success ? GitResult.Ok(result.Output) : GitResult.Fail(result.Error ?? result.Output);
     }
 
     public async Task<GitResult> CheckoutAsync(string branchName, CancellationToken cancellationToken)
     {
+        if (GitArguments.ValidateBranch(branchName) is { } refusal)
+        {
+            return GitResult.Fail(refusal);
+        }
+
         var result = await GitAsync(["checkout", branchName], cancellationToken).ConfigureAwait(false);
         return result.Success ? GitResult.Ok(result.Output) : GitResult.Fail(result.Error ?? result.Output);
     }
@@ -229,6 +245,9 @@ public sealed class GitService : IGitService
 
         if (filePaths is { Count: > 0 })
         {
+            // `--` ends git's options. Without it a file literally named `--all` or `-A` is staged as
+            // the option that name spells, which stages everything the user did not ask for.
+            args.Add("--");
             args.AddRange(filePaths);
         }
         else
@@ -238,6 +257,23 @@ public sealed class GitService : IGitService
 
         var result = await GitAsync(args.ToArray(), cancellationToken).ConfigureAwait(false);
         return result.Success ? GitResult.Ok() : GitResult.Fail(result.Error ?? result.Output);
+    }
+
+    public async Task<GitResult> UnstageAsync(IReadOnlyList<string>? filePaths, CancellationToken cancellationToken)
+    {
+        // `git reset` (mixed, default HEAD) moves entries out of the index while leaving the working
+        // tree untouched. With no paths it unstages everything; with paths, only those. On a branch
+        // with no commits yet, a whole-tree reset still unstages, so the empty case stays safe.
+        var args = new List<string> { "reset" };
+
+        if (filePaths is { Count: > 0 })
+        {
+            args.Add("--");
+            args.AddRange(filePaths);
+        }
+
+        var result = await GitAsync(args.ToArray(), cancellationToken).ConfigureAwait(false);
+        return result.Success ? GitResult.Ok(result.Output) : GitResult.Fail(result.Error ?? result.Output);
     }
 
     public async Task<GitResult> CommitAsync(string message, CancellationToken cancellationToken)
@@ -254,12 +290,22 @@ public sealed class GitService : IGitService
 
     public async Task<GitResult> RevertAsync(string commitSha, CancellationToken cancellationToken)
     {
+        if (GitArguments.ValidateRevision(commitSha) is { } refusal)
+        {
+            return GitResult.Fail(refusal);
+        }
+
         var result = await GitAsync(["revert", "--no-commit", commitSha], cancellationToken).ConfigureAwait(false);
         return result.Success ? GitResult.Ok(result.Output) : GitResult.Fail(result.Error ?? result.Output);
     }
 
     public async Task<GitCommit?> GetCommitAsync(string commitSha, CancellationToken cancellationToken)
     {
+        if (GitArguments.ValidateRevision(commitSha) is not null)
+        {
+            return null;
+        }
+
         var result = await GitAsync(
             ["show", $"--format=%H%n%h%n%s%n%an%n%aI%n%P", "--no-patch", commitSha],
             cancellationToken).ConfigureAwait(false);
@@ -271,6 +317,84 @@ public sealed class GitService : IGitService
 
         var commits = ParseCommits(result.Output);
         return commits.Count > 0 ? commits[0] : null;
+    }
+
+    public async Task<GitResult> PushAsync(string? remote, string? branch, bool setUpstream, CancellationToken cancellationToken)
+    {
+        // Both are validated before anything runs. A remote is checked hardest: `ext::` is a
+        // documented git transport that runs a local program, so an unvalidated remote name on this
+        // route is remote code execution with a JSON body.
+        if (GitArguments.ValidateRemote(remote) is { } remoteRefusal)
+        {
+            return GitResult.Fail(remoteRefusal);
+        }
+
+        if (GitArguments.ValidateBranch(branch) is { } branchRefusal)
+        {
+            return GitResult.Fail(branchRefusal);
+        }
+
+        var args = new List<string> { "push" };
+
+        if (setUpstream)
+        {
+            args.Add("--set-upstream");
+        }
+
+        if (!string.IsNullOrWhiteSpace(remote))
+        {
+            args.Add(remote);
+        }
+
+        if (!string.IsNullOrWhiteSpace(branch))
+        {
+            args.Add(branch);
+        }
+
+        var result = await GitAsync(args.ToArray(), cancellationToken, NetworkTimeout).ConfigureAwait(false);
+        return result.Success ? GitResult.Ok(result.Output) : GitResult.Fail(result.Error ?? result.Output);
+    }
+
+    public async Task<GitResult> PullAsync(string? remote, string? branch, CancellationToken cancellationToken)
+    {
+        if (GitArguments.ValidateRemote(remote) is { } remoteRefusal)
+        {
+            return GitResult.Fail(remoteRefusal);
+        }
+
+        if (GitArguments.ValidateBranch(branch) is { } branchRefusal)
+        {
+            return GitResult.Fail(branchRefusal);
+        }
+
+        var args = new List<string> { "pull" };
+
+        if (!string.IsNullOrWhiteSpace(remote))
+        {
+            args.Add(remote);
+        }
+
+        if (!string.IsNullOrWhiteSpace(branch))
+        {
+            args.Add(branch);
+        }
+
+        var result = await GitAsync(args.ToArray(), cancellationToken, NetworkTimeout).ConfigureAwait(false);
+        return result.Success ? GitResult.Ok(result.Output) : GitResult.Fail(result.Error ?? result.Output);
+    }
+
+    public async Task<GitResult> FetchAsync(string? remote, CancellationToken cancellationToken)
+    {
+        if (GitArguments.ValidateRemote(remote) is { } remoteRefusal)
+        {
+            return GitResult.Fail(remoteRefusal);
+        }
+
+        var args = new List<string> { "fetch" };
+        args.Add(string.IsNullOrWhiteSpace(remote) ? "--all" : remote);
+
+        var result = await GitAsync(args.ToArray(), cancellationToken, NetworkTimeout).ConfigureAwait(false);
+        return result.Success ? GitResult.Ok(result.Output) : GitResult.Fail(result.Error ?? result.Output);
     }
 
     private async Task<GitDiff> ParseDiffAsync(string[] args, CancellationToken cancellationToken)
@@ -359,7 +483,7 @@ public sealed class GitService : IGitService
     }
 
     private async Task<(bool Success, string Output, string? Error)> GitAsync(
-        string[] args, CancellationToken cancellationToken)
+        string[] args, CancellationToken cancellationToken, TimeSpan? timeout = null)
     {
         if (!_workspace.IsOpen || _workspace.Root is null)
         {
@@ -374,7 +498,7 @@ public sealed class GitService : IGitService
                     FileName = "git",
                     Arguments = args,
                     WorkingDirectory = _workspace.Root,
-                    Timeout = CommandTimeout,
+                    Timeout = timeout ?? CommandTimeout,
                     MaxOutputCharacters = 200_000,
                 },
                 cancellationToken).ConfigureAwait(false);

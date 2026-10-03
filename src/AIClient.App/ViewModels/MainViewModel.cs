@@ -84,6 +84,8 @@ public sealed partial class MainViewModel : ObservableObject
         FirstRunViewModel firstRun,
         WorkspaceViewModel workspace,
         TasksViewModel tasks,
+        TrajectoryViewModel trajectory,
+        WorkflowsViewModel workflows,
         ModelsPageViewModel modelsPage,
         IConversationService conversations,
         ISettingsService settingsService,
@@ -103,6 +105,8 @@ public sealed partial class MainViewModel : ObservableObject
         FirstRun = firstRun;
         Workspace = workspace;
         Tasks = tasks;
+        Trajectory = trajectory;
+        Workflows = workflows;
         ModelsPage = modelsPage;
 
         _conversations = conversations;
@@ -173,6 +177,10 @@ public sealed partial class MainViewModel : ObservableObject
     public WorkspaceViewModel Workspace { get; }
 
     public TasksViewModel Tasks { get; }
+
+    public TrajectoryViewModel Trajectory { get; }
+
+    public WorkflowsViewModel Workflows { get; }
 
     public ModelsPageViewModel ModelsPage { get; }
 
@@ -639,6 +647,8 @@ public sealed partial class MainViewModel : ObservableObject
                 case PaletteCommand.SwitchToChat:
                 case PaletteCommand.ShowModels:
                 case PaletteCommand.ShowTasks:
+                case PaletteCommand.ShowTrajectory:
+                case PaletteCommand.ShowWorkflows:
                     Workspace.SwitchModeCommand.Execute(command switch
                     {
                         PaletteCommand.SwitchToCanvas => WorkspaceMode.Canvas,
@@ -647,6 +657,8 @@ public sealed partial class MainViewModel : ObservableObject
                         PaletteCommand.SwitchToCode => WorkspaceMode.Code,
                         PaletteCommand.ShowModels => WorkspaceMode.Models,
                         PaletteCommand.ShowTasks => WorkspaceMode.Tasks,
+                        PaletteCommand.ShowTrajectory => WorkspaceMode.Trajectory,
+                        PaletteCommand.ShowWorkflows => WorkspaceMode.Workflows,
                         _ => WorkspaceMode.Chat,
                     });
                     break;
@@ -716,6 +728,8 @@ public sealed partial class MainViewModel : ObservableObject
         CommandPalette.OnLanguageChanged();
         SessionContext.OnLanguageChanged();
         Tasks.OnLanguageChanged();
+        Trajectory.OnLanguageChanged();
+        Workflows.OnLanguageChanged();
         ModelsPage.OnLanguageChanged();
         Workspace.OnLanguageChanged();
         Workspace.Canvas.RefreshLanguage();

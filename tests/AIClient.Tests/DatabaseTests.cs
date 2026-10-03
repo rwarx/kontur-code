@@ -106,7 +106,13 @@ public sealed class DatabaseTests : IAsyncLifetime
             Assert.Empty(await after.GraphNodes.ToListAsync());
             Assert.Empty(await after.CanvasViews.ToListAsync());
             Assert.Equal(conversations, await after.Conversations.CountAsync());
-            Assert.Equal(providers, await after.Providers.Select(p => p.Id).OrderBy(id => id).ToListAsync());
+
+            // Provider seeding is idempotent and additive: it ensures a row for every provider the
+            // build ships with, so an older file legitimately gains the providers added since it was
+            // written. The upgrade invariant is that nothing the user already had disappears - not
+            // that the set is frozen - so assert the pre-upgrade rows survived rather than exact equality.
+            var providersAfter = await after.Providers.Select(p => p.Id).ToListAsync();
+            Assert.All(providers, id => Assert.Contains(id, providersAfter));
         }
         finally
         {

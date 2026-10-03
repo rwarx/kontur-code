@@ -165,4 +165,54 @@ public sealed class AgentSettings
     /// head, because the lines that say what went wrong are at the end.
     /// </remarks>
     public int MaxCommandOutputCharacters { get; set; } = 20_000;
+
+    /// <summary>
+    /// Whether the agent may fetch content from the network. Off until the user turns it on.
+    /// </summary>
+    /// <remarks>
+    /// The sibling of <see cref="AllowCommands"/>, and off for the same reason. Reading and writing files
+    /// is bounded by the workspace; reaching the network is bounded by nothing the workspace knows about -
+    /// it can pull in a page the model then treats as instructions, and it can be aimed at an address on
+    /// the machine's own network. The <c>fetch</c> tool guards the second of those itself, refusing any
+    /// address that is not public, but the decision to let the agent off the disk at all is the user's,
+    /// taken once, here. Defaulting it to true would mean an application that reaches the internet on the
+    /// model's say-so from the first run.
+    /// </remarks>
+    public bool AllowNetwork { get; set; }
+
+    /// <summary>
+    /// How long one fetch may take before it is abandoned, in seconds.
+    /// </summary>
+    /// <remarks>
+    /// As with a command, the number matters less than that there is one: a request to a host that
+    /// accepts the connection and then never answers would otherwise hold the whole run open. Thirty
+    /// seconds is generous for a page and short enough that a dead host is noticed.
+    /// </remarks>
+    public int FetchTimeoutSeconds { get; set; } = 30;
+
+    /// <summary>Characters of a fetched page's text kept before the rest is dropped.</summary>
+    /// <remarks>
+    /// A page reduced to text is still far larger than a model needs, and an unbounded one would spend a
+    /// context window on navigation and boilerplate. The head is kept rather than the tail here - the
+    /// opposite of a command's output - because a document says what it is at the top, where a build says
+    /// what went wrong at the bottom.
+    /// </remarks>
+    public int MaxFetchResponseCharacters { get; set; } = 20_000;
+
+    /// <summary>
+    /// Whether the agent may read and write files outside the open project folder. Off until the
+    /// user turns it on.
+    /// </summary>
+    /// <remarks>
+    /// The third of the switches that widen the agent's reach, alongside <see cref="AllowCommands"/>
+    /// and <see cref="AllowNetwork"/>, and off for the same reason. Everything else the file tools do
+    /// is held inside the workspace, where the worst case is damage to files in one folder that
+    /// version control undoes; reaching outside it puts the rest of the user's disk within range. The
+    /// external tools still refuse the application's own encrypted data and every credential-shaped
+    /// name whatever this is set to, and every call they make is put in front of the approval gate -
+    /// but the decision to let the agent leave the folder at all is the user's, taken once, here.
+    /// Defaulting it to true would mean an application that reaches across the disk on the model's
+    /// say-so from the first run.
+    /// </remarks>
+    public bool AllowExternalFiles { get; set; }
 }

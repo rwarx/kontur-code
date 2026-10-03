@@ -213,6 +213,27 @@ public static class DependencyInjection
         services.AddSingleton<IProcessRunner, ProcessRunner>();
         services.AddSingleton<IAgentTool, RunCommandTool>();
 
+        // Network: fetch one URL's content, reduced to text. Off until the user turns it on, and
+        // Execute-risk for the same reason run_command is - it reaches outside the workspace, so every
+        // call is the user's to approve and the standing yes a file tool can accumulate does not apply.
+        // The fetcher is registered alongside its tool the way the process runner is, and it, not the
+        // tool, is what refuses a non-public address: the check has to be against the IP a name resolved
+        // to, at connect time, which is where the fetcher stands.
+        services.AddSingleton<IHttpFetcher, HttpFetcher>();
+        services.AddSingleton<IAgentTool, FetchTool>();
+
+        // Files outside the open project. Off until the user turns it on, and gated the way fetch and
+        // run_command are: the reads ask once and are remembered for the run (Risk.Write), the writes
+        // ask on every call (Risk.Execute), because a change to an arbitrary place on the disk is not a
+        // standing yes a file tool should accumulate. The service, not the tools, is what refuses this
+        // application's own data, every credential-shaped name and - for writes - the operating system's
+        // own folders, so those refusals hold however the tool is called. Reading first, writing second.
+        services.AddSingleton<IExternalFileService, ExternalFileService>();
+        services.AddSingleton<IAgentTool, ReadExternalFileTool>();
+        services.AddSingleton<IAgentTool, ListExternalFilesTool>();
+        services.AddSingleton<IAgentTool, WriteExternalFileTool>();
+        services.AddSingleton<IAgentTool, EditExternalFileTool>();
+
         // Belongs to the planning modes and is withheld from a build, which AgentModePolicy decides
         // from the marker interface it implements rather than from where it sits in this list.
         services.AddSingleton<IAgentTool, SubmitPlanTool>();
