@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Support question or "how do I…?"
+    url: https://github.com/rwarx/kontur-code/discussions
+    about: Usage questions belong in Discussions, not Issues.
+  - name: Security vulnerability
+    url: https://github.com/rwarx/kontur-code/security/advisories/new
+    about: Report privately. Please do not open a public issue for a vulnerability.
+  - name: Privacy or data handling
+    url: https://github.com/rwarx/kontur-code/blob/main/PRIVACY.md
+    about: PRIVACY.md answers most of these; questions and corrections welcome as Discussions.
+  - name: Before filing a bug
+    url: https://github.com/rwarx/kontur-code/blob/main/DEVELOPMENT.md#troubleshooting
+    about: The failures people hit most often are answered here.

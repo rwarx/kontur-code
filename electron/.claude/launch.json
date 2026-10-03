@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kontur",
+      "runtimeExecutable": "C:\\PROGRA~1\\nodejs\\node.exe",
+      "runtimeArgs": ["D:\\kontur-spatial-ui\\electron\\.claude\\preview.mjs"],
+      "port": 5191,
+      "autoPort": false
+    }
+  ]
+}

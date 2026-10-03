@@ -64,6 +64,8 @@ public static class ServiceRegistration
         services.AddSingleton<IDialogSurface, WorkspaceDialogSurface>();
         services.AddSingleton<WorkspaceViewModel>();
         services.AddSingleton<TasksViewModel>();
+        services.AddSingleton<TrajectoryViewModel>();
+        services.AddSingleton<WorkflowsViewModel>();
         services.AddSingleton<ModelsPageViewModel>();
 
         services.AddSingleton<MainViewModel>();

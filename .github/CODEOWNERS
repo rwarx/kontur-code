@@ -1,0 +1,34 @@
+# Default owners for everything, so a change to the agent's safety model always
+# reaches a person who reads it rather than whoever happens to review.
+#
+# Replace @rwarx with the accounts that actually maintain this before the first
+# public release; a CODEOWNERS file pointing at a handle that does not exist is
+# worse than none, because GitHub silently approves for unknown owners.
+#
+# Ordering matters: the last matching pattern wins.
+/*                     @rwarx
+
+# The rules below are read together, not separately.
+/src/AIClient.Domain/    @rwarx
+/src/AIClient.Application/ @rwarx
+
+# Anything that can change what the agent can reach.
+/src/AIClient.Application/Services/Tools/  @rwarx
+/src/AIClient.Infrastructure/Workspace/   @rwarx
+/src/AIClient.Application/Graph/          @rwarx
+/src/AIClient.Domain/Workspace/           @rwarx
+/src/AIClient.Server/                     @rwarx
+
+# Secrets handling.
+/src/AIClient.Infrastructure/SecureStorage/ @rwarx
+/src/AIClient.App/Behaviors/ApiKeyBox.cs   @rwarx
+
+# The process boundary and the renderer's window into the OS.
+/electron/main/     @rwarx
+/electron/preload/  @rwarx
+
+# Legal and governance. A change here should be deliberate, not incidental.
+/LICENSE            @rwarx
+/PRIVACY.md         @rwarx
+/SECURITY.md        @rwarx
+/CODE_OF_CONDUCT.md @rwarx

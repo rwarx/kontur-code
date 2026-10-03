@@ -14,10 +14,12 @@ namespace AIClient.Application.Services;
 /// <see cref="JsonException"/> stack is not.
 /// </para>
 /// <para>
-/// Deliberately forgiving in two places, both of which are things models genuinely do. A number sent
-/// as a quoted string is accepted, and so is a boolean; the alternative is spending a step of the
-/// budget on a refusal over quotation marks. Nothing else is coerced - a string where an object
-/// belongs is still an error, because guessing there would mean guessing at intent.
+/// Deliberately forgiving where models genuinely slip. A number sent as a quoted string is accepted,
+/// and so is a boolean; the alternative is spending a step of the budget on a refusal over quotation
+/// marks. An object or array double-encoded as a JSON string - sent as text that is itself valid JSON -
+/// is decoded rather than refused, because parsing what was sent is reading it, not guessing at it.
+/// What stays an error is a bare value where structure belongs, or a string that is not JSON at all:
+/// coercing those would mean guessing at intent.
 /// </para>
 /// </remarks>
 public sealed class AgentToolArguments
@@ -276,6 +278,34 @@ public sealed class AgentToolArguments
             return true;
         }
 
+        // A field double-encoded as a JSON string - the array or object sent as text rather than as
+        // JSON - is decoded and read as if it had arrived structured. Smaller models do this often
+        // enough with a nested array like a plan's 'steps' that refusing it would just burn a step,
+        // and a string that is itself valid JSON is something to parse, not to guess at. A string that
+        // is not JSON, or is JSON but a bare value, falls through to the same errors as any other.
+        if (property.ValueKind == JsonValueKind.String
+            && TryParseElement(property.GetString(), out var decoded)
+            && decoded.ValueKind is JsonValueKind.Object or JsonValueKind.Array)
+        {
+            return ReadObjectArray(name, decoded, out items, out error);
+        }
+
+        return ReadObjectArray(name, property, out items, out error);
+    }
+    /// <summary>
+    /// Turns a JSON object or array into the wrapped-arguments list the object-array accessor hands back,
+    /// with the same single-object-for-an-array leniency and the same error sentences whether the value
+    /// arrived structured or was decoded from a double-encoded string.
+    /// </summary>
+    private static bool ReadObjectArray(
+        string name,
+        JsonElement property,
+        out IReadOnlyList<AgentToolArguments> items,
+        [NotNullWhen(false)] out string? error)
+    {
+        items = [];
+        error = null;
+
         if (property.ValueKind == JsonValueKind.Object)
         {
             items = [new AgentToolArguments(property.Clone())];
@@ -305,6 +335,31 @@ public sealed class AgentToolArguments
 
         items = read;
         return true;
+    }
+    /// <summary>
+    /// Parses text that is expected to be JSON, cloned so it outlives the document. False - not an
+    /// exception - when the text is absent or not JSON, because this sits on the path of a model that
+    /// may well have sent neither.
+    /// </summary>
+    private static bool TryParseElement(string? raw, out JsonElement element)
+    {
+        element = default;
+
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(raw, ParseOptions);
+            element = document.RootElement.Clone();
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 
     /// <summary>

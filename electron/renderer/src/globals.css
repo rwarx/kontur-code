@@ -1,0 +1,393 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(:root *));
+@custom-variant light (&:is(.light *));
+
+/* ============================================================
+   KONTUR CODE — DESIGN SYSTEM
+   Dark is primary. Light is a first-class citizen.
+   Accent: white neon (dark) / graphite (light). Selection glows white.
+   Red is reserved for danger only (errors / destructive / diff-del).
+   ============================================================ */
+
+:root {
+  /* shadcn compat (kept minimal, mapped to Kontur neutrals) */
+  --radius: 0.5rem;
+  --background: var(--kc-bg);
+  --foreground: var(--kc-fg-1);
+  --card: var(--kc-surface-2);
+  --card-foreground: var(--kc-fg-1);
+  --popover: var(--kc-surface-3);
+  --popover-foreground: var(--kc-fg-1);
+  --primary: var(--kc-accent);
+  --primary-foreground: var(--kc-on-accent);
+  --secondary: var(--kc-surface-2);
+  --secondary-foreground: var(--kc-fg-1);
+  --muted: var(--kc-surface-2);
+  --muted-foreground: var(--kc-fg-3);
+  --accent: var(--kc-surface-hover);
+  --accent-foreground: var(--kc-fg-1);
+  --destructive: var(--kc-error);
+  --border: var(--kc-line);
+  --input: var(--kc-line);
+  --ring: var(--kc-accent);
+
+  /* ---------- KONTUR DARK (default) ---------- */
+  --kc-bg: #131417;
+  --kc-surface-1: #1a1c1f;
+  --kc-surface-2: #212327;
+  --kc-surface-3: #292b30;
+  --kc-surface-hover: #2d3035;
+  --kc-surface-sunken: #0e0f11;
+  --kc-line-faint: #212327;
+  --kc-line: #2c2e33;
+  --kc-line-strong: #3a3d44;
+  --kc-fg-1: #e9eaec;
+  --kc-fg-2: #a5a9b0;
+  --kc-fg-3: #71757c;
+  --kc-accent: #ffffff;
+  --kc-accent-hover: #ffffff;
+  --kc-accent-soft: rgba(255, 255, 255, 0.12);
+  --kc-accent-border: rgba(255, 255, 255, 0.55);
+  --kc-accent-glow: rgba(255, 255, 255, 0.6);
+  --kc-on-accent: #0e0f11;
+  --kc-success: #43b971;
+  --kc-success-soft: rgba(67, 185, 113, 0.13);
+  --kc-warning: #d9a03f;
+  --kc-warning-soft: rgba(217, 160, 63, 0.13);
+  --kc-error: #e0564f;
+  --kc-error-soft: rgba(224, 86, 79, 0.12);
+  --kc-canvas-bg: #101114;
+  --kc-canvas-grid: #1e2024;
+  --kc-canvas-grid-major: #26282d;
+  --kc-scrim: rgba(6, 7, 8, 0.62);
+  --kc-shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.28), 0 2px 10px rgba(0, 0, 0, 0.18);
+  --kc-shadow-overlay: 0 8px 28px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --kc-diff-add-bg: rgba(46, 160, 67, 0.14);
+  --kc-diff-add-fg: #6bc98f;
+  --kc-diff-del-bg: rgba(248, 81, 73, 0.1);
+  --kc-diff-del-fg: #ef918b;
+  --kc-syntax-kw: #6ca8e0;
+  --kc-syntax-type: #4ec9b0;
+  --kc-syntax-str: #ce9178;
+  --kc-syntax-num: #b5cea8;
+  --kc-syntax-comment: #6a9955;
+  --kc-syntax-fn: #dcdcaa;
+  --kc-syntax-op: #c8cad0;
+
+  /* Canvas node kind colors */
+  --nk-file: #8b94a0;
+  --nk-folder: #b58a5c;
+  --nk-module: #8b95a3;
+  --nk-service: #d6dbe1;
+  --nk-interface: #55c0d6;
+  --nk-data: #c98b5c;
+  --nk-view: #9c86c9;
+  --nk-test: #7b93c9;
+  --nk-plan: #e0b04f;
+  --nk-task: #c0c7d0;
+  --nk-agent: #d98b6b;
+  --nk-model: #a7b2c0;
+  --nk-external: #6e7681;
+  --nk-note: #a8b0ba;
+}
+
+.light {
+  --kc-bg: #f3f4f6;
+  --kc-surface-1: #f8f9fb;
+  --kc-surface-2: #ffffff;
+  --kc-surface-3: #ffffff;
+  --kc-surface-hover: #eceef1;
+  --kc-surface-sunken: #e9ebee;
+  --kc-line-faint: #e9ebef;
+  --kc-line: #dfe2e7;
+  --kc-line-strong: #c6cbd3;
+  --kc-fg-1: #1b1e23;
+  --kc-fg-2: #565e6a;
+  --kc-fg-3: #8a8f99;
+  --kc-accent: #202429;
+  --kc-accent-hover: #33383f;
+  --kc-accent-soft: rgba(20, 24, 30, 0.08);
+  --kc-accent-border: rgba(20, 24, 30, 0.4);
+  --kc-accent-glow: rgba(20, 24, 30, 0.28);
+  --kc-on-accent: #ffffff;
+  --kc-success: #2e9e5b;
+  --kc-success-soft: rgba(46, 158, 91, 0.11);
+  --kc-warning: #b37f1e;
+  --kc-warning-soft: rgba(179, 127, 30, 0.11);
+  --kc-error: #cb423c;
+  --kc-error-soft: rgba(203, 66, 60, 0.09);
+  --kc-canvas-bg: #ebedf0;
+  --kc-canvas-grid: #dbdee3;
+  --kc-canvas-grid-major: #d0d4da;
+  --kc-scrim: rgba(20, 22, 25, 0.4);
+  --kc-shadow-subtle: 0 1px 2px rgba(16, 20, 24, 0.07), 0 2px 10px rgba(16, 20, 24, 0.05);
+  --kc-shadow-overlay: 0 8px 28px rgba(16, 20, 24, 0.16), 0 2px 8px rgba(16, 20, 24, 0.1);
+  --kc-diff-add-bg: rgba(46, 160, 67, 0.11);
+  --kc-diff-add-fg: #22863a;
+  --kc-diff-del-bg: rgba(203, 36, 29, 0.08);
+  --kc-diff-del-fg: #cb2225;
+  --kc-syntax-kw: #0a66c2;
+  --kc-syntax-type: #267f99;
+  --kc-syntax-str: #a31515;
+  --kc-syntax-num: #098658;
+  --kc-syntax-comment: #008000;
+  --kc-syntax-fn: #795e26;
+  --kc-syntax-op: #383a42;
+
+  --nk-file: #67717e;
+  --nk-folder: #a2723c;
+  --nk-module: #6d7683;
+  --nk-service: #3c424a;
+  --nk-interface: #2a88a0;
+  --nk-data: #a2653c;
+  --nk-view: #6a54a0;
+  --nk-test: #4f6da5;
+  --nk-plan: #b0851e;
+  --nk-task: #565d66;
+  --nk-agent: #c06a44;
+  --nk-model: #5f6a78;
+  --nk-external: #8a8f99;
+  --nk-note: #6e7480;
+}
+
+@theme inline {
+  --color-app: var(--kc-bg);
+  --color-surface-1: var(--kc-surface-1);
+  --color-surface-2: var(--kc-surface-2);
+  --color-surface-3: var(--kc-surface-3);
+  --color-surface-hover: var(--kc-surface-hover);
+  --color-sunken: var(--kc-surface-sunken);
+  --color-line-faint: var(--kc-line-faint);
+  --color-line: var(--kc-line);
+  --color-line-strong: var(--kc-line-strong);
+  --color-fg-1: var(--kc-fg-1);
+  --color-fg-2: var(--kc-fg-2);
+  --color-fg-3: var(--kc-fg-3);
+  --color-accent: var(--kc-accent);
+  --color-accent-hover: var(--kc-accent-hover);
+  --color-accent-soft: var(--kc-accent-soft);
+  --color-accent-border: var(--kc-accent-border);
+  --color-on-accent: var(--kc-on-accent);
+  --color-success: var(--kc-success);
+  --color-success-soft: var(--kc-success-soft);
+  --color-warning: var(--kc-warning);
+  --color-warning-soft: var(--kc-warning-soft);
+  --color-error: var(--kc-error);
+  --color-error-soft: var(--kc-error-soft);
+  --color-canvas: var(--kc-canvas-bg);
+  --color-scrim: var(--kc-scrim);
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+
+  --font-sans: var(--font-inter), "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: var(--font-jbmono), "Cascadia Code", "Cascadia Mono", ui-monospace, Consolas, monospace;
+
+  --shadow-subtle: var(--kc-shadow-subtle);
+  --shadow-overlay: var(--kc-shadow-overlay);
+
+  --animate-pulse-dot: pulse-dot 1.6s ease-out infinite;
+  --animate-rise: rise 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-settle: settle 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-fade: fade 0.14s ease-out;
+  --animate-msg-in: msg-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-spin-slow: spin 1.1s linear infinite;
+  --animate-shimmer: shimmer 1.8s linear infinite;
+  --animate-pulse-ring: pulse-ring 1.6s ease-out infinite;
+  --animate-progress-line: progress-line 1.15s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes settle {
+  from { opacity: 0; transform: translateY(-4px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes msg-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes caret-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 var(--kc-accent-soft); }
+  70% { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@keyframes progress-line {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+@layer base {
+  * {
+    @apply border-line outline-accent/60;
+  }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+  body {
+    background: var(--kc-bg);
+    color: var(--kc-fg-1);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--kc-accent-soft);
+  }
+  button, [role="button"] {
+    cursor: pointer;
+  }
+  :disabled {
+    cursor: not-allowed;
+  }
+}
+
+/* ---------- scrollbars ---------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--kc-line-strong) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--kc-line-strong);
+  border-radius: 6px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--kc-fg-3);
+  background-clip: content-box;
+  border: 3px solid transparent;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ---------- primitives ---------- */
+.kc-overline {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--kc-fg-3);
+}
+/* waiting-for-first-token bar (live model latency) */
+.kc-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--kc-line) 0%,
+    var(--kc-line-strong) 50%,
+    var(--kc-line) 100%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+/* subtle hover lift for interactive cards */
+.kc-lift {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.kc-lift:hover {
+  transform: translateY(-1px);
+}
+.kc-lift:active {
+  transform: translateY(0);
+}
+.kc-keycap {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--kc-line);
+  background: var(--kc-surface-2);
+  color: var(--kc-fg-2);
+  white-space: nowrap;
+}
+.kc-focus-ring:focus-visible {
+  outline: 2px solid var(--kc-accent);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 1px var(--kc-accent-soft), 0 0 10px var(--kc-accent-glow);
+}
+.kc-caret::after {
+  content: "▍";
+  color: var(--kc-accent);
+  animation: caret-blink 0.9s steps(1) infinite;
+  margin-left: 1px;
+}
+
+/* canvas dot grid */
+.kc-dotgrid {
+  background-color: var(--kc-canvas-bg);
+  background-image:
+    radial-gradient(circle, var(--kc-canvas-grid) 1px, transparent 1px),
+    radial-gradient(circle, var(--kc-canvas-grid-major) 1.4px, transparent 1.4px);
+}
+.kc-dotgrid-sm {
+  background-color: var(--kc-canvas-bg);
+  background-image: radial-gradient(circle, var(--kc-canvas-grid) 1px, transparent 1px);
+}
+
+/* diff lines */
+.kc-diff-add { background: var(--kc-diff-add-bg); color: var(--kc-diff-add-fg); }
+.kc-diff-del { background: var(--kc-diff-del-bg); color: var(--kc-diff-del-fg); }
+
+/* no select while panning canvas */
+.kc-noselect, .kc-noselect * {
+  user-select: none;
+}
+
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Electron frameless window: custom title-bar drag ----------
+   The custom TitleBar is the OS drag handle (`-webkit-app-region: drag`).
+   Interactive descendants opt back out so clicks/typing still land on them.
+   Plain browser builds ignore `-webkit-app-region` entirely, so these rules
+   are inert outside the packaged/dev Electron shell. */
+.kc-drag { -webkit-app-region: drag; }
+.kc-no-drag,
+.kc-drag button,
+.kc-drag input,
+.kc-drag textarea,
+.kc-drag select,
+.kc-drag a,
+.kc-drag [role="button"],
+.kc-drag [role="textbox"],
+.kc-drag [contenteditable="true"] { -webkit-app-region: no-drag; }

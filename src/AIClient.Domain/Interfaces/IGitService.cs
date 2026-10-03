@@ -46,6 +46,9 @@ public interface IGitService
     /// <summary>Stages the specified files (or all tracked changes if empty).</summary>
     Task<GitResult> StageAsync(IReadOnlyList<string>? filePaths, CancellationToken cancellationToken);
 
+    /// <summary>Removes the specified files from the staging area (or everything staged if empty), keeping working-tree changes.</summary>
+    Task<GitResult> UnstageAsync(IReadOnlyList<string>? filePaths, CancellationToken cancellationToken);
+
     /// <summary>Creates a commit with the given message.</summary>
     Task<GitResult> CommitAsync(string message, CancellationToken cancellationToken);
 
@@ -57,6 +60,19 @@ public interface IGitService
 
     /// <summary>Shows the details of a commit.</summary>
     Task<GitCommit?> GetCommitAsync(string commitSha, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Pushes the current branch (or <paramref name="branch"/>) to a remote. When
+    /// <paramref name="setUpstream"/> is true the pushed branch is set as the upstream, which
+    /// is what a first push of a new branch needs.
+    /// </summary>
+    Task<GitResult> PushAsync(string? remote, string? branch, bool setUpstream, CancellationToken cancellationToken);
+
+    /// <summary>Pulls from a remote into the current branch (or <paramref name="branch"/>).</summary>
+    Task<GitResult> PullAsync(string? remote, string? branch, CancellationToken cancellationToken);
+
+    /// <summary>Fetches refs from a remote (all remotes when <paramref name="remote"/> is null) without merging.</summary>
+    Task<GitResult> FetchAsync(string? remote, CancellationToken cancellationToken);
 }
 
 /// <summary>Result of a git operation that does not return structured data.</summary>

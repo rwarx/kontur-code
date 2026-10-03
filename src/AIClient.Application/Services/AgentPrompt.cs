@@ -24,7 +24,7 @@ public static class AgentPrompt
     /// How to work, independent of which folder is open. Deliberately short: a long prompt competes
     /// with the tool descriptions for the model's attention, and loses.
     /// </summary>
-    private const string Discipline = """
+    private const string Work = """
         How to work:
         - Look before you change anything. Find the file, read it, then edit it.
         - Prefer edit_file to write_file on a file that already exists. write_file replaces every
@@ -35,9 +35,26 @@ public static class AgentPrompt
           afterwards. Someone is watching this happen and can stop you.
         - Stop when the task is done, and answer with words rather than another call. Do not tidy,
           refactor or improve anything you were not asked about.
+        """;
 
+    /// <summary>
+    /// The boundaries, in the ordinary case where the agent is confined to the open folder.
+    /// </summary>
+    private const string ConfinedBoundary = """
         What you cannot do:
         - Reach outside the project folder. Absolute paths, '..' and links leading out are refused.
+        - Change anything without the user's approval. If they say no, that is their decision: say
+          what you would have done and ask, rather than looking for another route to the same edit.
+        """;
+
+    /// <summary>
+    /// The boundaries when the external-file tools are available, so the flat "outside is refused"
+    /// line would be a lie. What is left is the one rule that still holds everywhere: nothing changes
+    /// without approval. The reach outside the folder is described, as a capability with its own
+    /// restraint, by <see cref="ExternalFiles"/>.
+    /// </summary>
+    private const string ApprovalBoundary = """
+        What you cannot do:
         - Change anything without the user's approval. If they say no, that is their decision: say
           what you would have done and ask, rather than looking for another route to the same edit.
         """;
@@ -68,11 +85,17 @@ public static class AgentPrompt
     /// with a warning attached: the discipline of a build - look, change one thing, verify - is not the
     /// discipline of a plan, and telling a model both leaves it doing neither well.
     /// </param>
+    /// <param name="canUseExternalFiles">
+    /// Whether the out-of-project file tools are switched on. When they are, the flat "outside the
+    /// project is refused" boundary is replaced by the approval-only one and a paragraph describing
+    /// those tools is added - otherwise the prompt would contradict the tools the model was handed.
+    /// </param>
     public static string Compose(
         string? basePrompt,
         string? workspaceRoot,
         bool canRunCommands = false,
-        AgentMode mode = AgentMode.Build)
+        AgentMode mode = AgentMode.Build,
+        bool canUseExternalFiles = false)
     {
         var parts = new List<string>(5);
 
@@ -101,7 +124,13 @@ public static class AgentPrompt
             parts.Add(Commands);
         }
 
-        parts.Add(Discipline);
+        if (canUseExternalFiles)
+        {
+            parts.Add(ExternalFiles);
+        }
+
+        parts.Add(Work);
+        parts.Add(canUseExternalFiles ? ApprovalBoundary : ConfinedBoundary);
 
         return string.Join("\n\n", parts);
     }
@@ -127,6 +156,28 @@ public static class AgentPrompt
           would have told you, and carry on with what you can do without it.
         """;
 
+    /// <summary>
+    /// Added only when the out-of-project file tools are switched on, and, like <see cref="Commands"/>,
+    /// it is about restraint. The tools' own descriptions say how to call them; what a run needs on top
+    /// is to know these paths leave the project, that every one is the user's to approve, and that a
+    /// handful of places are refused however they are named.
+    /// </summary>
+    /// <remarks>
+    /// This is the paragraph that makes <see cref="ApprovalBoundary"/> honest: with it in the prompt the
+    /// model is told it may reach outside the folder, so the boundary no longer has to carry the "outside
+    /// is refused" line that <see cref="ConfinedBoundary"/> does.
+    /// </remarks>
+    private const string ExternalFiles = """
+        You can also reach files outside the project folder, by their absolute path:
+        - read_external_file and list_external_files read a file or a folder; write_external_file and
+          edit_external_file change one, and prefer edit_external_file on a file that already exists.
+        - Every one of these needs the user's approval - a read or a list once for the run, a write or
+          an edit on each call - so reach outside only when the task is actually out there, and say why.
+        - This application's own data and anything that looks like a credential are refused however you
+          name them, and the operating system's own folders can be read but not written. If a path is
+          refused, that is the answer: say what you wanted and carry on, do not look for another way in.
+        """;
+
     private static string Workspace(string root) =>
         $"""
         You are working on a project on the user's machine, through the tools you have been given.
@@ -136,7 +187,11 @@ public static class AgentPrompt
 
         Every path you send is relative to that folder - 'src/Program.cs', not a full path. You have
         not seen this project before: nothing about its contents is in this conversation unless a tool
-        put it there, so start by listing or searching rather than guessing at filenames.
+        put it there. Let the task decide when to look: a greeting or a question you can answer from
+        the conversation needs no files at all, so answer it and stop. When the work does need a file,
+        find it by listing or searching rather than guessing at a name - but reach for the tools when
+        the task calls for them, not reflexively at the start of every turn. Leave git and version
+        control alone unless the user asks about them.
         """;
 
     /// <summary>

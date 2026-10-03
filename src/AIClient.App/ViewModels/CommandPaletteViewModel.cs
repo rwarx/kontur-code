@@ -27,6 +27,8 @@ public enum PaletteCommand
     SwitchToChat,
     ShowModels,
     ShowTasks,
+    ShowTrajectory,
+    ShowWorkflows,
 
     // Workspace and graph actions.
     OpenWorkspace,
@@ -167,6 +169,8 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         new(PaletteCommand.SwitchToChat, Localization.T("S.Palette.SwitchToChat"), Localization.T("S.Palette.Category.Workspace"), null, "conversation"),
         new(PaletteCommand.ShowModels, Localization.T("S.Palette.ShowModels"), Localization.T("S.Palette.Category.Workspace"), null, "provider catalogue models"),
         new(PaletteCommand.ShowTasks, Localization.T("S.Palette.ShowTasks"), Localization.T("S.Palette.Category.Workspace"), null, "activity tools"),
+        new(PaletteCommand.ShowTrajectory, Localization.T("S.Palette.ShowTrajectory"), Localization.T("S.Palette.Category.Workspace"), null, "timeline history agent run"),
+        new(PaletteCommand.ShowWorkflows, Localization.T("S.Palette.ShowWorkflows"), Localization.T("S.Palette.Category.Workspace"), null, "recipes automation skills"),
 
         new(PaletteCommand.OpenWorkspace, Localization.T("S.Palette.OpenWorkspace"), Localization.T("S.Palette.Category.Graph"), null, "folder project repository"),
         new(PaletteCommand.CloseWorkspace, Localization.T("S.Palette.CloseWorkspace"), Localization.T("S.Palette.Category.Graph"), null, "folder"),

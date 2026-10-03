@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.6" />
+
+    <!--
+      The shipped policy. A production build additionally has this header re-written at runtime by
+      the main process (see hardenSession in main/main.js), which builds connect-src from the
+      loopback address actually in use — hardcoding the port here made pointing the app at a
+      different one fail silently, with no console error and an app that simply never loaded data.
+      'unsafe-inline' is deliberately absent from script-src here and present only in the dev header:
+      Vite injects an inline module shim that a production bundle does not need.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:45631; img-src 'self' data: blob:; font-src 'self' data:; object-src 'none'; base-uri 'none'; frame-src 'none'"
+    />
+    <title>Kontur Code — AI development environment</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/renderer/src/main.tsx"></script>
+  </body>
+</html>

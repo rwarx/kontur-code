@@ -5,13 +5,20 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+# A new push to the same branch cancels the previous run. On a release branch with
+# a matrix across two toolchains this is the difference between ten minutes and one.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
-    name: Build & Test
+    name: .NET — build & test
     runs-on: windows-latest
 
     steps:
@@ -24,11 +31,14 @@ jobs:
       - name: Restore
         run: dotnet restore AIClient.slnx
 
+      # TreatWarningsAsErrors is already set in Directory.Build.props. This makes
+      # it explicit at the CI level too, so that turning it off in the props file
+      # cannot quietly turn off the gate here.
       - name: Build (warnings as errors)
         run: dotnet build AIClient.slnx --no-restore -warnaserror
 
       - name: Test
-        run: dotnet test AIClient.slnx --no-build --logger "trx;LogFileName=test-results.trx" -- Results/TestResults.trx
+        run: dotnet test AIClient.slnx --no-build --logger "trx;LogFileName=test-results.trx"
 
       - name: Upload test results
         if: always()
@@ -38,7 +48,7 @@ jobs:
           path: '**/TestResults/*.trx'
 
   architecture:
-    name: Architecture Tests
+    name: Layer boundaries
     runs-on: windows-latest
 
     steps:
@@ -54,27 +64,170 @@ jobs:
       - name: Build
         run: dotnet build AIClient.slnx --no-restore
 
-      - name: Verify Domain has no WPF references
+      - name: Verify Domain has no UI references
         run: |
           $refs = dotnet list src/AIClient.Domain/AIClient.Domain.csproj reference
           if ($refs -match "PresentationCore|PresentationFramework|WindowsBase|WPF-UI|CommunityToolkit.Mvvm") {
             Write-Error "Domain layer has WPF/UI references — layering violation"
             exit 1
           }
-          Write-Host "Domain layer: OK (no WPF references)"
+          Write-Host "Domain: OK"
 
-      - name: Verify Application has no WPF references
+      - name: Verify Application has no UI references
         run: |
           $refs = dotnet list src/AIClient.Application/AIClient.Application.csproj reference
           if ($refs -match "PresentationCore|PresentationFramework|WindowsBase|WPF-UI|CommunityToolkit.Mvvm") {
             Write-Error "Application layer has WPF/UI references — layering violation"
             exit 1
           }
-          Write-Host "Application layer: OK (no WPF references)"
+          Write-Host "Application: OK"
+
+      # The two inner projects target plain net10.0 precisely so that a reference
+      # to System.Windows or DPAPI is a compile error. Asserting the TFM here
+      # catches the case where someone "fixes" the build by retargeting them.
+      - name: Verify inner projects are framework-agnostic
+        run: |
+          $inner = @(
+            'src/AIClient.Domain/AIClient.Domain.csproj',
+            'src/AIClient.Application/AIClient.Application.csproj'
+          )
+          foreach ($project in $inner) {
+            $xml = [xml](Get-Content -Raw $project)
+            $tfms = $xml.Project.PropertyGroup.TargetFramework | Where-Object { $_ }
+            foreach ($tfm in $tfms) {
+              if ($tfm -ne 'net10.0') {
+                Write-Error "$project targets '$tfm'. It must target plain net10.0 so that touching WPF or DPAPI is a compile error, not a review comment."
+                exit 1
+              }
+            }
+            Write-Host "$project targets net10.0: OK"
+          }
+
+  renderer:
+    name: Renderer — typecheck & build
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: electron
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: electron/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # noUnusedLocals is off in tsconfig because the repository still contains
+      # un-migrated files from a UI kit that was replaced. Turning it on here
+      # would fail the build for reasons unrelated to the change under review, so
+      # it stays a documented follow-up rather than a red X nobody can act on.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build renderer
+        run: npm run build:renderer
+
+      - name: Upload renderer build
+        uses: actions/upload-artifact@v4
+        with:
+          name: renderer-dist
+          path: electron/dist/renderer
+          retention-days: 7
+
+  hygiene:
+    name: Repository hygiene
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Licence and required files present
+        run: |
+          $required = @(
+            'LICENSE',
+            'PRIVACY.md',
+            'SECURITY.md',
+            'CODE_OF_CONDUCT.md',
+            'CONTRIBUTING.md',
+            'SUPPORT.md',
+            'THIRD-PARTY-NOTICES.md'
+          )
+          $missing = $required | Where-Object { -not (Test-Path $_) }
+          if ($missing) {
+            Write-Error "Missing required files: $($missing -join ', ')"
+            exit 1
+          }
+          Write-Host "All required governance files present."
+
+      # A .gitignore that does not cover the frontend tree is how a repository ends
+      # up with 28,000 files of node_modules in its history. Cheap to assert.
+      - name: Build artefacts are not tracked
+        run: |
+          $patterns = @(
+            'electron/node_modules/',
+            'electron/dist/',
+            'electron/sidecar/',
+            'electron/sidecar-build/',
+            '*.db',
+            '*.log'
+          )
+          $tracked = git ls-files
+          foreach ($pattern in $patterns) {
+            $hits = $tracked | Where-Object { $_ -like $pattern -or $_ -like "*$pattern*" }
+            if ($hits) {
+              Write-Error "Tracked files match '$pattern': $($hits | Select-Object -First 5)"
+              exit 1
+            }
+          }
+          Write-Host "No build artefacts tracked."
+          exit 0
+
+      # Length matters here, and this is the difference between a scanner that
+      # gets trusted and one that gets ignored. A real OpenRouter key is
+      # `sk-or-v1-` plus 64 hex characters; the test fixtures in this repository
+      # are 32-character placeholders and English words, and a looser pattern
+      # flags them on every run. A scanner that cries wolf gets switched off.
+      - name: No secrets in tracked files
+        run: |
+          $patterns = @(
+            'sk-or-v1-[a-f0-9]{64}',
+            'nvapi-[A-Za-z0-9_-]{40,}',
+            'ghp_[A-Za-z0-9]{36}',
+            'github_pat_[A-Za-z0-9_]{50,}',
+            'AKIA[0-9A-Z]{16}',
+            '-----BEGIN [A-Z ]*PRIVATE KEY-----'
+          )
+          $found = $false
+          foreach ($pattern in $patterns) {
+            $hits = git grep -Il -E $pattern 2>$null
+            if ($hits) {
+              Write-Error "Possible secret matching '$pattern' in: $($hits -join ', ')"
+              $found = $true
+            }
+          }
+          if ($found) { exit 1 }
+          Write-Host "No secrets of a realistic shape in tracked files."
+
+          # Explicit, and not decorative. `git grep` exits 1 when it matches
+          # nothing, $LASTEXITCODE keeps that value, and the pwsh wrapper uses it
+          # as the step's exit code when the script ends on a cmdlet. Without
+          # this the step fails on a clean tree — which is the fastest way to
+          # teach a team that a red X here means nothing.
+          exit 0
 
   audit:
-    name: Package Audit
+    name: Package audit
     runs-on: windows-latest
+    # Informational. A vulnerability advisory in a transitive dependency should
+    # not block every pull request while a maintainer triages it, but it must
+    # never be silent either — hence continue-on-error on the steps rather than
+    # on the job, so the job reports green and the log still carries the output.
+    # A scanner that always shows red is a scanner nobody reads.
 
     steps:
       - uses: actions/checkout@v4
@@ -83,10 +236,17 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Check for vulnerable packages
-        run: dotnet list package --vulnerable --include-transitive
+      - name: .NET — vulnerable packages
         continue-on-error: true
+        run: dotnet list AIClient.slnx package --vulnerable --include-transitive
 
-      - name: Check for outdated packages
-        run: dotnet list package --outdated
+      - name: .NET — outdated packages
         continue-on-error: true
+        run: dotnet list AIClient.slnx package --outdated
+
+      - name: npm audit
+        working-directory: electron
+        continue-on-error: true
+        run: |
+          npm install --package-lock-only --ignore-scripts
+          npm audit --audit-level=high

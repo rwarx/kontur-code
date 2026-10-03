@@ -117,6 +117,20 @@
                                                   RelativeSource={RelativeSource AncestorType=UserControl},
                                                   Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Tasks}" />
 
+            <views:TrajectoryView x:Name="TrajectoryPane"
+                                  DataContext="{Binding Trajectory}"
+                                  motion:Motion.Show="Fade"
+                                  Visibility="{Binding DataContext.Workspace.Mode,
+                                                       RelativeSource={RelativeSource AncestorType=UserControl},
+                                                       Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Trajectory}" />
+
+            <views:WorkflowsView x:Name="WorkflowsPane"
+                                 DataContext="{Binding Workflows}"
+                                 motion:Motion.Show="Fade"
+                                 Visibility="{Binding DataContext.Workspace.Mode,
+                                                      RelativeSource={RelativeSource AncestorType=UserControl},
+                                                      Converter={StaticResource WorkspaceModeEquals}, ConverterParameter=Workflows}" />
+
             <!-- Settings: the existing settings surface, as a full workspace mode. -->
             <views:SettingsView x:Name="SettingsPane"
                                 DataContext="{Binding Settings}"

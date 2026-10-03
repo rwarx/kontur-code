@@ -196,4 +196,38 @@ public sealed class AgentToolArgumentsTests
         Assert.False(arguments.TryGetStringArray("n", out _, out var wrongKind));
         Assert.Contains("must be an array of strings", wrongKind!, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void A_nested_array_double_encoded_as_a_string_is_decoded_and_read()
+    {
+        // What a smaller model does with a nested array often enough to matter: it writes the whole of a
+        // field like 'steps' as a string that is itself JSON rather than as JSON. Parsing that is reading
+        // what was sent, not guessing at it, so it is decoded and read as if it had arrived structured.
+        Assert.True(
+            AgentToolArguments.TryParse(
+                """{"steps": "[{\"title\":\"Rename it\"}]"}""",
+                out var arguments,
+                out _));
+
+        Assert.True(arguments.TryGetObjectArray("steps", out var steps, out var error), error);
+
+        var step = Assert.Single(steps);
+        Assert.True(step.TryGetString("title", out var title, out _));
+        Assert.Equal("Rename it", title);
+    }
+
+    [Fact]
+    public void A_string_that_is_not_json_or_is_a_bare_json_value_stays_an_error()
+    {
+        // The decoding goes exactly as far as reading what was sent and no further. Prose is not a
+        // double-encoded array, and a quoted number is a scalar where structure belongs; coercing either
+        // would be guessing at intent rather than parsing it, so both get the same sentence as any other
+        // value of the wrong shape.
+        foreach (var raw in new[] { """{"steps": "just do the thing"}""", """{"steps": "42"}""" })
+        {
+            Assert.True(AgentToolArguments.TryParse(raw, out var arguments, out _), raw);
+            Assert.False(arguments.TryGetObjectArray("steps", out _, out var error), raw);
+            Assert.Equal("'steps' must be an array of objects.", error);
+        }
+    }
 }

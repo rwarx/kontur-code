@@ -103,6 +103,52 @@ public sealed class WorkspaceServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_folder_containing_the_user_profile_cannot_be_a_workspace()
+    {
+        // The drive case above already refuses C:\. This is the one under it that used to pass:
+        // C:\Users holds every profile on the machine, and an agent rooted there is an agent that can
+        // read every account's home directory. The refusal a person gets for a mis-click here is the
+        // same sentence they would get from the drive rule.
+        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        Assert.NotEmpty(profile);
+
+        var parent = Directory.GetParent(profile)?.FullName;
+        Assert.NotNull(parent);
+
+        var result = await _service.OpenAsync(parent, Token);
+
+        Assert.False(result.Success);
+        Assert.Contains("user profile", result.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task The_user_profile_itself_cannot_be_a_workspace()
+    {
+        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        Assert.NotEmpty(profile);
+
+        var result = await _service.OpenAsync(profile, Token);
+
+        Assert.False(result.Success);
+        Assert.Contains("user folder", result.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task An_ordinary_project_folder_is_still_opened()
+    {
+        // The rule above is about *containment*, not about anything under a user directory. Refusing
+        // every path beneath the profile would refuse every real workspace, which is how a guard gets
+        // disabled. This is the positive half of the same rule, and it is the half that has to keep
+        // working or nobody would use the feature.
+        var reopened = new WorkspaceService(new StubSettingsService(), _paths, _logger);
+
+        var result = await reopened.OpenAsync(_root, Token);
+
+        Assert.True(result.Success, result.Error);
+        Assert.Equal(_root, result.Value, ignoreCase: true);
+    }
+
+    [Fact]
     public async Task A_folder_that_does_not_exist_cannot_be_a_workspace()
     {
         var result = await _service.OpenAsync(Path.Combine(_scratch, "absent"), Token);
