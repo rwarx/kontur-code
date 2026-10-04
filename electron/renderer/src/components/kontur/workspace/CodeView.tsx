@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bookmark, Check, ChevronRight, CircleAlert, FileCode, FileStack, FileText, History, Loader2, RotateCw, Sparkles, X } from "lucide-react";
-import { useKontur } from "@/lib/kontur/store";
+import { Bookmark, Check, ChevronRight, Circle, CircleAlert, FileCode, FileStack, FileText, History, Loader2, RotateCw, Sparkles, X } from "lucide-react";
+import { useKontur, type SaveStatus } from "@/lib/kontur/store";
 import { useT } from "@/lib/kontur/useT";
 import { computeUnifiedDiff, diffStats } from "@/lib/kontur/diff";
 import { isServerMode, syncWorkspaceFiles } from "@/lib/kontur/sync";
@@ -419,9 +419,19 @@ function SaveIndicator({
   status,
   t,
 }: {
-  status: "saving" | "saved" | "error" | undefined;
+  status: SaveStatus | undefined;
   t: ReturnType<typeof useT>;
 }) {
+  if (status === "unsaved") {
+    // Writes are debounced, so there is now a real window between a keystroke and the request.
+    // Showing nothing in it would leave the surface claiming to be saved while it is not.
+    return (
+      <span className="flex items-center gap-1.5 text-[11px] font-medium text-fg-3">
+        <Circle className="fill-current" size={7} />
+        {t("code.unsaved")}
+      </span>
+    );
+  }
   if (status === "saving") {
     return (
       <span className="flex items-center gap-1.5 text-[11px] font-medium text-fg-3">

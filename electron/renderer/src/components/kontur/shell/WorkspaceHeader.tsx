@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useKontur } from "@/lib/kontur/store";
 import { useT } from "@/lib/kontur/useT";
-import { isServerMode, openWorkspaceDialog } from "@/lib/kontur/sync";
+import { flushPendingWrites, isServerMode, openWorkspaceDialog } from "@/lib/kontur/sync";
 import {
   exportSessionBundle,
   exportSessionJson,
@@ -187,9 +187,21 @@ export function WorkspaceHeader() {
                     { label: t("export.text"), action: () => exportSessionText(session) },
                     {
                       label: t("export.bundle"),
+                      // Flush before packaging. The bundle carries the renderer's in-memory file
+                      // state, and editor writes are debounced, so without this a bundle can be
+                      // written while the last edit is still sitting in the queue — and the export
+                      // would faithfully contain the file as it was before those keystrokes.
                       action: () => {
-                        exportSessionBundle({ session, nodes: canvas.nodes, edges: canvas.edges, files, goals });
-                        pushToast(t("export.bundle"), t("export.bundle.toast"));
+                        void flushPendingWrites().then(() => {
+                          exportSessionBundle({
+                            session,
+                            nodes: canvas.nodes,
+                            edges: canvas.edges,
+                            files: useKontur.getState().files,
+                            goals,
+                          });
+                          pushToast(t("export.bundle"), t("export.bundle.toast"));
+                        });
                       },
                       bundle: true,
                     },

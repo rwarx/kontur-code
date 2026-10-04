@@ -358,7 +358,6 @@ export function Composer() {
     const onStart = () => startDictation();
     window.addEventListener("kontur:dictate", onStart);
     return () => window.removeEventListener("kontur:dictate", onStart);
-     
   }, [ui.locale]);
 
   /* stop everything on unmount */
@@ -366,8 +365,14 @@ export function Composer() {
     return () => {
       clearSim();
       recognitionRef.current?.stop();
+      // Clear the flag this component owns. Without it, switching away from Chat while
+      // recording left `recording` true in the store with no component left to clear it,
+      // and every later Ctrl+M returned at the `if (store.recording) return` guard —
+      // dictation bricked for the rest of the session.
+      if (useKontur.getState().recording) {
+        useKontur.getState().setRecording(false);
+      }
     };
-     
   }, []);
 
   const submit = () => {
@@ -400,7 +405,7 @@ export function Composer() {
   const dictationLive = dictating && liveSpeech;
 
   return (
-    <div className="px-3 pb-3 sm:px-4">
+    <div className="px-3 pb-3 sm:px-4" data-kontur-composer>
       <div className="mx-auto max-w-[820px]">
         <div
           className={`rounded-lg border bg-surface-2 shadow-subtle transition-[border-color,box-shadow] duration-150 ${
@@ -729,6 +734,13 @@ export function Composer() {
 export function triggerDictation() {
   const store = useKontur.getState();
   if (store.recording) return;
+
+  // Only mark the store as recording if someone can hear about it. The listener lives in
+  // Composer, so on any other surface the event goes nowhere — and setting the flag anyway left
+  // `recording` stuck true, which made this function a no-op from then on. Either the surface is
+  // showing Chat, or there is nothing to dictate into and the press should do nothing at all.
+  if (!document.querySelector("[data-kontur-composer]")) return;
+
   store.setRecording(true);
   window.dispatchEvent(new CustomEvent("kontur:dictate"));
 }

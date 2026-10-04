@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { FolderOpen, Keyboard, Link2, Redo2, Sparkles, Undo2 } from "lucide-react";
 import { useKontur } from "@/lib/kontur/store";
@@ -11,7 +11,18 @@ export function StatusBar() {
   const runnerStatus = useKontur((s) => s.runner.status);
   const runnerLabel = useKontur((s) => s.runner.label);
   const selectedModelId = useKontur((s) => s.ui.selectedModelId);
-  const canvas = useKontur((s) => s.canvas);
+  /* Selected to primitives rather than to `s.canvas`. Subscribing to the whole canvas object meant a
+   new identity on every pan and zoom step — and `panBy` writes the object on each pointermove — so
+   the status bar re-rendered continuously while the user dragged the canvas. It reads four scalars,
+   and a selector that returns exactly those does not re-render when any of the other fifty
+   properties change. */
+const nodeCount = useKontur((s) => s.canvas.nodes.length);
+const edgeCount = useKontur((s) => s.canvas.edges.length);
+const canvasZoom = useKontur((s) => s.canvas.zoom);
+const selectedEdgeKind = useKontur((s) => {
+  const edge = s.canvas.edges.find((e) => e.id === s.canvas.selectedEdgeId);
+  return edge?.kind ?? null;
+});
   const surface = useKontur((s) => s.surface);
   const setSurface = useKontur((s) => s.setSurface);
   const undoCanvas = useKontur((s) => s.undoCanvas);
@@ -29,7 +40,7 @@ export function StatusBar() {
   const model = useModel(selectedModelId);
   const generating = runnerStatus === "running" || runnerStatus === "awaiting-approval";
   const spatial = surface === "canvas" || surface === "graph";
-  const selectedEdge = canvas.edges.find((e) => e.id === canvas.selectedEdgeId) ?? null;
+
 
   return (
     <footer className="flex h-7 shrink-0 items-center gap-3 border-t border-line-faint bg-surface-1 px-3">
@@ -65,7 +76,7 @@ export function StatusBar() {
 
         {spatial && (
           <>
-            {selectedEdge && (
+            {selectedEdgeKind && (
               <button
                 type="button"
                 onClick={() => setSurface("canvas")}
@@ -73,7 +84,7 @@ export function StatusBar() {
                 title={t("status.edgeTitle")}
               >
                 <Link2 size={10} aria-hidden />
-                {selectedEdge.kind}
+                {selectedEdgeKind}
               </button>
             )}
             <button
@@ -82,7 +93,7 @@ export function StatusBar() {
               className="kc-focus-ring hidden rounded-[3px] px-1 py-px font-mono text-[10.5px] text-fg-3 transition-colors duration-100 hover:bg-surface-hover hover:text-fg-2 sm:block"
               title={t("status.countsTitle")}
             >
-              {t("status.counts", canvas.nodes.length, canvas.edges.length)}
+              {t("status.counts", nodeCount, edgeCount)}
             </button>
             <button
               type="button"
@@ -90,7 +101,7 @@ export function StatusBar() {
               className="kc-focus-ring rounded-[3px] px-1 py-px font-mono text-[10.5px] text-fg-3 transition-colors duration-100 hover:bg-surface-hover hover:text-fg-2"
               title={t("status.zoomTitle")}
             >
-              {t("status.zoom", Math.round(canvas.zoom * 100))}
+              {t("status.zoom", Math.round(canvasZoom * 100))}
             </button>
             <span className="flex items-center gap-0.5">
               <KcToolButton size={20} onClick={undoCanvas} disabled={!canUndo} aria-label={t("status.undo")} title={t("status.undo")}>

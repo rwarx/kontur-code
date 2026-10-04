@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef } from "react";
 import { applyAppZoom, useKontur } from "@/lib/kontur/store";
@@ -197,7 +197,10 @@ export function KonturApp() {
       } else if (key === "m") {
         e.preventDefault();
         triggerDictation();
-      } else if (key === "," ) {
+      } else if (key === ",") {
+        // Was `", "` with a trailing space, so this branch was unreachable: `e.key` is `","` on
+        // its own. The Ctrl+, shortcut advertised in the cheatsheet and in the command palette did
+        // nothing at all.
         e.preventDefault();
         s.setSurface("settings");
       } else if (e.altKey && key === "i") {

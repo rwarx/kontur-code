@@ -1,4 +1,4 @@
-import type { Dictionary } from "./types-dict";
+﻿import type { Dictionary } from "./types-dict";
 
 /* Russian — полный словарь (Task 2-d) */
 export const ru: Dictionary = {
@@ -278,6 +278,7 @@ export const ru: Dictionary = {
   "code.editable": "редактируемый",
   "code.saving": "Сохранение…",
   "code.saved": "Сохранено",
+  "code.unsaved": "Не сохранено",
   "code.saveError": "Ошибка сохранения",
 
   /* tasks */

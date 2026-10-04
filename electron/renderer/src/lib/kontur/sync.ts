@@ -525,6 +525,11 @@ async function loadServerTranscript(id: string): Promise<void> {
 function installServerActions() {
   const prev = S();
   useKontur.setState({
+    /* Debounced writes are flushed before anything that makes losing them costly or
+       impossible: switching sessions, exporting a bundle, or saving a file through
+       the OS dialog. Without this the last few characters typed before one of those
+       actions are simply gone. */
+    flushPendingWrites: () => flushPendingWrites(),
     selectSession: (id: string) => {
       // Base action aligns work mode to the chat, sets the chat surface, clears any
       // approval and remembers it for its mode; we only add the server transcript pull.
@@ -909,6 +914,67 @@ export function pushCanvasMoves(): void {
   );
 }
 
+/**
+ * Pending debounced writes, one timer per path.
+ *
+ * Per path rather than one global timer, so that typing in a second file cannot
+ * cancel an unsaved edit in the first.
+ */
+const pendingWrites = new Map<string, ReturnType<typeof setTimeout>>();
+
+/** Newest content queued for a path, so a burst of keystrokes sends one write of the last state. */
+const pendingContent = new Map<string, string>();
+
+/**
+ * How long typing pauses before the file is written.
+ *
+ * Long enough that a normal burst of typing produces one request rather than
+ * hundreds, short enough that closing the window a moment after stopping has
+ * almost always already persisted the edit.
+ */
+const WRITE_DEBOUNCE_MS = 700;
+
+/** Writes one path now, cancelling its pending timer. Returns the promise for callers that must wait. */
+function flushWrite(path: string): Promise<void> | null {
+  const timer = pendingWrites.get(path);
+  if (timer !== undefined) {
+    clearTimeout(timer);
+    pendingWrites.delete(path);
+  }
+
+  const content = pendingContent.get(path);
+  if (content === undefined) return null;
+  pendingContent.delete(path);
+
+  return workspace
+    .write(path, content)
+    .then(() => S().markSave(path, "saved"))
+    .catch(() => {
+      S().markSave(path, "error");
+      S().pushToast("Could not save the file", path, "destructive");
+    });
+}
+
+/**
+ * Writes every path with a queued edit, now.
+ *
+ * Called wherever the renderer is about to lose the chance to write: a save
+ * action, a session export, the tab closing, and window teardown. Without it a
+ * debounce is a way to lose the last few characters typed before a quit.
+ */
+export async function flushPendingWrites(): Promise<void> {
+  const inFlight = [...pendingWrites.keys()]
+    .map(flushWrite)
+    .filter((p): p is Promise<void> => p !== null);
+
+  await Promise.all(inFlight);
+}
+
+/** Every path with an edit still queued, for callers that report "unsaved changes". */
+export function pendingWritePaths(): string[] {
+  return [...pendingWrites.keys()];
+}
+
 function installCanvasOverrides(prev: ReturnType<typeof useKontur.getState>) {
   useKontur.setState({
     openCodeTab: (path: string) => {
@@ -924,18 +990,28 @@ function installCanvasOverrides(prev: ReturnType<typeof useKontur.getState>) {
       });
     },
     setFileContent: (path: string, content: string) => {
+      // In memory immediately: the editor must never wait on a request to show a character.
       prev.setFileContent(path, content);
       if (!serverMode || !serverPaths.has(path)) return;
-      // User edit in the Code surface: write straight through (no approval —
-      // the person typed it themselves). Agent edits arrive via tool runs.
-      S().markSave(path, "saving");
-      void workspace
-        .write(path, content)
-        .then(() => S().markSave(path, "saved"))
-        .catch(() => {
-          S().markSave(path, "error");
-          S().pushToast("Could not save the file", path, "destructive");
-        });
+
+      // User edit in the Code surface: written straight through, with no approval,
+      // because the person typed it themselves. Agent edits arrive via tool runs.
+      //
+      // Debounced. This used to POST the whole file on every keystroke, which for a
+      // large file meant a full-document request per character, and on a flaky
+      // connection a toast storm as every one of them failed.
+      S().markSave(path, "unsaved");
+      pendingContent.set(path, content);
+
+      const existing = pendingWrites.get(path);
+      if (existing !== undefined) clearTimeout(existing);
+
+      pendingWrites.set(
+        path,
+        setTimeout(() => {
+          void flushWrite(path);
+        }, WRITE_DEBOUNCE_MS),
+      );
     },
     addNodes: (nodes) => {
       prev.addNodes(nodes);

@@ -1,4 +1,4 @@
-import type { Dictionary } from "./types-dict";
+﻿import type { Dictionary } from "./types-dict";
 
 /* German — vollständiges Wörterbuch (Task 2-d) */
 export const de: Dictionary = {
@@ -278,6 +278,7 @@ export const de: Dictionary = {
   "code.editable": "bearbeitbar",
   "code.saving": "Speichern…",
   "code.saved": "Gespeichert",
+  "code.unsaved": "Nicht gespeichert",
   "code.saveError": "Speichern fehlgeschlagen",
 
   /* tasks */

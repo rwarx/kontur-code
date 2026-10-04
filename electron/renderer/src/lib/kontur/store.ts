@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
@@ -42,9 +42,50 @@ import { modeDefaultSurface, surfaceAllowedInMode } from "./modes";
 
 /* approval waiters (module-scoped, outside the store) */
 type ApprovalResolution = { decision: ApprovalDecision; reason?: string };
-const approvalWaiters = new Map<string, (r: ApprovalResolution) => void>();
+type ApprovalWaiter = {
+  resolve: (r: ApprovalResolution) => void;
+  reject: (reason: Error) => void;
+};
+const approvalWaiters = new Map<string, ApprovalWaiter>();
+
+/**
+ * Waits for the person to answer one approval question.
+ *
+ * Rejects rather than hanging forever if the same question is registered twice, and is rejected
+ * outright once the run has finished. The previous version resolved through a single
+ * `store.approval` slot: two approvals arriving close together overwrote each other, the first
+ * waiter's resolve was never called, and since the promise could not reject either, `await` on it
+ * blocked the frame handler, which blocked the run. A run that hangs with a spinner and no error is
+ * the worst of the available failure modes, so every path out of here terminates.
+ */
 export function waitForApproval(id: string): Promise<ApprovalResolution> {
-  return new Promise((resolve) => approvalWaiters.set(id, resolve));
+  return new Promise<ApprovalResolution>((resolve, reject) => {
+    const existing = approvalWaiters.get(id);
+
+    if (existing) {
+      existing.reject(new Error(`Approval ${id} was registered twice.`));
+      approvalWaiters.delete(id);
+    }
+
+    approvalWaiters.set(id, { resolve, reject });
+  });
+}
+
+/**
+ * Fails every question still open, and why.
+ *
+ * Called when the run ends. Anything left waiting would otherwise wait for an answer that can no
+ * longer arrive, because the store's single approval slot has been cleared.
+ */
+export function failPendingApprovals(reason: string): void {
+  if (approvalWaiters.size === 0) return;
+
+  const waiters = [...approvalWaiters.values()];
+  approvalWaiters.clear();
+
+  for (const waiter of waiters) {
+    waiter.reject(new Error(reason));
+  }
 }
 
 export interface ToastPayload {
@@ -53,6 +94,32 @@ export interface ToastPayload {
   description?: string;
   variant?: "default" | "destructive";
 }
+
+/**
+ * Where one file's editor state stands relative to the backend.
+ *
+ * `unsaved` exists because writes are debounced: without a state between the
+ * keystroke and the request there is a window in which the file has been edited
+ * and nothing says so.
+ */
+export type SaveStatus = "unsaved" | "saving" | "saved" | "error";
+
+/**
+ * Persisted-shape version. Bump when `partialize` changes shape, so an older cache is rebuilt from
+ * defaults instead of being read as if it were current.
+ */
+const PERSIST_VERSION = 2;
+
+/**
+ * Ceilings that keep a long session from growing the cache or memory without limit.
+ *
+ * Not correctness limits — the backend holds the full history, and the UI paginates by scrolling —
+ * so the numbers are about when a person would notice. 2000 messages is roughly a hundred long
+ * exchanges; 500 events is well past a screen of scrollback.
+ */
+const MAX_PERSISTED_MESSAGES = 2000;
+const MAX_EVENTS = 500;
+const MAX_MESSAGES_PER_SESSION = 2000;
 
 interface UiPrefs {
   theme: ThemeMode;
@@ -179,7 +246,7 @@ interface KonturState {
   codeTabs: string[];
   activeCodeTab: string | null;
   /** transient per-file save state for the Code editor (server-mode write-through) */
-  saveStatus: Record<string, "saving" | "saved" | "error">;
+  saveStatus: Record<string, SaveStatus>;
   /** checkpoint id whose diff review is active in the Code surface (transient) */
   codeReviewCheckpointId: string | null;
   providers: Provider[];
@@ -291,7 +358,15 @@ interface KonturState {
   openCodeTab: (path: string) => void;
   closeCodeTab: (path: string) => void;
   setActiveCodeTab: (path: string) => void;
-  markSave: (path: string, status: "saving" | "saved" | "error") => void;
+  markSave: (path: string, status: SaveStatus) => void;
+  /**
+   * Writes every file with a queued edit, and resolves when they have all landed.
+   *
+   * Installed by `sync.ts`; a no-op in demo mode, where nothing is written anywhere. The editor's
+   * writes are debounced, so this is what stands between a keystroke and a lost edit whenever the
+   * renderer is about to stop being able to send it.
+   */
+  flushPendingWrites: () => Promise<void>;
 
   /* context */
   setContextFiles: (files: ContextFile[]) => void;
@@ -747,7 +822,7 @@ export const useKontur = create<KonturState>()(
             s.id === currentSessionId
               ? {
                   ...s,
-                  messages: [...s.messages, msg],
+                  messages: [...s.messages, msg].slice(-MAX_MESSAGES_PER_SESSION),
                   updatedAt: Date.now(),
                   preview: msg.content.slice(0, 90),
                   title: s.title === "New chat" && msg.role === "user" ? msg.content.slice(0, 42).replace(/\s*[—–-]?\s*$/, "") : s.title,
@@ -874,7 +949,16 @@ export const useKontur = create<KonturState>()(
       addEvent: (ev) => {
         const { sessions, currentSessionId } = get();
         set({
-          sessions: sessions.map((s) => (s.id === currentSessionId ? { ...s, events: [...s.events, ev] } : s)),
+          sessions: sessions.map((s) =>
+            s.id === currentSessionId
+              ? {
+                  ...s,
+                  // Rolling window. Every tool call, approval and streamed delta lands here, and
+                  // nothing ever removed any of it.
+                  events: [...s.events, ev].slice(-MAX_EVENTS),
+                }
+              : s,
+          ),
         });
       },
       setContextTokens: (tokens) => {
@@ -960,8 +1044,15 @@ export const useKontur = create<KonturState>()(
       resolveApproval: (decision, reason) => {
         const approval = get().approval;
         if (!approval) return;
-        approvalWaiters.get(approval.id)?.({ decision, reason });
+
+        // Keyed off the approval's own id rather than off "whatever is in the slot". The two are
+        // the same when only one question is ever open, and different the moment two are: the second
+        // setApproval overwrote the first, so answering the second left the first waiter's promise
+        // unresolved forever. Taking the id from the object that is actually on screen closes that.
+        const waiter = approvalWaiters.get(approval.id);
         approvalWaiters.delete(approval.id);
+        waiter?.resolve({ decision, reason });
+
         if (decision === "allowed-for-run") {
           set({ allowForRunTools: [...get().allowForRunTools, approval.tool], approval: null });
         } else {
@@ -1170,6 +1261,10 @@ export const useKontur = create<KonturState>()(
       setActiveCodeTab: (path) => set({ activeCodeTab: path }),
       markSave: (path, status) => set({ saveStatus: { ...get().saveStatus, [path]: status } }),
 
+      // Replaced in server mode by sync.ts, which owns the debounced write queue. Demo mode has
+      // nowhere to write to, so this is the honest no-op rather than a promise that never settles.
+      flushPendingWrites: async () => {},
+
       /* ---------- context ---------- */
       setContextFiles: (files) => set({ contextFiles: files }),
       addContextFile: (file) =>
@@ -1223,19 +1318,57 @@ export const useKontur = create<KonturState>()(
     {
       name: "kontur-code-proto",
       storage: createJSONStorage(() => localStorage),
+      /**
+       * What goes to localStorage, and — more importantly — what does not.
+       *
+       * The backend is the source of truth for conversations, files and the graph; `sync.ts` hydrates
+       * them on boot. This cache exists so a reload is not a blank screen for a moment, not so it can
+       * hold a second copy of every file body.
+       *
+       * It used to persist `files` whole, plus each checkpoint's `filesSnapshot` — which is every
+       * file's text again — plus every message of every session. On a real project that is
+       * megabytes, and localStorage caps out around 5–10 MB. The failure is the bad part: the quota
+       * exception is thrown inside the persist middleware's own subscriber, so it is swallowed, and
+       * from that point on *nothing* is written again. No error, no warning, and a reload loses the
+       * session. So bodies stay out and paths come in.
+       */
       partialize: (state) => ({
-        sessions: state.sessions,
+        sessions: state.sessions.map((session) => ({
+          ...session,
+          // Bounded so a long-lived install cannot grow without limit; the backend holds the rest.
+          messages: session.messages.slice(-MAX_PERSISTED_MESSAGES),
+        })),
         currentSessionId: state.currentSessionId,
         ui: state.ui,
         goals: state.goals,
-        checkpoints: state.checkpoints,
-        /* workspace durability — canvas graph + file state survive reloads */
+        // Metadata only. `filesSnapshot` is every file's text, once per checkpoint.
+        checkpoints: state.checkpoints.map(({ filesSnapshot: _bodies, ...rest }) => rest),
         canvas: state.canvas,
-        files: state.files,
+        // Paths and sizes, not contents.
+        files: state.files.map(({ content: _content, ...rest }) => rest),
         codeTabs: state.codeTabs,
         activeCodeTab: state.activeCodeTab,
         contextFiles: state.contextFiles,
       }),
+      /**
+       * Bumped when the persisted shape changes. An install carrying an older shape is not migrated
+       * field by field — the backend rehydrates it on boot, so starting from defaults is both correct
+       * and far cheaper than guessing at a shape that no longer exists.
+       */
+      version: PERSIST_VERSION,
+      migrate: (persisted: unknown) => {
+        const shape = persisted as { state?: { version?: number } } | undefined;
+        const version = shape?.state?.version;
+
+        if (version === undefined || version < PERSIST_VERSION) {
+          console.info(
+            `[kontur] local cache written by an older build (v${version ?? "none"}); rebuilding from defaults. The backend has the real state.`,
+          );
+          return undefined;
+        }
+
+        return persisted;
+      },
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         /* NB: runs synchronously during store creation for sync storage —
@@ -1316,3 +1449,46 @@ export const useKontur = create<KonturState>()(
     },
   ),
 );
+
+/**
+ * Watches the size of what persistence would write, and says so before the browser refuses.
+ *
+ * The quota error this guards against is thrown by `setItem` inside the persist middleware's own
+ * subscriber, where nothing catches it: the write silently stops happening and the only symptom is
+ * that a reload loses the session. Warning at a threshold well under the real cap turns a mystery
+ * into a line in the console, and the throttle keeps a streaming run from logging it per frame.
+ */
+const PERSIST_WARN_BYTES = 2 * 1024 * 1024;
+let persistWarned = false;
+let lastPersistCheck = 0;
+
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => {
+    /* Best effort only: beforeunload cannot await, so this marks the state and relies on the
+       document being kept alive long enough for the request to leave. Debouncing means there is
+       normally nothing to flush. */
+    void useKontur.getState().flushPendingWrites?.();
+  });
+
+  window.setInterval(() => {
+    const now = Date.now();
+    if (persistWarned || now - lastPersistCheck < 5_000) return;
+    lastPersistCheck = now;
+
+    try {
+      const serialised = JSON.stringify(
+        (useKontur.getState() as unknown as Record<string, unknown>),
+      ).length;
+
+      if (serialised > PERSIST_WARN_BYTES) {
+        persistWarned = true;
+        console.warn(
+          `[kontur] local state is ${Math.round(serialised / 1024 / 1024)} MB. Browsers cap this near 5-10 MB, and exceeding the cap stops persistence silently. The backend still holds the real conversations; this cache is a fast first paint, not a backup.`,
+        );
+      }
+    } catch {
+      /* A value that will not serialise is its own problem, and logging it every five seconds
+         would be noise. */
+    }
+  }, 5_000);
+}
