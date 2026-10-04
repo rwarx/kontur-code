@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 /* ============================================================
    Backend client — talks to the .NET sidecar (AIClient.Server)
@@ -188,6 +188,55 @@ export async function streamNdjson(
     }
     reader.releaseLock();
   }
+}
+
+/**
+ * Runs an NDJSON stream, retrying once the transport has failed.
+ *
+ * A run can be minutes long, so a dropped socket is likely rather than exceptional — a laptop
+ * changing networks, a proxy reaping an idle connection. Without this the run is simply lost, along
+ * with whatever the agent had already done.
+ *
+ * Retrying re-POSTs the same request. That is safe for these routes because the run id is the
+ * caller's, and the server now refuses an id that is already in flight — so a retry that arrives
+ * while the original is still alive is rejected rather than starting a second agent.
+ *
+ * It cannot resume mid-stream: there is no cursor, so a retry starts the run again. That is honest
+ * and visible rather than a silent partial continuation, and the agent's tool calls are per-call
+ * approved, so a repeated run is the user's call to confirm.
+ *
+ * Three attempts, backing off. Beyond that the error propagates and the caller reports it.
+ */
+const STREAM_MAX_ATTEMPTS = 3;
+
+export async function streamNdjsonWithRetry(
+  path: string,
+  body: unknown,
+  onFrame: (frame: StreamFrame) => void | Promise<void>,
+  signal?: AbortSignal,
+): Promise<void> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= STREAM_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      await streamNdjson(path, body, onFrame, signal);
+      return;
+    } catch (err) {
+      // A deliberate stop is not a transport failure, and retrying it would start a run the user
+      // just cancelled.
+      if (signal?.aborted) throw err;
+
+      lastError = err;
+
+      if (attempt === STREAM_MAX_ATTEMPTS) break;
+
+      await new Promise((resolve) => setTimeout(resolve, 400 * 2 ** (attempt - 1)));
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("The connection to the backend failed repeatedly.");
 }
 
 /** One error reader for both request shapes, so a stream failure reads like any other failure. */
@@ -513,17 +562,17 @@ export const runs = {
     body: { runId: string; conversationId?: string; title?: string; content: string; providerId: string; modelId: string; attachments?: RunAttachment[] },
     onFrame: (f: StreamFrame) => void | Promise<void>,
     signal?: AbortSignal,
-  ) => streamNdjson(`/api/chat/send`, body, onFrame, signal),
+  ) => streamNdjsonWithRetry(`/api/chat/send`, body, onFrame, signal),
   chatRegenerate: (
     body: { runId: string; conversationId: string; assistantMessageId: string; providerId: string; modelId: string },
     onFrame: (f: StreamFrame) => void | Promise<void>,
     signal?: AbortSignal,
-  ) => streamNdjson(`/api/chat/regenerate`, body, onFrame, signal),
+  ) => streamNdjsonWithRetry(`/api/chat/regenerate`, body, onFrame, signal),
   agentRun: (
     body: { runId: string; conversationId?: string; title?: string; content: string; providerId: string; modelId: string; mode: string; attachments?: RunAttachment[] },
     onFrame: (f: StreamFrame) => void | Promise<void>,
     signal?: AbortSignal,
-  ) => streamNdjson(`/api/agent/run`, body, onFrame, signal),
+  ) => streamNdjsonWithRetry(`/api/agent/run`, body, onFrame, signal),
   approval: (runId: string) => api<{
     approvalId: string;
     runId: string;

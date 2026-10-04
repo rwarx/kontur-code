@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bookmark, Check, ChevronRight, Circle, CircleAlert, FileCode, FileStack, FileText, History, Loader2, RotateCw, Sparkles, X } from "lucide-react";

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 /* ============================================================
    Real agent driver — runs chat/agent turns against the .NET
@@ -9,7 +9,7 @@
 
 import { checkpoints, runs, type RunAttachment, type StreamFrame } from "./backend";
 import { ensureServerSession, isServerId, refreshCanvasAfterPlan, refreshOpenTabs, reloadCurrentSession, syncWorkspaceFiles } from "./sync";
-import { newId, useKontur, waitForApproval } from "./store";
+import { failPendingApprovals, newId, useKontur, waitForApproval } from "./store";
 import type { AgentMode, Approval, Attachment, DiffLine, Message, ToolCall } from "./types";
 
 const S = () => useKontur.getState();
@@ -281,15 +281,39 @@ export async function runAgentConversation(
   let lastHandledApprovalId: string | null = null;
   let pollActive = false;
 
+  /**
+ * Polls for an approval question until the run ends.
+ *
+ * Bounded, because the alternative was an unbounded loop: a sidecar that dies mid-run makes every
+ * poll fail, `pending` stays null, and the loop spun at two requests a second forever with nothing on
+ * screen. Eight consecutive failures ends it and says so.
+ */
+const MAX_CONSECUTIVE_POLL_FAILURES = 8;
+
   const pollApprovals = async () => {
     pollActive = true;
+    let failures = 0;
+
     while (pollActive && activeRun?.runId === runId && !abort.signal.aborted) {
       let pending: Awaited<ReturnType<typeof runs.approval>> = null;
+
       try {
         pending = await runs.approval(runId);
+        failures = 0;
       } catch {
-        pending = null;
+        failures += 1;
+
+        if (failures >= MAX_CONSECUTIVE_POLL_FAILURES) {
+          S().pushToast(
+            "Lost contact with the backend",
+            "The approval prompt will not load. The run has been stopped.",
+            "destructive",
+          );
+          abort.abort();
+          return;
+        }
       }
+
       if (pending && pending.approvalId !== lastHandledApprovalId) {
         lastHandledApprovalId = pending.approvalId;
         await handleApproval(pending as unknown as Record<string, unknown>);
@@ -301,6 +325,14 @@ export async function runAgentConversation(
 
   const onFrame = async (frame: StreamFrame) => {
     const st = S();
+
+    // Keepalive, not content. The server writes one of these every five seconds while a run is
+    // producing nothing, because a reasoning model can go quiet for minutes and an idle TCP
+    // connection gets closed by Kestrel or any proxy in front of it. It must be dropped before the
+    // buffer is flushed below: a ping is not a structural boundary, and treating it as one would
+    // force a flush and an extra render every five seconds of every wait.
+    if (frame.type === "ping") return;
+
     const data = (frame.data ?? {}) as Record<string, unknown>;
     if (frame.type === "delta" && frame.text) {
       const id = (frame.messageId as string) ?? assistantId;
@@ -516,6 +548,11 @@ export async function runAgentConversation(
     pollActive = false;
     if (activeRun?.runId === runId) activeRun = null;
     if (pollPromise) await pollPromise.catch(() => undefined);
+
+    // Nothing can answer an approval question now, so anything still waiting must be released.
+    // A waiter left open blocks the frame handler, which blocks the run — the user would watch a
+    // spinner with no error and no way to tell whether it was still working.
+    failPendingApprovals("The run ended before this question was answered.");
   }
 }
 

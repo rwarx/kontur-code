@@ -1,4 +1,4 @@
-﻿using AIClient.Application.DTOs;
+using AIClient.Application.DTOs;
 using AIClient.Infrastructure;
 using AIClient.Infrastructure.Configuration;
 using AIClient.Infrastructure.Workspace;

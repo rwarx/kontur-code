@@ -94,6 +94,39 @@ public static class RunEndpoints
         return summary.Id;
     }
 
+    /// <summary>
+    /// How often a silent stream says something.
+    /// </summary>
+    /// <remarks>
+    /// A reasoning model routinely spends minutes deciding before its first token, and an approval
+    /// question sits open for as long as a person takes. During either, zero bytes are written, and
+    /// Kestrel's <c>MinResponseDataRate</c> — like any proxy in front of it — will close a connection
+    /// that has gone quiet. The run then ends with no output and no error, which reads as a hang.
+    ///
+    /// Five seconds is comfortably under every idle timeout in the path, and the frames are small
+    /// enough that a two-hour run costs a few hundred kilobytes.
+    /// </remarks>
+    private static readonly TimeSpan StreamHeartbeatInterval = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// Says "that run id is taken" in the same JSON shape every other failure on this surface uses,
+    /// so the renderer has one thing to parse.
+    /// </summary>
+    /// <remarks>
+    /// A raw string literal with no interpolation, so the message is exactly what is written rather
+    /// than a format that could throw while reporting a failure.
+    /// </remarks>
+    private static async Task WriteConflictAsync(HttpContext context)
+    {
+        context.Response.ContentType ??= "application/json; charset=utf-8";
+
+        await context.Response
+            .WriteAsync(
+                """{"error":"That run id is already in flight, or too many runs are open. Wait for it to finish, or start a new one."}""",
+                CancellationToken.None)
+            .ConfigureAwait(false);
+    }
+
     private static async Task StreamAsync(
         HttpResponse response,
         Func<Func<object, Task>, Task> produce,
@@ -102,12 +135,34 @@ public static class RunEndpoints
         response.ContentType = "application/x-ndjson; charset=utf-8";
         response.Headers.CacheControl = "no-store";
 
+        // Serialised because the heartbeat and the producer both write to the same body, and two
+        // concurrent WriteAsync calls on one response interleave into a corrupt stream.
+        var writeGate = new SemaphoreSlim(1, 1);
+
         async Task Emit(object evt)
         {
             var line = JsonSerializer.Serialize(evt, Json) + "\n";
-            await response.WriteAsync(line, ct).ConfigureAwait(false);
-            await response.Body.FlushAsync(ct).ConfigureAwait(false);
+
+            await writeGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+            try
+            {
+                await response.WriteAsync(line, ct).ConfigureAwait(false);
+                await response.Body.FlushAsync(ct).ConfigureAwait(false);
+            }
+            finally
+            {
+                writeGate.Release();
+            }
         }
+
+        using var heartbeat = new Timer(
+            // CancellationToken.None on purpose: the timer's own cancellation has already fired by the
+            // time this can run, and a heartbeat that stopped itself is the bug being fixed here.
+            _ => _ = Emit(new { type = "ping" }),
+            null,
+            StreamHeartbeatInterval,
+            StreamHeartbeatInterval);
 
         try
         {
@@ -115,11 +170,17 @@ public static class RunEndpoints
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            await Emit(new { type = "event", name = "cancelled", data = new { } }).ConfigureAwait(false);
+            // The client is gone, so there is nobody to tell. Emitting with the cancelled token would
+            // throw from inside the catch and escape as an unhandled exception.
         }
         catch (Exception ex)
         {
             await Emit(new { type = "error", message = "The run failed before it started.", details = ex.Message }).ConfigureAwait(false);
+        }
+        finally
+        {
+            await heartbeat.DisposeAsync().ConfigureAwait(false);
+            writeGate.Dispose();
         }
     }
 
@@ -132,6 +193,20 @@ public static class RunEndpoints
     {
         var runId = req.RunId ?? Guid.NewGuid();
         var entry = runs.Start(runId);
+
+        if (entry is null)
+        {
+            // The id is already in flight, or too many runs are open. Refusing is the point: the
+            // dictionary indexer this replaced silently overwrote the live run, orphaning its
+            // cancellation token and leaving its approval waiter waiting for an answer that could
+            // never arrive.
+            //
+            // Written by hand because these handlers return Task rather than Task<IResult>:
+            // the response has to be finished here, before the streaming path starts anything.
+            context.Response.StatusCode = StatusCodes.Status409Conflict;
+            await WriteConflictAsync(context).ConfigureAwait(false);
+            return;
+        }
         try
         {
             await StreamAsync(context.Response, async emit =>
@@ -170,6 +245,20 @@ public static class RunEndpoints
     {
         var runId = req.RunId ?? Guid.NewGuid();
         var entry = runs.Start(runId);
+
+        if (entry is null)
+        {
+            // The id is already in flight, or too many runs are open. Refusing is the point: the
+            // dictionary indexer this replaced silently overwrote the live run, orphaning its
+            // cancellation token and leaving its approval waiter waiting for an answer that could
+            // never arrive.
+            //
+            // Written by hand because these handlers return Task rather than Task<IResult>:
+            // the response has to be finished here, before the streaming path starts anything.
+            context.Response.StatusCode = StatusCodes.Status409Conflict;
+            await WriteConflictAsync(context).ConfigureAwait(false);
+            return;
+        }
         try
         {
             await StreamAsync(context.Response, async emit =>
@@ -204,6 +293,20 @@ public static class RunEndpoints
     {
         var runId = req.RunId ?? Guid.NewGuid();
         var entry = runs.Start(runId);
+
+        if (entry is null)
+        {
+            // The id is already in flight, or too many runs are open. Refusing is the point: the
+            // dictionary indexer this replaced silently overwrote the live run, orphaning its
+            // cancellation token and leaving its approval waiter waiting for an answer that could
+            // never arrive.
+            //
+            // Written by hand because these handlers return Task rather than Task<IResult>:
+            // the response has to be finished here, before the streaming path starts anything.
+            context.Response.StatusCode = StatusCodes.Status409Conflict;
+            await WriteConflictAsync(context).ConfigureAwait(false);
+            return;
+        }
         try
         {
             await StreamAsync(context.Response, async emit =>
@@ -304,6 +407,20 @@ public static class RunEndpoints
     {
         var runId = Guid.NewGuid();
         var entry = runs.Start(runId);
+
+        if (entry is null)
+        {
+            // The id is already in flight, or too many runs are open. Refusing is the point: the
+            // dictionary indexer this replaced silently overwrote the live run, orphaning its
+            // cancellation token and leaving its approval waiter waiting for an answer that could
+            // never arrive.
+            //
+            // Written by hand because these handlers return Task rather than Task<IResult>:
+            // the response has to be finished here, before the streaming path starts anything.
+            context.Response.StatusCode = StatusCodes.Status409Conflict;
+            await WriteConflictAsync(context).ConfigureAwait(false);
+            return;
+        }
         try
         {
             await StreamAsync(context.Response, async emit =>

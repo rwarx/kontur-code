@@ -1,4 +1,4 @@
-﻿/* English — canonical dictionary (key convention mirrors S.<Area>.<Thing>) */
+/* English — canonical dictionary (key convention mirrors S.<Area>.<Thing>) */
 
 export const en: Record<string, string> = {
   "app.name": "Kontur Code",

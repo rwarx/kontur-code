@@ -12,14 +12,54 @@ namespace AIClient.Server;
 /// </remarks>
 public sealed class RunRegistry
 {
+    /// <summary>
+    /// How many runs may be in flight at once.
+    /// </summary>
+    /// <remarks>
+    /// Each run holds a request open, a provider connection, and possibly a database write. There is
+    /// no natural ceiling — the caller supplies the id, so it is not even bounded by the number of
+    /// clients. Fifty is far above any real use and low enough that a runaway loop cannot exhaust the
+    /// machine.
+    /// </remarks>
+    public const int MaxConcurrentRuns = 50;
+
     private readonly object _lock = new();
     private readonly Dictionary<Guid, RunEntry> _runs = new();
 
-    public RunEntry Start(Guid runId)
+    /// <summary>
+    /// Registers a run, or returns null when the id is already in flight or the ceiling is reached.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The dictionary indexer was used here, and that silently overwrote a live entry when a caller
+    /// re-posted an id it had chosen itself. The displaced run's <see cref="CancellationTokenSource"/>
+    /// was never disposed, its approval waiter was never signalled — so anything awaiting one waited
+    /// for an answer that could never arrive — and whichever request finished first disposed that
+    /// token while its sibling was still registering a callback on it.
+    /// </para>
+    /// <para>
+    /// Refusing the duplicate is the whole fix. A caller that chose the id may retry it, but it gets
+    /// told no rather than silently orphaning the run already using it.
+    /// </para>
+    /// </remarks>
+    public RunEntry? Start(Guid runId)
     {
         var entry = new RunEntry(runId);
+
         lock (_lock)
         {
+            if (_runs.ContainsKey(runId))
+            {
+                entry.Dispose();
+                return null;
+            }
+
+            if (_runs.Count >= MaxConcurrentRuns)
+            {
+                entry.Dispose();
+                return null;
+            }
+
             _runs[runId] = entry;
         }
 

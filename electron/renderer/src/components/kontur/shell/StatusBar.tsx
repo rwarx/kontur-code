@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { FolderOpen, Keyboard, Link2, Redo2, Sparkles, Undo2 } from "lucide-react";
 import { useKontur } from "@/lib/kontur/store";

@@ -1,4 +1,4 @@
-﻿import type { Dictionary } from "./types-dict";
+import type { Dictionary } from "./types-dict";
 
 /* Russian — полный словарь (Task 2-d) */
 export const ru: Dictionary = {
