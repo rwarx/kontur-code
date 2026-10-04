@@ -61,7 +61,19 @@ public sealed class ReadExternalFileTool : IAgentTool, IAgentToolAvailability
         }
         """;
 
-    public AgentToolRisk Risk => AgentToolRisk.Write;
+    /// <summary>
+    /// <see cref="AgentToolRisk.Execute"/>, not <c>Write</c>, and the difference is the whole point.
+    /// </summary>
+    /// <remarks>
+    /// A standing approval is remembered for a <c>Write</c> for the rest of the run, on the reasoning
+    /// that "may you edit files in this folder" does not change between two edits. That reasoning does
+    /// not hold for a path outside the project. With <c>Write</c> here, one answer of "yes" to a single
+    /// read let the agent call this tool again and again for the rest of the run - so
+    /// <c>list_external_files C:\Users\me</c> followed by a read of anything not named in the
+    /// refusal list: browser profiles, <c>AppData\Roaming</c>, private keys. The writes were already
+    /// <c>Execute</c>; only the reads were mis-classified.
+    /// </remarks>
+    public AgentToolRisk Risk => AgentToolRisk.Execute;
 
     public bool IsAvailable => Settings.AllowExternalFiles;
 

@@ -50,7 +50,12 @@ public sealed class ListExternalFilesTool : IAgentTool, IAgentToolAvailability
         }
         """;
 
-    public AgentToolRisk Risk => AgentToolRisk.Write;
+    /// <summary>
+    /// <see cref="AgentToolRisk.Execute"/>, not <c>Write</c>. See the note on
+    /// <see cref="ReadExternalFileTool"/>: a remembered approval for a listing is a remembered
+    /// approval to enumerate the disk, which is the first half of reading it.
+    /// </summary>
+    public AgentToolRisk Risk => AgentToolRisk.Execute;
 
     public bool IsAvailable => Settings.AllowExternalFiles;
 

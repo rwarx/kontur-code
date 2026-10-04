@@ -432,6 +432,15 @@ public sealed class ExternalFileService : IExternalFileService
     /// A write refuses the operating-system folders on top of that: the agent may read them with
     /// approval, but there is no version control undoing a change to System32.
     /// </remarks>
+    /// <summary>
+    /// One sentence for every way a link can turn out to have no knowable destination. Shared by
+    /// both failure branches so that the two ways of failing say the same thing to the model, which
+    /// is what it reads.
+    /// </summary>
+    private const string UnresolvedLink =
+        "That path leads through a link whose destination could not be resolved, so where it really "
+        + "points is unknown and it was refused.";
+
     private bool Validate(string? raw, bool forWrite, out string full, out string? error)
     {
         full = string.Empty;
@@ -451,11 +460,11 @@ public sealed class ExternalFileService : IExternalFileService
             return false;
         }
 
-        string resolved;
+        string lexical;
 
         try
         {
-            resolved = Path.TrimEndingDirectorySeparator(Path.GetFullPath(trimmed));
+            lexical = Path.TrimEndingDirectorySeparator(Path.GetFullPath(trimmed));
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
@@ -463,9 +472,24 @@ public sealed class ExternalFileService : IExternalFileService
             return false;
         }
 
-        if (Path.GetFileName(resolved).Contains(':'))
+        if (Path.GetFileName(lexical).Contains(':'))
         {
             error = "That path names an alternate data stream, which is refused.";
+            return false;
+        }
+
+        // Links are resolved *before* any of the checks below, and the resolved location is what
+        // gets checked. Checking the text is not enough here, and the reason is specific to this
+        // service: there is no root to measure against, so the only thing that distinguishes a safe
+        // path from an unsafe one is the name of the file it lands on. A junction named `pub` could
+        // sit at `C:\Users\me\pub`, pass every segment test, and land on `C:\Users\me\.ssh`, whose
+        // `id_rsa` the name-based refusal list exists to protect. Resolving first means the list is
+        // applied to `id_rsa` rather than to `pub`.
+        var resolved = ResolveThroughLinks(lexical, out var linkError);
+
+        if (resolved is null)
+        {
+            error = linkError;
             return false;
         }
 
@@ -495,6 +519,113 @@ public sealed class ExternalFileService : IExternalFileService
 
         full = resolved;
         return true;
+    }
+
+    /// <summary>
+    /// Replaces every link on the way down to a path with its final target, and refuses a link that
+    /// cannot be resolved.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Each level is resolved with <c>returnFinalTarget: true</c>, since a link may point at another
+    /// link, and the resolved prefix is carried into the levels below it so that
+    /// <c>C:\link\deep\file</c> where <c>link</c> is a junction to <c>D:\real</c> becomes
+    /// <c>D:\real\deep\file</c> rather than a path whose middle no longer exists.
+    /// </para>
+    /// <para>
+    /// Levels that do not exist are walked through without resolving, because a file about to be
+    /// created cannot be a link.
+    /// </para>
+    /// <para>
+    /// A level is only treated as a link when it carries the <see cref="FileAttributes.ReparsePoint"/>
+    /// attribute, and levels are probed with <see cref="File.GetAttributes(string)"/> rather than with
+    /// <c>File.Exists</c> or <c>Directory.Exists</c>. Both of those answer false for a dangling symlink,
+    /// which would mean a broken link is mistaken for an absent path and walked through as text - the
+    /// exact fallback this exists to remove.
+    /// </para>
+    /// <para>
+    /// A link is resolved rather than refused, and the resolved location is what every later check -
+    /// the name list, the data directory, the system folders - is applied to. A link to an ordinary
+    /// file therefore keeps working, and a link to a protected one is refused for the protection rather
+    /// than for being a link.
+    /// </para>
+    /// <para>
+    /// What is refused is a link whose destination cannot be determined at all: a cycle the operating
+    /// system gives up on, or one the agent may not read. Returning the lexical path in that case would
+    /// restore exactly the bypass this exists to close.
+    /// </para>
+    /// </remarks>
+    private static string? ResolveThroughLinks(string path, out string? error)
+    {
+        error = null;
+
+        var root = Path.GetPathRoot(path);
+
+        if (string.IsNullOrEmpty(root))
+        {
+            error = "That path has no root, so it cannot be resolved safely.";
+            return null;
+        }
+
+        var segments = path[root.Length..]
+            .Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            .Where(segment => segment.Length > 0);
+
+        var current = root;
+
+        foreach (var segment in segments)
+        {
+            var next = Path.Combine(current, segment);
+            FileAttributes attributes;
+
+            try
+            {
+                attributes = File.GetAttributes(next);
+            }
+            catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+            {
+                // Nothing here yet. A file about to be created cannot be a link.
+                current = next;
+                continue;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                error = "That path could not be examined, so whether it is safe to open is unknown, "
+                    + "and it was refused.";
+                return null;
+            }
+
+            if ((attributes & FileAttributes.ReparsePoint) == 0)
+            {
+                current = next;
+                continue;
+            }
+
+            string? target;
+
+            try
+            {
+                target = new FileInfo(next).ResolveLinkTarget(returnFinalTarget: true)?.FullName;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+            {
+                // IOException for a cycle the operating system gave up on. InvalidOperationException is
+                // what the framework throws for some unresolvable link shapes.
+                error = UnresolvedLink;
+                return null;
+            }
+
+            if (target is null)
+            {
+                // The ordinary dangling-symlink case: the link is there, the destination is not.
+                error = UnresolvedLink;
+                return null;
+            }
+
+            current = Path.TrimEndingDirectorySeparator(Path.GetFullPath(target));
+        }
+
+        return Path.TrimEndingDirectorySeparator(Path.GetFullPath(current));
     }
 
     /// <summary>
@@ -542,6 +673,11 @@ public sealed class ExternalFileService : IExternalFileService
         Environment.GetFolderPath(Environment.SpecialFolder.SystemX86),
         Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
         Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+
+        // C:\ProgramData. This one was missing, and it is not an oversight to repeat: a machine-wide
+        // folder for application data is every bit as system-owned as Program Files, and leaving it
+        // writable meant the write guard refused C:\Windows\System32 while permitting C:\ProgramData.
+        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
     ];
 
     /// <summary>Splits text into lines the way an editor counts them, dropping one trailing empty.</summary>
