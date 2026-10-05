@@ -17,6 +17,102 @@ Nothing yet.
 
 ---
 
+## [0.1.1-alpha] — unreleased at the time of writing
+
+The follow-up to `0.1.0-alpha`, closing what that release documented as gaps. Five
+of the seven limitations listed below were fixed; the two that remain are recorded
+in [SECURITY.md](SECURITY.md#known-gaps) with file references.
+
+### Security
+
+Two holes in the out-of-project file door, both found by re-reading
+`AgentService.IsAllowedForRun` against the tool risk levels rather than trusting
+the documentation — which had claimed external file access was "per-call approved".
+It was not, for reads.
+
+- **One approval used to mean the whole disk.** `IsAllowedForRun` grants a standing
+  yes to any tool whose risk is not `Execute`, and the external *reads* were `Write`.
+  So a single answer to one `read_external_file` let the agent call it for the rest
+  of the run: `list_external_files C:\Users\me`, then a read of anything not named
+  in the refusal list. `ReadExternalFileTool` and `ListExternalFilesTool` are now
+  `Execute`, matching the writes that were already right.
+- **The refusal list could be walked around.** `ExternalFileService` checked the
+  *textual* segments of a path, where `WorkspaceService` resolves every reparse
+  point. With no root out there to measure containment against, the only thing
+  distinguishing a safe path from an unsafe one is the name it lands on — and a
+  junction named `pub` makes every requested segment innocent. `.ssh\config` is
+  protected by its *parent*, so `pub\config` passed and returned a real SSH config.
+  Links are now resolved before any check, and the resolved location is what the
+  name list, the data directory and the system folders are applied to.
+- **`C:\ProgramData`** was missing from the system-folder list while Program Files
+  was in it, so the write guard refused System32 and permitted ProgramData.
+
+21 tests cover the external-file service, including two that build real junctions and
+symlinks. Verified in both directions: with link resolution removed, five fail.
+
+### Data loss
+
+- **Every keystroke wrote the whole file.** `setFileContent` POSTed the entire
+  document per character — a full-file request per keystroke, and on a poor
+  connection a toast per keystroke as they all failed. In-memory state still updates
+  immediately; the write is now a trailing debounce per path, with an `unsaved`
+  state for the window in between and an explicit flush before a session switch, a
+  bundle export and teardown. The bundle export needed it: it packages the
+  renderer's in-memory files, so without a flush it could be written while the last
+  edit was still queued.
+- **`localStorage` would have stopped persisting, silently.** The persisted shape
+  held every file's text, every checkpoint's `filesSnapshot` (every file's text
+  again) and every message — megabytes against a 5–10 MB cap. The quota exception
+  is thrown inside the persist middleware's own subscriber, where nothing catches it,
+  so writes stop with no error and a reload loses the session. File bodies are out:
+  the sidecar already persists them. Added a `version` + `migrate` and a size
+  warning at 2 MB.
+- **`events` and messages per session** only ever grew. Both are now a rolling
+  window.
+
+### Reliability
+
+- **A silent stream was a failed run.** No frame meant no bytes, and a reasoning
+  model thinks for minutes before its first token. Kestrel's `MinResponseDataRate`
+  — like any proxy — closes a connection that goes quiet, and the run ended with no
+  output and no error. A `ping` frame every five seconds keeps it alive; the
+  renderer drops it before the buffer flush, since a keepalive is not a structural
+  boundary.
+- **Retry on a dropped stream**, three attempts with backoff. Re-POSTing is safe
+  because the run id is the caller's, and `RunRegistry.Start` now refuses an id
+  already in flight rather than overwriting the live entry — which orphaned that
+  run's cancellation token and left its approval waiter waiting forever. Fifty
+  concurrent runs maximum.
+- **Approval polling could spin forever.** A sidecar that died mid-run left the
+  loop at two requests a second indefinitely with nothing on screen. Eight
+  consecutive failures now ends it and says so.
+- **Approval waiters could hang a run.** `waitForApproval` built a promise that
+  could only resolve, and resolved it through a single store slot, so two approvals
+  arriving together left the first waiting forever. Waiters now reject, and
+  `failPendingApprovals` releases everything still open when a run ends.
+
+### Housekeeping
+
+- **45 dead files and 36 dead dependencies removed.** `components/ui/` was a shadcn
+  kit of which three files were reachable; the rest were imported only by each
+  other. Dependencies went from 64 to 28. None of them were bundled before this
+  either, so it is not a size win — it is 36 fewer packages anyone running
+  `npm install` pulls into their tree.
+- **`Ctrl+,` did nothing**: the comparison included a trailing space.
+- **Dictation was brickable**: `triggerDictation` set a store flag and dispatched an
+  event whose listener lives in the chat composer, so pressing Ctrl+M on another
+  surface left the flag stuck true for the rest of the session.
+- **`StatusBar`** subscribed to the whole canvas object and read four scalars from
+  it, re-rendering on every `pointermove` while panning.
+- `main.js` and `preload.js` still get no type checking. The smallest honest fix
+  would be a second tsconfig over the shell; it is recorded as a gap rather than
+  half-done.
+
+917 tests pass, 8 skip by design. `tsc --noEmit` and `vite build` clean against a
+fresh `npm ci`.
+
+---
+
 ## [0.1.0-alpha] — 2026-10-03
 
 The first public build. It is an **alpha**: the shape is settled enough to build
@@ -149,5 +245,6 @@ Carried into this alpha deliberately, and detailed with file references in
    UI kit that was replaced. They are not bundled, but they are a supply-chain
    surface for anyone running `npm install`.
 
-[Unreleased]: https://github.com/rwarx/kontur-code/compare/v0.1.0-alpha...HEAD
+[Unreleased]: https://github.com/rwarx/kontur-code/compare/v0.1.1-alpha...HEAD
+[0.1.1-alpha]: https://github.com/rwarx/kontur-code/compare/v0.1.0-alpha...v0.1.1-alpha
 [0.1.0-alpha]: https://github.com/rwarx/kontur-code/releases/tag/v0.1.0-alpha

@@ -136,9 +136,14 @@ The agent is the part with teeth, so this is the part worth reading twice.
   everything above `Read` goes to the approval gate. There is no second allowlist
   to keep in step, and the **default approval implementation refuses** — a host that
   forgets to install one gets an agent that can only read.
-- **A standing "yes" covers file writes, never programs.** `Execute` is excluded,
-  so ten commands is ten questions — and `git status` and `git clean -xfd` are not
-  the same question.
+- **A standing "yes" covers file writes inside the project, and nothing else.**
+  `Execute` is excluded from it, so ten commands is ten questions — and `git status`
+  and `git clean -xfd` are not the same question. The five out-of-project tools are
+  `Execute` too, so **no answer is remembered for them at all**: one question, one
+  read or write. That is deliberate. A remembered "yes" makes sense for "may you
+  edit files in this folder", which does not change between two edits. It does not
+  make sense for a path outside the folder, where a single remembered answer would
+  otherwise buy the whole disk.
 - **No shell.** Programs are started directly with an argument list. `&&`, `|`,
   `>` and `$HOME` are text the program receives, not syntax anything interprets.
   The program must be on an allowlist a person edits, which is off by default.
@@ -154,19 +159,26 @@ The agent is the part with teeth, so this is the part worth reading twice.
 
 ## Known gaps
 
-These are real, known, and not fixed in `0.1.0-alpha`. They are listed because a
-security page that lists only strengths is marketing.
+Real, known, and still open. Listed because a security page that lists only
+strengths is marketing.
+
+**Closed since the first public build**, and worth recording because two of them
+were in a document that claimed otherwise: the out-of-project *reads* were declared
+`AgentToolRisk.Write`, and a remembered approval applies to every `Write` for the
+rest of the run — so one answer of "yes" let the agent list `C:\Users\me` and read
+whatever was not named in the refusal list. Both read tools are now `Execute`, and
+so is every external write. Separately, `ExternalFileService` checked the *textual*
+segments of a path rather than resolving it, so a junction named `pub` made every
+requested segment innocent and `.ssh\config` came back out; links are now resolved
+before any check, and the resolved location is what the refusal list is applied to.
 
 | # | Gap | Impact | Status |
 | --- | --- | --- | --- |
-| 1 | `ExternalFileService` checks sensitive *names* textually but does **not** resolve reparse points, unlike `WorkspaceService`. | A pre-existing junction inside an allowed path can redirect an external read or write to somewhere the name-based denial list would have refused. External access is off by default and per-call approved, which is what contains it today. | Open. High. |
-| 2 | `RunRegistry.Start` accepts a caller-supplied run id and overwrites an existing entry. | A repeated id orphans the earlier run's `CancellationTokenSource` and approval waiter. Requires the bearer token, so it is reachable only from inside the app. | Open. Medium. |
-| 3 | The approval-waiter map has one slot, so two approvals arriving together can leave the first waiter's promise unresolved. | A run can hang instead of failing. Availability, not confidentiality. | Open. Medium. |
-| 4 | The NDJSON stream has no heartbeat, so a long provider stall or an open approval writes nothing. | Kestrel's minimum data rate can drop the connection; a dropped stream loses the run. No reconnect logic. | Open. Medium. |
-| 5 | No request-size limit or rate limiter on the sidecar beyond Kestrel's 30 MB default. | A caller with the token can ask for expensive work. Contained by the token and by the `/api/ai/complete` clamps. | Open. Low. |
-| 6 | Conversations are **not encrypted at rest**. | Anyone with your Windows account can read the database. Deliberate: an encrypted store would put the key where that account can reach it. | By design. Documented in [PRIVACY.md](PRIVACY.md). |
-| 7 | The renderer's persisted state serialises workspace file contents into `localStorage`. | Larger working sets can exceed the browser storage quota; the failure is a silent loss of draft state, not a disclosure. | Open. Medium. |
-| 8 | `main.js` and `preload.js` are plain JavaScript outside the TypeScript project, so they get no type checking. | The most security-critical surface in the shell is unchecked by the compiler. | Open. Low. |
+| 1 | No request-size limit or rate limiter on the sidecar beyond Kestrel's 30 MB default. | A caller holding the token can ask for expensive work. Contained by the token and by the `/api/ai/complete` clamps. | Open. Low. |
+| 2 | Conversations are **not encrypted at rest**. | Anyone with your Windows account can read the database. Deliberate: an encrypted store would put the key where that account can reach it. | By design. Documented in [PRIVACY.md](PRIVACY.md). |
+| 3 | `main.js` and `preload.js` are plain JavaScript outside the TypeScript project, so they get no type checking. | The most security-critical surface in the shell is unchecked by the compiler. | Open. Low. |
+| 4 | The editor's inline AI and ghost-text features can be driven repeatedly by cursor movement, not only typing. | Unbounded provider spend from a non-typing action. Off by default. | Open. Low. |
+| 5 | `SensitiveFiles` and `WorkspaceService` carry two copies of the credential-name list. | They agree today; nothing enforces that they continue to. A future edit to one is not picked up by the other. | Open. Low. |
 
 If you find one of these exploited, report it privately as above — do not open a
 public issue.
@@ -181,7 +193,8 @@ public issue.
    workspace root. Root at a project, not at a home directory. (A root that
    contains your user profile is refused.)
 3. **Leave external file access and network fetch off** unless a task needs them.
-   Each is per-call approved, which is the containment.
+   Each one is off by default and every call is put in front of you individually —
+   no answer is remembered for the rest of the run, which is the point.
 4. **Use a provider key you can rotate.** The app stores it encrypted, but the key
    is spent the moment you send a prompt.
 5. **Run it as a normal user**, not an administrator. The agent can run programs

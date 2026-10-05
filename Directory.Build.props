@@ -20,11 +20,11 @@
       sidecar whose newest surfaces (external file tools, the HTTP fetcher, the spatial graph) have
       no test coverage yet. See CHANGELOG.md for what is and is not ready.
     -->
-    <Version>0.1.0-alpha</Version>
+    <Version>0.1.1-alpha</Version>
     <VersionPrefix>0.1.0</VersionPrefix>
     <AssemblyVersion>0.1.0.0</AssemblyVersion>
     <FileVersion>0.1.0.0</FileVersion>
-    <InformationalVersion>0.1.0-alpha</InformationalVersion>
+    <InformationalVersion>0.1.1-alpha</InformationalVersion>
   </PropertyGroup>
 
 </Project>

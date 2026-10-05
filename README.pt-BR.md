@@ -148,11 +148,11 @@ mesma ferramenta três vezes.
 
 **Tudo fora dessa pasta é opt-in e fica desligado até você ligá-lo.** O acesso à rede e o acesso a
 arquivos fora do projeto são interruptores separados nas Configurações, e cada chamada ainda passa pelo
-pedido de aprovação.
+pedido de aprovação. **Nenhuma resposta é lembrada para eles** — uma pergunta, uma leitura ou uma
+escrita.
 
-> O modelo completo de contenção — e **oito falhas conhecidas**, incluindo uma que deixa uma junction
-> do Windows contornar as regras de nome de credencial para arquivos fora do projeto — está em
-> [SECURITY.md](SECURITY.md). Isto é uma alpha; leia antes de confiar nele.
+> O modelo completo de contenção — e **o que continua aberto**, que agora é uma lista curta — está
+> em [SECURITY.md](SECURITY.md). Isto é uma alpha; leia antes de confiar nele.
 
 ---
 
@@ -328,23 +328,29 @@ Electron e Chromium — catalogados em [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTI
 
 ## Status
 
-`0.1.0-alpha`. Publicado como prerelease, deliberadamente.
+`0.1.1-alpha`. Publicado como prerelease, deliberadamente.
 
 **Funciona:** chat em streaming, os dois hosts, o grafo e o canvas espaciais, o ciclo de ferramentas do
 agente com o seu portão de aprovação, o editor, o git, sessões e pacotes, três idiomas.
 
-**Sabe-se que não funciona bem** — tudo listado em [CHANGELOG](CHANGELOG.md#known-limitations), tudo
-listado com referências a arquivos em [SECURITY.md](SECURITY.md#known-gaps):
+**Corrigido desde `0.1.0-alpha`** — duas falhas de segurança na porta de arquivos fora do projeto e
+duas maneiras de perder o seu trabalho:
 
-1. Uma junction do Windows pode contornar as regras de nome de credencial para o acesso a arquivos
-   fora do projeto.
-2. Duas aprovações chegando juntas podem travar uma execução em vez de falhá-la.
-3. O fluxo de eventos não tem heartbeat nem reconexão — uma conexão perdida perde a execução.
-4. O editor grava em disco a cada tecla, sem debounce.
-5. O renderer persiste o conteúdo dos arquivos do espaço de trabalho em `localStorage`; projetos
-   grandes podem exceder a cota do navegador.
-6. As superfícies mais novas — ferramentas de arquivo externo, o fetcher, o servidor, as operações de
-   git — não têm cobertura de testes. As correções feitas para este release *estão* cobertas.
+- Uma aprovação em uma leitura de arquivo externo dava acesso de leitura a todo o disco pelo resto da
+  execução. Agora cada operação fora do projeto é uma pergunta própria.
+- Caminhos fora do projeto eram verificados como texto, então uma junction do Windows podia contornar
+  as regras de nome de credencial para arquivos. Agora os links são resolvidos antes de qualquer
+  verificação.
+- O editor gravava o arquivo inteiro a cada tecla. Agora as gravações são adiadas, com um indicador
+  **não salvo** e um despejo automático antes de trocar de sessão, exportar ou sair.
+- O renderer duplicava o texto de cada arquivo no armazenamento do navegador, com um limite de 5–10 MB,
+  e parava de gravar *silenciosamente* quando ele enchia. Essa duplicação acabou.
+
+**Continua aberto**, com referências a arquivos em
+[SECURITY.md](SECURITY.md#known-gaps): as conversas não são criptografadas em repouso (de propósito, e a
+sua conta do Windows consegue lê-las de qualquer forma), o sidecar não tem limite de tamanho de
+requisição nem limitador de taxa além do padrão do Kestrel, os scripts principal e preload do Electron
+não passam por verificação de tipos, e as ferramentas mais novas do agente não têm cobertura de testes.
 
 Esta é uma versão `0.x` de um projeto pequeno sem nenhum financiamento por trás. Ela é construída ao
 vivo, as issues são respondidas no melhor esforço possível e não há SLA. Se você precisar de um, isso é

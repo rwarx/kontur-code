@@ -151,11 +151,11 @@ même outil trois fois.
 **Tout ce qui se trouve en dehors de ce dossier est facultatif et reste désactivé tant que vous ne
 l'activez pas.** La récupération réseau et l'accès aux fichiers hors projet sont deux interrupteurs
 distincts dans les paramètres, et chaque appel passe toujours par la demande d'approbation.
+**Aucune réponse n'est mémorisée pour eux** — une question, une lecture ou une écriture.
 
-> Le modèle complet d'isolement — et **huit lacunes connues**, dont une qui permet à une jonction
-> Windows de contourner les règles de dénomination des fichiers d'identifiants pour les fichiers
-> hors projet — se trouve dans [SECURITY.md](SECURITY.md). Ceci est une alpha ; lisez le document
-> avant de lui faire confiance.
+> Le modèle complet d'isolement — et **ce qui reste ouvert**, ce qui est désormais une courte liste —
+> se trouve dans [SECURITY.md](SECURITY.md). Ceci est une alpha ; lisez le document avant de lui
+> faire confiance.
 
 ---
 
@@ -335,27 +335,33 @@ et Chromium — catalogués dans [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md
 
 ## État
 
-`0.1.0-alpha`. Publiée comme préversion, délibérément.
+`0.1.1-alpha`. Publiée comme préversion, délibérément.
 
 **Fonctionne :** le chat en streaming, les deux hôtes, le graphe spatial et le canevas, la boucle
 d'outils de l'agent avec sa porte d'approbation, l'éditeur, git, les sessions et les paquets, trois
 langues.
 
-**On sait que ne fonctionne pas bien** — tout est listé dans
-[CHANGELOG](CHANGELOG.md#known-limitations), tout est listé avec des références de fichiers dans
-[SECURITY.md](SECURITY.md#known-gaps):
+**Corrigé depuis `0.1.0-alpha`** — deux failles de sécurité dans la porte des fichiers hors projet, et
+deux façons de perdre votre travail :
 
-1. Une jonction Windows peut contourner les règles de dénomination des fichiers d'identifiants pour
-   l'accès aux fichiers hors projet.
-2. Deux approbations arrivant ensemble peuvent bloquer une exécution au lieu de la faire échouer.
-3. Le flux d'événements n'a ni battement de cœur ni reconnexion — une connexion perdue perd
-   l'exécution.
-4. L'éditeur écrit sur le disque à chaque frappe, sans anti-rebond.
-5. Le moteur de rendu persiste le contenu des fichiers de l'espace de travail dans `localStorage` ;
-   les gros projets peuvent dépasser le quota du navigateur.
-6. Les surfaces les plus récentes — les outils de fichiers externes, la récupération réseau, le
-   serveur, les opérations git — n'ont aucune couverture de tests. Les correctifs apportés pour
-   cette version *sont* couverts.
+- Une approbation sur une lecture de fichier externe accordait l'accès en lecture à tout le disque
+  pour le reste de l'exécution. Chaque opération hors projet est désormais une question distincte.
+- Les chemins hors projet étaient vérifiés comme du texte, si bien qu'une jonction Windows pouvait
+  contourner les règles de dénomination des fichiers d'identifiants. Les liens sont désormais résolus
+  avant toute vérification.
+- L'éditeur écrivait le fichier entier à chaque frappe. Les écritures sont désormais différées, avec
+  un indicateur **non enregistré** et une écriture automatique avant que vous ne changiez de
+  session, n'exportiez ou ne quittiez.
+- Le moteur de rendu dupliquait le texte de chaque fichier dans le stockage du navigateur, face à un
+  plafond de 5–10 Mo, et cessait d'enregistrer *silencieusement* une fois ce plafond atteint. Ce
+  doublon a disparu.
+
+**Toujours ouvert**, avec références aux fichiers dans
+[SECURITY.md](SECURITY.md#known-gaps) : les conversations ne sont pas chiffrées au repos
+(délibérément, et votre compte Windows peut les lire de toute façon), le sidecar n'a ni limite de
+taille de requête ni limiteur de débit au-delà du réglage par défaut de Kestrel, les scripts
+principal et preload d'Electron ne bénéficient d'aucune vérification de types, et les outils d'agent
+les plus récents ne sont couverts par aucun test.
 
 C'est une version `0.x` issue d'un petit projet sans financement derrière elle. Elle est construite
 à vue ouverte, les tickets reçoivent une réponse au mieux, et il n'y a pas de SLA. Si vous en avez

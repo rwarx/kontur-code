@@ -272,16 +272,18 @@ door for paths inside the open folder; `IExternalFileService` is the door for pa
 refuse the credential-shaped names in [`SensitiveFiles`](src/AIClient.Domain/Workspace/SensitiveFiles.cs),
 and both refuse the application's own data directory.
 
-They are **not** otherwise equivalent, and this is the highest-priority known gap in the project:
-`WorkspaceService.LinkEscape` walks every level of a path and resolves it to its final target before
-comparing against the root, so a junction cannot redirect a write out of the tree.
-`ExternalFileService.Validate` checks only the **textual** segments. A pre-existing junction inside an
-allowed path therefore defeats the name-based denial list - `mklink /J pub C:\Users\me\.ssh` and then
-`read_external_file` on `pub\id_rsa` reaches a file that should be refused.
+They are **not** otherwise equivalent, and the difference is worth stating before you
+widen either door: `WorkspaceService.LinkEscape` walks every level of a path and
+resolves it to its final target, because it has a root to measure containment
+against. `ExternalFileService` has no root — that is the whole point of it — so
+instead it resolves every link and then applies the refusal lists to the
+**resolved** location. That is what stops a junction named `pub` from presenting
+innocent segments and delivering `.ssh\config`. Do not add a check against the
+lexical path; that is the shape the bypass had.
 
-What contains it today is that external access is off until the user turns it on, and every call goes
-through the approval gate. **Port `LinkEscape` into `ExternalFileService` before widening its
-availability.** Do not add a third door without that.
+What contains it today is stronger than it was: all five external tools declare
+`AgentToolRisk.Execute`, which `AgentService.IsAllowedForRun` excludes, so no answer
+is remembered for them and every call is its own question.
 
 **`git` arguments are validated before they reach the process.**
 [`GitArguments`](src/AIClient.Infrastructure/Git/GitArguments.cs) refuses a remote name containing a

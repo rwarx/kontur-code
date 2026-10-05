@@ -122,12 +122,15 @@ jobs:
       - name: Install
         run: npm ci
 
-      # noUnusedLocals is off in tsconfig because the repository still contains
-      # un-migrated files from a UI kit that was replaced. Turning it on here
-      # would fail the build for reasons unrelated to the change under review, so
-      # it stays a documented follow-up rather than a red X nobody can act on.
-      - name: Typecheck
+      - name: Typecheck the renderer
         run: npm run typecheck
+
+      # main.js and preload.js are the files with the authority: they own the
+      # window, the sidecar process, the filesystem and the bridge the renderer
+      # is allowed to use. They sat outside every TypeScript project until now,
+      # so a misspelled BrowserWindow method failed at runtime.
+      - name: Typecheck the shell
+        run: npm run typecheck:shell
 
       - name: Build renderer
         run: npm run build:renderer

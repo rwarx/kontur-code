@@ -23,13 +23,41 @@ const LOOPBACK_URL = `http://127.0.0.1:${SIDECAR_PORT}`;
    which enforces its own caps and can report a useful refusal. */
 const MAX_LOCAL_READ_BYTES = 8 * 1024 * 1024;
 
+/*
+ * The module's mutable state.
+ *
+ * These annotations are what make tsconfig.shell.json worth running. Without
+ * them `let mainWindow = null` infers `null`, every use of it is either
+ * "possibly null" or unchecked, and a misspelled BrowserWindow method fails at
+ * runtime instead of at build time.
+ *
+ * They are `/** *\/` and not `/* *\/` on purpose: a `@type` tag inside a plain
+ * block comment is not a JSDoc tag and is silently ignored, which is a
+ * satisfying way to write a comment that does nothing.
+ */
+
+/** @type {Electron.BrowserWindow | null} */
 let mainWindow = null;
+/** @type {import("node:child_process").ChildProcess | null} */
 let sidecar = null;
+/** @type {string} */
 let backendUrl = "";
-let backendReadyResolve = null;
-const backendReady = new Promise((resolve) => {
-  backendReadyResolve = resolve;
-});
+/**
+ * Resolved once the sidecar has started, failed, or timed out.
+ *
+ * Initialised to a real function rather than null: the promise executor runs
+ * synchronously so it is assigned immediately, and a null here would mean every
+ * later call needed a guard for a state that cannot occur. The no-op default is
+ * what makes it impossible to await `backendReady` and then dereference null.
+ *
+ * @type {() => void}
+ */
+let resolveBackendReady = () => {};
+const backendReady = /** @type {Promise<void>} */ (
+  new Promise((resolve) => {
+    resolveBackendReady = () => resolve(undefined);
+  })
+);
 
 /* One token per launch, shared between this process, the sidecar it starts, and the renderer that
    talks to it. It is the sidecar's only credential, so it is generated here where it never touches
@@ -37,10 +65,16 @@ const backendReady = new Promise((resolve) => {
    environment variable, and neither can be read by a web page the user happens to have open. */
 const authToken = crypto.randomBytes(32).toString("base64");
 
-/* Folders the user has actually chosen through the OS dialog in this session. The renderer is not
-   trusted to nominate one on its own: anything it can name here would become readable through
-   kontur:readFileLocal, so the authority for the list is a directory the person picked, and this
-   process is the only thing that sees that pick. */
+/*
+ * Folders the user has actually chosen through the OS dialog in this session.
+ *
+ * The renderer is not trusted to nominate one on its own: anything it can name
+ * here would become readable through kontur:readFileLocal, so the authority for
+ * the list is a directory the person picked, and this process is the only thing
+ * that sees that pick.
+ *
+ * @type {Set<string>}
+ */
 const userFolders = new Set();
 
 function rememberFolder(dir) {
@@ -89,7 +123,7 @@ function startSidecar() {
     }
     backendUrl = raw;
     console.log(`[kontur] using external backend ${backendUrl} (loopback only)`);
-    backendReadyResolve();
+    resolveBackendReady();
     return;
   }
 
@@ -103,7 +137,7 @@ function startSidecar() {
   if (!exe) {
     console.error("[kontur] sidecar not found; the renderer will fall back to the default port and fail to authenticate.");
     backendUrl = LOOPBACK_URL;
-    backendReadyResolve();
+    resolveBackendReady();
     return;
   }
 
@@ -116,15 +150,20 @@ function startSidecar() {
   });
   backendUrl = LOOPBACK_URL;
 
+  /* A local alias rather than reading the module variable repeatedly. `sidecar` is nullable because
+     stopSidecar() clears it, so every use needs a guard; inside this function the child is a local
+     and cannot change under us. */
+  const child = sidecar;
+
   let resolved = false;
   const done = () => {
     if (!resolved) {
       resolved = true;
-      backendReadyResolve();
+      resolveBackendReady();
     }
   };
   const timer = setTimeout(done, 15000);
-  sidecar.stdout.on("data", (d) => {
+  child.stdout?.on("data", (d) => {
     const text = String(d);
     process.stdout.write(`[sidecar] ${text}`);
     if (text.includes("Now listening on") || text.includes("Application started")) {
@@ -132,18 +171,18 @@ function startSidecar() {
       done();
     }
   });
-  sidecar.stderr.on("data", (d) => process.stderr.write(`[sidecar:err] ${String(d)}`));
+  child.stderr?.on("data", (d) => process.stderr.write(`[sidecar:err] ${String(d)}`));
 
   // An unhandled 'error' event on a ChildProcess is thrown by Node. Without this listener a quarantined
   // exe, a partial install or an out-of-memory spawn takes the whole application down before it draws a
   // window, and the user sees nothing at all instead of an error.
-  sidecar.on("error", (err) => {
+  child.on("error", (err) => {
     console.error(`[kontur] sidecar failed to start: ${err.message}`);
     clearTimeout(timer);
     done();
   });
 
-  sidecar.on("exit", (code) => {
+  child.on("exit", (code) => {
     console.error(`[kontur] sidecar exited with code ${code}`);
     clearTimeout(timer);
     done();
@@ -256,6 +295,11 @@ function createWindow() {
 }
 
 function buildMenu() {
+  // Annotated rather than inferred. Without it TypeScript widens each `role` to
+  // plain `string`, so a misspelled role ("minimise", "toggledevtools") would
+  // typecheck cleanly and produce a menu item that silently does nothing at
+  // runtime. The union is the point of checking this file.
+  /** @type {Electron.MenuItemConstructorOptions[]} */
   const template = [
     {
       label: "File",

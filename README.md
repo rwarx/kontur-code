@@ -138,10 +138,9 @@ tool three times.
 
 **Everything outside that folder is opt-in, and off until you turn it on.** Network fetching and
 out-of-project file access are separate switches in Settings, and each call still goes through the
-approval prompt.
+approval prompt. **No answer is remembered for them** — one question, one read or write.
 
-> The full containment model — and **eight known gaps**, including one that lets a Windows junction
-> defeat the credential-filename rules for out-of-project files — is in
+> The full containment model — and **what is still open**, which is a short list now — is in
 > [SECURITY.md](SECURITY.md). This is an alpha; read it before trusting it.
 
 ---
@@ -261,7 +260,7 @@ Full reasoning, including the two doors to the file system and the two canvas re
 
 ```bash
 dotnet build AIClient.slnx     # warnings are errors — that is deliberate
-dotnet test                    # 896 tests, no network and no API key needed
+dotnet test                    # 917 tests, no network and no API key needed
 
 cd electron
 npm install
@@ -315,22 +314,28 @@ Third-party components keep their own licences — 40-odd bundled packages plus 
 
 ## Status
 
-`0.1.0-alpha`. Published as a prerelease, deliberately.
+`0.1.1-alpha`. Published as a prerelease, deliberately.
 
 **Works:** streaming chat, both hosts, the spatial graph and canvas, the agent tool loop with its
 approval gate, the editor, git, sessions and bundles, three languages.
 
-**Known not to work well** — all listed in [CHANGELOG](CHANGELOG.md#known-limitations), all listed
-with file references in [SECURITY.md](SECURITY.md#known-gaps):
+**Fixed since `0.1.0-alpha`** — two security holes in the out-of-project file door, and two ways of
+losing your work:
 
-1. A Windows junction can defeat the credential-filename rules for out-of-project file access.
-2. Two approvals arriving together can hang a run instead of failing it.
-3. The event stream has no heartbeat and no reconnect — a dropped connection loses the run.
-4. The editor writes to disk on every keystroke, with no debounce.
-5. The renderer persists workspace file contents into `localStorage`; large projects can exceed the
-   browser quota.
-6. The newest surfaces — external file tools, the fetcher, the server, the git operations — have no
-   test coverage. The fixes made for this release *are* covered.
+- One approval on an external file read used to grant read access to the whole disk for the rest of the
+  run. Every out-of-project operation is now its own question.
+- Out-of-project paths were checked as text, so a Windows junction could walk around the
+  credential-filename rules. Links are now resolved before anything is checked.
+- The editor wrote the whole file on every keystroke. Writes are debounced, with an **Unsaved**
+  indicator and an automatic flush before you switch session, export or quit.
+- The renderer was duplicating every file's text into browser storage against a 5–10 MB cap, and would
+  stop saving *silently* when it filled. That duplication is gone.
+
+**Still open**, listed with file references in
+[SECURITY.md](SECURITY.md#known-gaps): conversations are not encrypted at rest (deliberate, and your
+Windows account can read them either way), the sidecar has no request-size limit or rate limiter beyond
+Kestrel's default, the Electron main and preload scripts get no type checking, and the newest agent
+tools have no test coverage.
 
 This is a `0.x` version from a small project with no funding behind it. It is built in the open,
 issues are answered best-effort, and there is no SLA. If you need one, that is a conversation with a

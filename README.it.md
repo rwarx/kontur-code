@@ -146,10 +146,10 @@ stesso strumento.
 
 **Tutto ciò che sta fuori da quella cartella è opt-in, e resta spento finché non lo accendi.** Il recupero
 dalla rete e l'accesso a file fuori dal progetto sono interruttori separati nelle Impostazioni, e ogni
-chiamata passa comunque per la richiesta di approvazione.
+chiamata passa comunque per la richiesta di approvazione. **Per essi non viene memorizzata nessuna
+risposta**: una domanda, una lettura o una scrittura.
 
-> Il modello di contenimento completo — e **otto lacune note**, tra cui una che permette a un junction
-> di Windows di aggirare le regole sui nomi dei file di credenziale per i file fuori dal progetto — è in
+> Il modello di contenimento completo — e **ciò che resta aperto**, che ora è un elenco breve — è in
 > [SECURITY.md](SECURITY.md). Questa è un'alpha; leggilo prima di fidarti.
 
 ---
@@ -327,23 +327,30 @@ Chromium — catalogati in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Stato
 
-`0.1.0-alpha`. Pubblicata come prerelease, deliberatamente.
+`0.1.1-alpha`. Pubblicata come prerelease, deliberatamente.
 
 **Funziona:** chat in streaming, entrambi gli host, il grafo e la tela spaziali, il ciclo di strumenti
 dell'agente con il suo gate di approvazione, l'editor, git, sessioni e bundle, tre lingue.
 
-**Sappiamo che non funziona bene** — tutto elencato in [CHANGELOG](CHANGELOG.md#known-limitations),
-tutto elencato con riferimenti ai file in [SECURITY.md](SECURITY.md#known-gaps):
+**Corretto da `0.1.0-alpha`** — due falle di sicurezza nella porta dei file fuori dal progetto e due
+modi di perdere il tuo lavoro:
 
-1. Un junction di Windows può aggirare le regole sui nomi dei file di credenziale per l'accesso a file
-   fuori dal progetto.
-2. Due approvazioni che arrivano insieme possono bloccare un'esecuzione invece di farla fallire.
-3. Lo stream di eventi non ha heartbeat né riconnessione — una connessione persa perde l'esecuzione.
-4. L'editor scrive su disco a ogni tasto premuto, senza debounce.
-5. Il renderer persiste il contenuto dei file dell'area di lavoro in `localStorage`; i progetti grandi
-   possono superare la quota del browser.
-6. Le superfici più recenti — gli strumenti per i file esterni, il fetcher, il server, le operazioni
-   git — non hanno copertura nei test. Le correzioni fatte per questa release *sono* coperte.
+- Un'approvazione su una lettura di file esterno concedeva l'accesso in lettura a tutto il disco per il
+  resto dell'esecuzione. Ora ogni operazione fuori dal progetto è una domanda a sé.
+- I percorsi fuori dal progetto venivano controllati come testo, così un junction di Windows poteva
+  aggirare le regole sui nomi dei file di credenziale. Ora i link vengono risolti prima di qualsiasi
+  controllo.
+- L'editor scriveva l'intero file a ogni tasto premuto. Ora le scritture sono ritardate, con un
+  indicatore **non salvato** e un flush automatico prima che tu cambi sessione, esporti o esca.
+- Il renderer duplicava il testo di ogni file nell'archivio del browser, con un limite di 5–10 MB, e
+  smetteva di salvare *silenziosamente* quando si riempiva. Quella duplicazione è sparita.
+
+**Ancora aperto**, elencato con riferimenti ai file in
+[SECURITY.md](SECURITY.md#known-gaps): le conversazioni non sono cifrate a riposo (di proposito, e il tuo
+account Windows può leggerle comunque), il sidecar non ha un limite alla dimensione della richiesta né
+un limitatore di richieste oltre al valore predefinito di Kestrel, gli script principale e preload di
+Electron non ricevono alcuna verifica dei tipi e gli strumenti dell'agente più recenti non hanno
+copertura nei test.
 
 Questa è una versione `0.x` di un progetto piccolo e senza alcun finanziamento dietro. È costruito in
 pubblico, le issue vengono risposte secondo le migliori possibilità e non esiste una SLA. Se ti serve

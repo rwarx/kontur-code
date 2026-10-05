@@ -464,20 +464,16 @@ credential-shaped filenames by name, and caps what one call can return.
 
 **Door two — external files.** `IExternalFileService` exists because some work is
 genuinely outside a project folder, and it takes absolute paths, so none of the
-workspace's relative-path guarantees apply. It rebuilds the guard from scratch: the
-application's own data directory and every credential-shaped name are refused
-outright, and writes to operating-system folders on top of that.
+workspace's relative-path guarantees apply. It rebuilds the guard from scratch:
+links are resolved first, and it is the **resolved** location that the
+credential-name list, the application's own data directory and the operating-system
+folders are applied to. A junction named `pub` therefore cannot present innocent
+segments and deliver `.ssh\config`.
 
-It is not a way around the sandbox. The tools that call it are gated on a setting
-that is **off until the user turns it on**, and each call is put in front of the
-approval gate.
-
-> **Known gap.** `ExternalFileService` checks the sensitive-name list over the
-> *textual* segments, where `WorkspaceService` also resolves reparse points. A
-> pre-existing junction inside an allowed path can therefore defeat the
-> name-based list. This is the first entry in
-> [SECURITY.md § Known gaps](SECURITY.md#known-gaps) and the highest-priority fix
-> after this release.
+It is not a way around the sandbox. The five tools that call it declare
+`AgentToolRisk.Execute`, which is excluded from the remembered "yes" a run can
+accumulate — so every one is a question, every time, and the switch is **off until
+the user turns it on**.
 
 ### Running a program, which neither door contains
 

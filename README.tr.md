@@ -262,18 +262,18 @@ Lütfen **bir güvenlik açığı için herkese açık bir konu açmayın** — 
 
 ## Durum
 
-`0.1.0-alpha`. Bilinçli olarak bir ön sürüm olarak yayımlandı.
+`0.1.1-alpha`. Bilinçli olarak bir ön sürüm olarak yayımlandı.
 
 **Çalışıyor:** akışlı sohbet, her iki host, uzamsal grafik ve tuval, onay kapısıyla birlikte ajanın araç döngüsü, düzenleyici, git, oturumlar ve paketler, üç dil.
 
-**İyi çalışmadığı bilinenler** — hepsi [CHANGELOG](CHANGELOG.md#known-limitations) içinde, hepsi dosya başvurularıyla [SECURITY.md](SECURITY.md#known-gaps) içinde listelendi:
+**`0.1.0-alpha`'dan bu yana düzeltilenler** — proje dışı dosyalar kapısındaki iki güvenlik açığı ve çalışma sırasında işin kaybolmasına yol açan iki yol:
 
-1. Bir Windows junction'ı, proje dışı dosya erişimi için kimlik bilgisi dosya adı kurallarını geçebilir.
-2. Aynı anda gelen iki onay, bir çalışmayı başarısızlığa düşürmek yerine kilitleyebilir.
-3. Olay akışının ne kalp atışı ne de yeniden bağlanma mantığı vardır — düşen bir bağlantı çalışmayı kaybeder.
-4. Düzenleyici, debounce olmadan her tuş vuruşunda diske yazar.
-5. İşleyici çalışma alanı dosyalarının içeriğini `localStorage` içinde kalıcılaştırır; büyük projeler tarayıcı kotasını aşabilir.
-6. En yeni yüzeyler — dış dosya araçları, getirici, sunucu, git işlemleri — test kapsamına sahip değildir. Bu sürüm için yapılan düzeltmeler *kapsanmıştır*.
+- Proje dışı bir dosyayı okumaya verilen tek bir onay, çalışmanın geri kalanında diskin tamamını okuma yetkisi veriyordu. Artık proje dışındaki her işlem kendi sorusunu sorar.
+- Proje dışı yollar metin olarak denetlendiği için bir Windows junction'ı kimlik bilgisi dosya adı kurallarını atlayabiliyordu. Artık bağlantılar herhangi bir şey denetlenmeden önce çözülüyor.
+- Düzenleyici her tuş vuruşunda dosyanın tamamını yazıyordu. Artık yazmalar debounce'lu, bir **Kaydedilmedi** göstergesiyle ve oturum değiştirmeden, dışa aktarmadan ya da çıkmadan önce otomatik boşaltmayla birlikte.
+- İşleyici her dosyanın içeriğini 5–10 MB kotaya karşı tarayıcı deposuna kopyalıyordu ve dolduğunda **sessizce** hiçbir şeyi kaydetmeyi bırakıyordu. Bu kopyalama gitti.
+
+**Hâlâ açık olanlar**, dosya başvurularıyla [SECURITY.md](SECURITY.md#known-gaps) içinde listelendi: konuşmalar diskte şifrelenmiyor (bu bilinçli bir tercih ve zaten Windows hesabınız onları okuyabilir), sidecar'da Kestrel'in varsayılanı dışında istek boyutu ya da hız sınırı yok, Electron'un main ve preload betikleri tip denetiminden geçmiyor ve en yeni ajan araçlarının testi yok.
 
 Bu, arkasında hiçbir finansman olmayan küçük bir projeden gelen `0.x` sürümüdür. Herkesin önünde geliştirilir, konular elden geldiğince yanıtlanır ve bir SLA yoktur. Bir SLA'ya ihtiyacınız varsa bu, bu depoyla değil bir satıcıyla yapılacak bir konuşmadır.
 

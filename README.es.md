@@ -147,12 +147,11 @@ usar la misma herramienta tres veces.
 
 **Todo lo que está fuera de esa carpeta es opcional y permanece apagado hasta que lo actives.** El
 fetcher de red y el acceso a archivos fuera del proyecto son interruptores separados en Ajustes, y
-cada llamada sigue pasando por la solicitud de aprobación.
+cada llamada sigue pasando por la solicitud de aprobación. **Para ellos no se recuerda ninguna
+respuesta**: una pregunta, una lectura o una escritura.
 
-> El modelo completo de aislamiento —y **ocho huecos conocidos**, incluido uno que permite que una
-> junction de Windows supere las reglas de nombres de archivo con credenciales para archivos fuera
-> del proyecto— está en [SECURITY.md](SECURITY.md). Esto es una alpha; léelo antes de confiar en
-> él.
+> El modelo completo de aislamiento —y **lo que sigue abierto**, que ahora es una lista corta— está
+> en [SECURITY.md](SECURITY.md). Esto es una alpha; léelo antes de confiar en él.
 
 ---
 
@@ -332,25 +331,31 @@ y Chromium, catalogados en [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Estado
 
-`0.1.0-alpha`. Publicado como prerelease, a propósito.
+`0.1.1-alpha`. Publicado como prerelease, a propósito.
 
 **Funciona:** chat en streaming, ambos hosts, el grafo espacial y el lienzo, el bucle de herramientas
 del agente con su puerta de aprobación, el editor, git, sesiones y paquetes, tres idiomas.
 
-**Se sabe que no funciona bien** —todo está en
-[CHANGELOG](CHANGELOG.md#known-limitations), todo está con referencias a ficheros en
-[SECURITY.md](SECURITY.md#known-gaps):
+**Arreglado desde `0.1.0-alpha`** — dos agujeros de seguridad en la puerta de archivos fuera del
+proyecto y dos formas de perder tu trabajo:
 
-1. Una junction de Windows puede superar las reglas de nombres de archivo con credenciales para el
-   acceso a archivos fuera del proyecto.
-2. Dos aprobaciones que llegan a la vez pueden dejar colgada una ejecución en lugar de fallarla.
-3. El flujo de eventos no tiene latido ni reconexión: una conexión perdida pierde la ejecución.
-4. El editor escribe en disco con cada pulsación de tecla, sin rebote.
-5. El renderer persiste el contenido de los archivos del espacio de trabajo en `localStorage`; los
-   proyectos grandes pueden superar la cuota del navegador.
-6. Las superficies más nuevas —las herramientas de archivo externo, el fetcher, el servidor, las
-   operaciones de git— no tienen cobertura de pruebas. Los arreglos hechos para esta versión *sí*
-   están cubiertos.
+- Una aprobación en una lectura de archivo externo solía dar acceso de lectura a todo el disco durante
+  el resto de la ejecución. Ahora cada operación fuera del proyecto es su propia pregunta.
+- Las rutas fuera del proyecto se comprobaban como texto, así que una junction de Windows podía
+  rodear las reglas de nombres de archivo con credenciales. Ahora los enlaces se resuelven antes de
+  comprobar nada.
+- El editor escribía el archivo entero con cada pulsación de tecla. Ahora las escrituras tienen
+  rebote, con un indicador **sin guardar** y un volcado automático antes de que cambies de sesión,
+  exportes o salgas.
+- El renderer duplicaba el texto de cada archivo en el almacenamiento del navegador, con un tope de
+  5–10 MB, y dejaba de guardar *en silencio* cuando se llenaba. Esa duplicación ya no está.
+
+**Sigue abierto**, con referencias a ficheros en
+[SECURITY.md](SECURITY.md#known-gaps): las conversaciones no están cifradas en reposo (a propósito, y
+tu cuenta de Windows puede leerlas de todos modos), el sidecar no tiene tope de tamaño de petición
+ningun limitador de peticiones más allá del valor predeterminado de Kestrel, los scripts principal y
+preload de Electron no pasan comprobación de tipos, y las herramientas más recientes del agente no
+tienen cobertura de pruebas.
 
 Esta es una versión `0.x` de un proyecto pequeño sin financiación detrás. Se construye en abierto,
 las incidencias se responden en la medida de lo posible y no hay SLA. Si necesitas uno, eso es una

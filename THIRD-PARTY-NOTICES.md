@@ -71,19 +71,20 @@ Runtime dependencies that are actually reachable from the shipped renderer:
 | [CodeMirror 6](https://github.com/codemirror) — `state`, `view`, `commands`, `language`, `search`, `autocomplete`, `legacy-modes`, `highlight` | MIT |
 | [Lezer](https://github.com/lezer) — `@lezer/highlight` | MIT |
 | [CodeMirror language grammars](https://github.com/codemirror/lang) — cpp, css, html, java, javascript, json, markdown, python, rust, xml | MIT |
-| `@radix-ui/react-switch`, `@radix-ui/react-slider` | MIT |
+| `@radix-ui/react-switch`, `@radix-ui/react-slider`, `@radix-ui/react-toast` | MIT |
 
 ### Unused packages present in `package.json`
 
-`electron/package.json` declares roughly forty dependencies that no shipped code
-imports: the remaining `@radix-ui/*` packages, `recharts`, `cmdk`,
-`embla-carousel-react`, `react-day-picker`, `react-hook-form`,
-`react-resizable-panels`, `vaul`, `input-otp` and friends. They came in with a UI
-kit and are not used by `components/kontur/`.
+**None.** `electron/package.json` used to carry 36 dependencies that no shipped code imported — the
+rest of a shadcn UI kit, along with `cmdk`, `date-fns`, `embla-carousel-react`, `framer-motion`,
+`input-otp`, `jszip`, `react-day-picker`, `react-hook-form`, `react-resizable-panels`, `recharts`,
+`sonner` and `vaul`. They were never bundled into a build, so removing them was not a size win; it
+removed 36 packages from the tree that anyone running `npm install` pulls in, which is the
+supply-chain surface that actually matters.
 
-They are **not** bundled into a build, so they do not ship. They are still a
-dependency review burden and a supply-chain surface for anyone who runs
-`npm install`, so removing them is tracked in `CHANGELOG.md`.
+What remains in the renderer is 28 packages: React, CodeMirror 6 and its grammars, `@lezer/highlight`,
+three Radix packages (`switch`, `slider`, `toast`), `clsx`, `tailwind-merge`,
+`class-variance-authority`, `lucide-react` and `zustand`.
 
 ---
 

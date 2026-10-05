@@ -149,11 +149,11 @@ dreimal nach demselben Tool greift.
 
 **Alles außerhalb dieses Ordners ist Opt-in und bleibt aus, bis du es einschaltest.** Netzwerk-
 Abrufe und Dateizugriff außerhalb des Projekts sind getrennte Schalter in den Einstellungen, und
-jeder Aufruf geht weiterhin durch die Freigabeabfrage.
+jeder Aufruf geht weiterhin durch die Freigabeabfrage. **Für sie wird keine Antwort gemerkt** — eine
+Frage, ein Lesen oder ein Schreiben.
 
-> Das vollständige Eingrenzungsmodell — und **acht bekannte Lücken**, darunter eine, mit der eine
-> Windows-Junction die Regeln für Dateinamen mit Anmeldedaten für Dateien außerhalb des Projekts
-> umgehen kann — steht in [SECURITY.md](SECURITY.md). Das ist eine Alpha; lies es, bevor du ihm
+> Das vollständige Eingrenzungsmodell — und **was noch offen ist**, und das ist jetzt eine kurze
+> Liste — steht in [SECURITY.md](SECURITY.md). Das ist eine Alpha; lies es, bevor du ihm
 > vertraust.
 
 ---
@@ -335,27 +335,32 @@ und Chromium —, katalogisiert in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.
 
 ## Status
 
-`0.1.0-alpha`. Bewusst als Vorabversion veröffentlicht.
+`0.1.1-alpha`. Bewusst als Vorabversion veröffentlicht.
 
 **Funktioniert:** Chat im Streaming, beide Hosts, der räumliche Graph und das Canvas, die
 Tool-Schleife des Agenten mit ihrem Freigabe-Tor, der Editor, git, Sitzungen und Pakete, drei
 Sprachen.
 
-**Bekannt nicht gut** — alles in [CHANGELOG](CHANGELOG.md#known-limitations) aufgeführt, alles mit
-Dateiverweisen in [SECURITY.md](SECURITY.md#known-gaps):
+**Behoben seit `0.1.0-alpha`** — zwei Sicherheitslücken in der Tür zu Dateien außerhalb des
+Projekts und zwei Wege, deine Arbeit zu verlieren:
 
-1. Eine Windows-Junction kann die Regeln für Dateinamen mit Anmeldedaten für den Zugriff auf Dateien
-   außerhalb des Projekts umgehen.
-2. Zwei gleichzeitig eintreffende Freigaben können einen Lauf hängen lassen, statt ihn fehlschlagen
-   zu lassen.
-3. Der Ereignisstream hat keinen Heartbeat und kein Wiederverbinden — eine abgerissene Verbindung
-   verliert den Lauf.
-4. Der Editor schreibt bei jedem Tastendruck auf die Platte, ohne Debounce.
-5. Der Renderer persistiert den Inhalt von Arbeitsbereichsdateien in `localStorage`; große Projekte
-   können das Browser-Kontingent überschreiten.
-6. Die neuesten Flächen — Tools für externe Dateien, der Netzwerk-Abruf, der Server, die
-   git-Operationen — haben keine Testabdeckung. Die für diese Veröffentlichung gemachten
-   Korrekturen *sind* abgedeckt.
+- Eine Freigabe für das Lesen einer externen Datei gewährte bisher für den Rest des Laufs Lesezugriff
+  auf die ganze Festplatte. Jeder Vorgang außerhalb des Projekts ist jetzt eine eigene Frage.
+- Pfade außerhalb des Projekts wurden als Text geprüft, sodass eine Windows-Junction die Regeln für
+  Dateinamen mit Anmeldedaten umgehen konnte. Links werden jetzt aufgelöst, bevor irgendetwas geprüft
+  wird.
+- Der Editor schrieb bei jedem Tastendruck die ganze Datei. Schreibvorgänge sind jetzt entprellt, mit
+  einer Anzeige **Nicht gespeichert** und einem automatischen Flush, bevor du die Sitzung wechselst,
+  exportierst oder beendest.
+- Der Renderer duplizierte den Text jeder Datei im Browserspeicher, gegen eine Grenze von 5–10 MB,
+  und hörte dann *stillschweigend* auf zu speichern, wenn der voll war. Diese Duplizierung ist weg.
+
+**Noch offen**, mit Dateiverweisen aufgeführt in
+[SECURITY.md](SECURITY.md#known-gaps): Unterhaltungen sind im Ruhezustand nicht verschlüsselt
+(absichtlich, und dein Windows-Konto kann sie ohnehin lesen), der Sidecar hat über Kestrels Standard
+hinaus weder eine Begrenzung der Anfragegröße noch einen Ratenbegrenzer, die Electron-Haupt- und
+-Preload-Skripte werden nicht typgeprüft, und die neuesten Werkzeuge des Agenten haben keine
+Testabdeckung.
 
 Das ist eine `0.x`-Version aus einem kleinen Projekt ohne Geld im Hintergrund. Sie wird offen
 gebaut, Issues werden nach bestem Wissen beantwortet, und es gibt keine SLA. Wenn du eine

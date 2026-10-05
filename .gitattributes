@@ -1,0 +1,45 @@
+# Normalise line endings in the repository, and decide them once rather than
+# per-developer. Without this, `core.autocrlf` on a Windows checkout means the
+# same file can be LF in one clone and CRLF in another, and every commit that
+# touches a file someone else also touched shows the whole file as changed.
+
+* text=auto eol=lf
+
+# Anything that must keep its bytes exactly: binaries, and fixtures whose
+# content is the test.
+*.png    binary
+*.ico    binary
+*.jpg    binary
+*.exe    binary
+*.dll    binary
+*.pdb    binary
+*.asar   binary
+*.zip    binary
+*.woff   binary
+*.woff2  binary
+
+# Lockfiles are generated; CRLF in them is noise.
+package-lock.json  -text
+pnpm-lock.yaml      -text
+yarn.lock          -text
+
+# Generated EF Core migrations carry a BOM and CRLF by design, and rewriting
+# either makes every future migration look like a whole-file change.
+src/AIClient.Infrastructure/Database/Migrations/** -text
+
+# Normal documentation and source.
+*.cs       text eol=lf
+*.csproj  text eol=lf
+*.props   text eol=lf
+*.slnx    text eol=lf
+*.ts      text eol=lf
+*.tsx     text eol=lf
+*.js      text eol=lf
+*.json    text eol=lf
+*.md      text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.css     text eol=lf
+*.html    text eol=lf
+*.cmd     text eol=lf
+*.sh      text eol=lf
